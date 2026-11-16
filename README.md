@@ -232,7 +232,7 @@ Kredensial admin **awal** biasanya sesuai `admin_username` / `admin_password` di
 
 ## 📱 Aplikasi Android Native (APK)
 
-Aplikasi Android resmi **Alijaya** adalah aplikasi native multifungsi untuk semua peran (**Pelanggan**, **Agen Mitra**, **Teknisi Lapangan**, **Kolektor**, dan **Admin**) yang terhubung langsung ke backend server billing ini.
+Aplikasi Android resmi **RRR** adalah aplikasi native multifungsi untuk semua peran (**Pelanggan**, **Agen Mitra**, **Teknisi Lapangan**, **Kolektor**, dan **Admin**) yang terhubung langsung ke backend server billing ini.
 
 ### 📥 Download File APK
 1. **Langsung dari Web Server**:
