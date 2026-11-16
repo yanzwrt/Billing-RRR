@@ -49,13 +49,24 @@ document.addEventListener('DOMContentLoaded', () => {
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 <aside class="sidebar" id="sidebar">
   <div class="sb-brand" style="flex-direction: column; align-items: stretch;">
+  
     <!-- Baris 1: Logo, Nama Perusahaan, dan Tombol Close -->
     <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
-      <div class="sb-icon" style="flex-shrink: 0;"><i class="bi bi-wifi"></i></div>
-      <div style="flex: 1; min-width: 0;">
+      <div class="sb-icon" style="flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 12px;">
+        <% if (typeof logo !== 'undefined' && logo) { %>
+          <img src="<%= logo %>" alt="Logo" style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px;">
+        <% } else { %>
+          <!-- Fallback jika variabel logo belum diset, coba panggil /img/logo.png -->
+          <img src="/img/logo.png" alt="Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px;">
+          <i class="bi bi-wifi" style="display: none;"></i>
+        <% } %>
+      </div>
+	  
+	  <div style="flex: 1; min-width: 0;">
         <div class="sb-name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><%= company %></div>
         <div class="sb-sub"><%= t('admin.panel', 'Admin Panel') %></div>
       </div>
+	  
       <button class="sb-close btn-g btn-sm" onclick="toggleSidebar()" style="flex-shrink: 0;"><i class="bi bi-x-lg"></i></button>
     </div>
 
@@ -71,6 +82,15 @@ document.addEventListener('DOMContentLoaded', () => {
       <button type="button" class="btn btn-g btn-sm theme-toggle-btn" onclick="toggleAppTheme()" title="Ganti Tema" style="padding: 3px 8px; font-size: 11px;">
         <i class="bi bi-moon-stars-fill theme-toggle-icon" style="color:#fbbf24"></i> Tema
       </button>
+    </div>
+	
+	<!-- Kotak Sapaan & Jam Realtime WIB Tepat di Bawah Tombol -->
+    <div style="margin-top: 8px; padding: 6px 10px; background: rgba(0, 0, 0, 0.05); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; width: 100%; box-sizing: border-box;">
+      <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600;">
+        <i id="sbGreetingIcon" class="bi bi-sun-fill" style="color: #f59e0b;"></i>
+        <span id="sbGreetingText" style="color: inherit;">Selamat Datang</span>
+      </div>
+      <span id="sbLiveClock" style="font-size: 11px; font-weight: 700; color: #0284c7; font-family: monospace;">--:--:-- WIB</span>
     </div>
 
     <!-- Baris 3: Kotak Filter Router (Full Lebar) -->
@@ -175,6 +195,43 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
 </div>
+
+<script>
+(function() {
+  function updateSidebarGreetingAndClock() {
+    // Menghitung waktu khusus zona WIB (UTC+7)
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const wibTime = new Date(utc + (3600000 * 7));
+
+    const hours = wibTime.getHours();
+    const minutes = String(wibTime.getMinutes()).padStart(2, '0');
+    const seconds = String(wibTime.getSeconds()).padStart(2, '0');
+
+    // Menentukan sapaan berdasarkan jam WIB
+    let greeting = 'Selamat Malam';
+    if (hours >= 4 && hours < 11) {
+      greeting = 'Selamat Pagi';
+    } else if (hours >= 11 && hours < 15) {
+      greeting = 'Selamat Siang';
+    } else if (hours >= 15 && hours < 18) {
+      greeting = 'Selamat Sore';
+    }
+
+    // Pasang ke elemen UI
+    const greetingEl = document.getElementById('sbGreetingText');
+    const clockEl = document.getElementById('sbLiveClock');
+
+    if (greetingEl) greetingEl.textContent = greeting;
+    if (clockEl) clockEl.textContent = `${String(hours).padStart(2, '0')}:${minutes}:${seconds} WIB`;
+  }
+
+  // Jalankan langsung saat halaman termuat
+  updateSidebarGreetingAndClock();
+  // Perbarui jam setiap detik secara realtime
+  setInterval(updateSidebarGreetingAndClock, 1000);
+})();
+</script>
 
 <script>
   function toggleSidebar() {

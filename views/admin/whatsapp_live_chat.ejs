@@ -11,16 +11,42 @@
     .chat-inbox-header { padding: 12px 16px; border-bottom: 1px solid var(--border); font-weight: 700; display: flex; align-items: center; justify-content: space-between; }
     .chat-inbox-search { padding: 10px 14px; border-bottom: 1px solid var(--border); }
     .chat-user-list { flex: 1; overflow-y: auto; }
-    .chat-user-item { padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .15s; display: flex; gap: 12px; align-items: center; }
+    
+    .chat-user-item { padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .15s; display: flex; gap: 10px; align-items: center; position: relative; }
     .chat-user-item:hover { background: rgba(255,255,255,0.04); }
     .chat-user-item.active { background: var(--pdim) !important; border-left: 3px solid var(--primary); }
-    .chat-user-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0; }
+    .chat-user-item:hover .btn-del-user { opacity: 1; }
+    .btn-del-user { opacity: 0; transition: opacity .15s; background: none; border: none; color: #ef4444; font-size: 13px; padding: 2px 4px; border-radius: 4px; cursor: pointer; flex-shrink: 0; }
+    .btn-del-user:hover { background: rgba(239, 68, 68, 0.15); }
+
+
+    .chat-user-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0; position: relative; }
     .chat-user-info { flex: 1; min-width: 0; }
-    .chat-user-name { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+    .chat-user-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+    .chat-user-name { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); display: flex; align-items: center; gap: 6px; }
     .chat-user-last { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
     .chat-user-time { font-size: 10px; color: var(--muted); flex-shrink: 0; }
 
-    .chat-main { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
+    /* Badge Pesan Baru (Bulat Hijau Bersinar) */
+    .chat-unread-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 18px; height: 18px; padding: 0 5px;
+      font-size: 10px; font-weight: 800; color: #ffffff;
+      background: #10b981; border-radius: 10px;
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+      animation: pulseBadge 2s infinite ease-in-out;
+      flex-shrink: 0;
+    }
+    @keyframes pulseBadge {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    .chat-user-item.has-unread .chat-user-name { color: #10b981; }
+    .chat-user-item.has-unread .chat-user-last { font-weight: 700; color: var(--text); }
+
+
+    .chat-main { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; height: 100%; }
     .chat-main-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--bg); }
     .chat-main-title { font-weight: 700; font-size: 15px; }
     .chat-messages { flex: 1; padding: 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: rgba(0,0,0,0.02); }
@@ -28,8 +54,17 @@
     .msg-bubble { max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.4; position: relative; word-wrap: break-word; }
     .msg-bubble.inbound { align-self: flex-start; background: var(--bg3); color: var(--text); border-bottom-left-radius: 2px; }
     .msg-bubble.outbound { align-self: flex-end; background: var(--primary); color: #ffffff; border-bottom-right-radius: 2px; }
-    .msg-meta { font-size: 10px; opacity: 0.75; text-align: right; margin-top: 4px; display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+    .msg-meta { font-size: 10px; opacity: 0.75; text-align: right; margin-top: 4px; display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+	/* Tampilan Centang WhatsApp Asli */
+    .msg-status-tick { font-size: 12px; font-weight: 700; letter-spacing: -2px; margin-left: 2px; }
+    .msg-status-tick.sent { color: rgba(255,255,255,0.7); } /* Centang 1 (Terkirim, HP lawan belum aktif) */
+    .msg-status-tick.delivered { color: rgba(255,255,255,0.95); } /* Centang 2 Abu-abu (HP lawan aktif, pesan masuk) */
+    .msg-status-tick.read { color: #38bdf8 !important; } /* Centang 2 BIRU (Pesan sudah dibaca) */
     .msg-gateway { font-size: 9px; padding: 1px 4px; border-radius: 4px; background: rgba(255,255,255,0.2); }
+    .msg-actions { display: inline-flex; align-items: center; gap: 6px; margin-left: 6px; }
+    .btn-msg-icon { background: none; border: none; padding: 0 2px; color: inherit; cursor: pointer; opacity: 0.7; font-size: 12px; line-height: 1; transition: opacity .15s, transform .1s; }
+    .btn-msg-icon:hover { opacity: 1; transform: scale(1.15); }
+    .btn-del-chat { padding: 4px 10px; font-size: 11px; border-radius: 6px; display: none; align-items: center; gap: 4px; }
 
     .chat-input-area { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 10px; align-items: center; background: var(--bg); }
     .chat-input-area textarea { flex: 1; height: 46px; border-radius: 8px; resize: none; padding: 10px 12px; font-size: 13px; line-height: 1.3; }
@@ -39,6 +74,38 @@
       .chat-inbox { height: 350px; }
       .chat-main { height: 480px; }
     }
+	
+	/* === AWAL TAMBAHAN CSS: MODAL KONFIRMASI MODERN === */
+    .confirm-modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(4px); z-index: 99999;
+      display: none; align-items: center; justify-content: center;
+      animation: fadeInOverlay .18s ease;
+    }
+    .confirm-modal-box {
+      background: var(--bg2); border: 1px solid var(--border);
+      width: 100%; max-width: 420px; border-radius: 14px;
+      padding: 22px; box-shadow: 0 16px 36px rgba(0,0,0,0.3);
+      text-align: center; transform: scale(0.95);
+      animation: popModalBox .18s ease forwards;
+    }
+    @keyframes fadeInOverlay { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes popModalBox { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    
+    .confirm-modal-icon {
+      width: 54px; height: 54px; border-radius: 50%;
+      margin: 0 auto 14px; display: flex; align-items: center; justify-content: center;
+      font-size: 26px;
+    }
+    .confirm-modal-icon.danger { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .confirm-modal-icon.warning { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
+    
+    .confirm-modal-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    .confirm-modal-desc { font-size: 13px; color: var(--muted); line-height: 1.5; margin-bottom: 20px; word-break: break-word; }
+    .confirm-modal-actions { display: flex; gap: 10px; justify-content: center; }
+    .confirm-modal-actions button { min-width: 110px; padding: 8px 16px; font-weight: 600; border-radius: 8px; }
+/* === AKHIR TAMBAHAN CSS: MODAL KONFIRMASI MODERN === */
+	
   </style>
 </head>
 <body>
@@ -69,9 +136,10 @@
       <div class="chat-inbox">
         <div class="chat-inbox-header">
           <span><i class="bi bi-inbox-fill"></i> Percakapan</span>
-          <div style="display:flex;gap:6px">
-            <button class="btn btn-p btn-sm" onclick="openNewChatModal()" title="Mulai Chat Baru"><i class="bi bi-plus-lg"></i> Chat Baru</button>
+          <div style="display:flex;gap:4px">
+            <button class="btn btn-p btn-sm" onclick="openNewChatModal()" title="Mulai Chat Baru"><i class="bi bi-plus-lg"></i></button>
             <button class="btn btn-g btn-sm" onclick="loadConversations()" title="Refresh Chat"><i class="bi bi-arrow-clockwise"></i></button>
+            <button class="btn btn-d btn-sm" onclick="clearAllConversations()" title="Hapus Seluruh Riwayat Chat Semua Orang"><i class="bi bi-trash3-fill"></i></button>
           </div>
         </div>
         <div class="chat-inbox-search">
@@ -85,10 +153,17 @@
       <!-- MAIN CHAT RIGHT PANEL -->
       <div class="chat-main">
         <div class="chat-main-header">
-          <div class="chat-main-title" id="chatHeaderTitle">
-            <i class="bi bi-person-circle"></i> Memuat chat...
+          <div>
+            <div class="chat-main-title" id="chatHeaderTitle">
+              <i class="bi bi-person-circle"></i> Memuat chat...
+            </div>
+            <div id="chatHeaderSub" style="font-size:11px;" class="text-muted"></div>
           </div>
-          <div id="chatHeaderSub" style="font-size:11px;" class="text-muted"></div>
+          <div>
+            <button type="button" class="btn btn-d btn-sm btn-del-chat" id="btnDeleteConversation" onclick="deleteActiveConversation()" title="Hapus Riwayat Chat Orang Ini">
+              <i class="bi bi-trash"></i> Hapus Percakapan
+            </button>
+          </div>
         </div>
 
         <div class="chat-messages" id="chatMessages">
@@ -143,6 +218,22 @@
   </div>
 </div>
 
+<!-- === AWAL TAMBAHAN HTML: DIALOG MODAL KONFIRMASI CUSTOM === -->
+<div class="confirm-modal-overlay" id="customConfirmModal">
+  <div class="confirm-modal-box">
+    <div class="confirm-modal-icon danger" id="customConfirmIcon">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+    </div>
+    <div class="confirm-modal-title" id="customConfirmTitle">Konfirmasi Hapus</div>
+    <div class="confirm-modal-desc" id="customConfirmDesc">Apakah Anda yakin ingin menghapus data ini?</div>
+    <div class="confirm-modal-actions">
+      <button type="button" class="btn btn-g btn-sm" id="customConfirmCancelBtn">Batal</button>
+      <button type="button" class="btn btn-d btn-sm" id="customConfirmOkBtn">Ya, Hapus</button>
+    </div>
+  </div>
+</div>
+<!-- === AKHIR TAMBAHAN HTML: DIALOG MODAL KONFIRMASI CUSTOM === -->
+
 <script>
 let conversationsData = [];
 let activePhone = '';
@@ -167,27 +258,44 @@ async function loadConversations() {
   }
 }
 
+/* === AWAL PERUBAHAN: RENDER USER LIST DENGAN BADGE PESAN BARU === */
 function renderUserList(list) {
   const container = document.getElementById('userList');
   if (!list || list.length === 0) {
-    container.innerHTML = `<div class="text-center text-muted" style="padding:24px;">Belum ada percakapan WhatsApp. Klik <b>+ Chat Baru</b>.</div>`;
+    container.innerHTML = `<div class="text-center text-muted" style="padding:24px;">Belum ada percakapan WhatsApp. Klik <b>+</b> untuk chat baru.</div>`;
     return;
   }
 
   container.innerHTML = list.map(c => {
     const name = c.customer_name || c.phone;
-    const initial = name.charAt(0).toUpperCase();
+    const initial = name.replace(/\(.*?\)/g, '').trim().charAt(0).toUpperCase() || 'W';
     const isActive = c.phone === activePhone ? 'active' : '';
+    const unreadCount = Number(c.unread_count || 0);
+    // Jika chat sedang aktif dibuka, sembunyikan badgenya
+    const showBadge = (unreadCount > 0 && c.phone !== activePhone);
+    const hasUnreadClass = showBadge ? 'has-unread' : '';
+
     const dateStr = c.created_at ? new Date(c.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '';
+    const safeName = escapeHtml(name);
     
     return `
-      <div class="chat-user-item ${isActive}" onclick="openChat('${c.phone}', '${escapeHtml(name)}')">
-        <div class="chat-user-avatar">${initial}</div>
+      <div class="chat-user-item ${isActive} ${hasUnreadClass}" onclick="openChat('${c.phone}', '${safeName}')">
+        <div class="chat-user-avatar">
+          ${initial}
+        </div>
         <div class="chat-user-info">
-          <div class="chat-user-name">${escapeHtml(name)}</div>
+          <div class="chat-user-header">
+            <div class="chat-user-name">
+              <span>${safeName}</span>
+              ${showBadge ? `<span class="chat-unread-badge" title="${unreadCount} pesan baru belum dibuka">${unreadCount}</span>` : ''}
+            </div>
+            <div class="chat-user-time">${dateStr}</div>
+          </div>
           <div class="chat-user-last">${escapeHtml(c.message_text || '')}</div>
         </div>
-        <div class="chat-user-time">${dateStr}</div>
+        <button type="button" class="btn-del-user" title="Hapus chat orang ini" onclick="deleteConversationByPhone(event, '${c.phone}', '${safeName}')">
+          <i class="bi bi-trash"></i>
+        </button>
       </div>
     `;
   }).join('');
@@ -218,7 +326,6 @@ function startNewChatFromModal() {
   }
   closeModal('newChatModal');
   
-  // Find customer name if exists
   const selectEl = document.getElementById('selectCustomerPhone');
   const selectedOption = Array.from(selectEl.options).find(o => o.value === phoneVal);
   const name = selectedOption ? selectedOption.text.split(' (')[0] : phoneVal;
@@ -226,6 +333,7 @@ function startNewChatFromModal() {
   openChat(phoneVal, name);
 }
 
+/* === AWAL PERUBAHAN: OPENCHAT DENGAN TRIGGER MARK-READ === */
 async function openChat(phone, name) {
   activePhone = phone;
   document.getElementById('activePhone').value = phone;
@@ -234,15 +342,26 @@ async function openChat(phone, name) {
   
   const inputEl = document.getElementById('chatInput');
   const sendBtn = document.getElementById('sendBtn');
+  const delChatBtn = document.getElementById('btnDeleteConversation');
+  
   inputEl.disabled = false;
   sendBtn.disabled = false;
-  
-  // Highlight active user in inbox
-  renderUserList(conversationsData);
+  if (delChatBtn) delChatBtn.style.display = 'inline-flex';
 
-  // Load chat messages
+  const found = conversationsData.find(c => c.phone === phone);
+  if (found) found.unread_count = 0;
+
+  renderUserList(conversationsData);
   loadChatMessages(phone, true);
+
+  // Kirim sinyal ke WA server bahwa admin telah membuka dan membaca chat ini (Centang Biru)
+  fetch('/admin/api/whatsapp/mark-read', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone })
+  }).catch(() => {});
 }
+/* === AKHIR PERUBAHAN === */
 
 async function loadChatMessages(phone, showSpinner = false) {
   const container = document.getElementById('chatMessages');
@@ -256,23 +375,50 @@ async function loadChatMessages(phone, showSpinner = false) {
     if (data.ok) {
       const messages = data.messages || [];
       if (messages.length === 0) {
-        container.innerHTML = `<div class="text-center text-muted" style="margin:auto;">Belum ada pesan dengan pelanggan ini. Ketik pesan di bawah dan tekan Enter untuk memulai.</div>`;
+        container.innerHTML = `<div class="text-center text-muted" style="margin:auto;">Belum ada pesan dengan nomor ini. Ketik pesan di bawah dan tekan Enter untuk memulai.</div>`;
         return;
       }
       
+      /* === AWAL PERUBAHAN: STATUS CENTANG 1 VS CENTANG 2 VS CENTANG BIRU === */
       container.innerHTML = messages.map(m => {
         const isOutbound = m.direction === 'outbound';
         const timeStr = m.created_at ? new Date(m.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '';
         const gatewayBadge = m.gateway === 'meta' ? 'Meta API' : 'Baileys';
-        const statusIcon = m.status === 'read' ? '✓✓' : m.status === 'delivered' ? '✓✓' : '✓';
         
+        // Logika Centang:
+        // status 'read' = Centang 2 Biru
+        // status 'delivered' = Centang 2 Abu-abu (Tanda HP aktif dan pesan masuk)
+        // status 'sent' = Centang 1 Abu-abu (Terkirim ke server WA, tapi HP tujuan belum menerima/tidak aktif)
+        let tickHtml = '';
+        if (isOutbound) {
+          if (m.status === 'read') {
+            tickHtml = '<span class="msg-status-tick read" title="Sudah Dibaca">✓✓</span>';
+          } else if (m.status === 'delivered') {
+            tickHtml = '<span class="msg-status-tick delivered" title="Tersampaikan ke HP (Aktif)">✓✓</span>';
+          } else {
+            tickHtml = '<span class="msg-status-tick sent" title="Terkirim ke server (HP belum menerima / offline)">✓</span>';
+          }
+        }
+
+        const rawText = m.message_text || '';
+        const escapedText = escapeHtml(rawText);
+
         return `
-          <div class="msg-bubble ${isOutbound ? 'outbound' : 'inbound'}">
-            <div>${escapeHtml(m.message_text).replace(/\n/g, '<br>')}</div>
+          <div class="msg-bubble ${isOutbound ? 'outbound' : 'inbound'}" id="msg-row-${m.id}">
+            <div>${escapedText.replace(/\n/g, '<br>')}</div>
             <div class="msg-meta">
               <span class="msg-gateway">${gatewayBadge}</span>
               <span>${timeStr}</span>
-              ${isOutbound ? `<span>${statusIcon}</span>` : ''}
+              ${tickHtml}
+              <div class="msg-actions">
+
+                <button type="button" class="btn-msg-icon" onclick="copyTextMessage(this, \`${escapedText.replace(/`/g, '\\`')}\`)" title="Salin Pesan">
+                  <i class="bi bi-clipboard"></i>
+                </button>
+                <button type="button" class="btn-msg-icon text-danger" onclick="deleteSingleMessage(${m.id})" title="Hapus Pesan Ini">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
             </div>
           </div>
         `;
@@ -285,6 +431,210 @@ async function loadChatMessages(phone, showSpinner = false) {
       container.innerHTML = `<div class="text-center text-danger" style="margin:auto;">Gagal memuat pesan: ${e.message}</div>`;
     }
   }
+}
+
+function copyTextMessage(btn, text) {
+  if (!navigator.clipboard) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  } else {
+    navigator.clipboard.writeText(text);
+  }
+
+  const icon = btn.querySelector('i');
+  if (icon) {
+    icon.className = 'bi bi-check-lg text-success';
+    setTimeout(() => {
+      icon.className = 'bi bi-clipboard';
+    }, 1500);
+  }
+}
+
+/* === AWAL PERUBAHAN JAVASCRIPT: CUSTOM CONFIRM MODAL === */
+
+// Fungsi Helper untuk memunculkan Modal Konfirmasi Modern
+function showConfirmDialog({
+  title = 'Konfirmasi Hapus',
+  desc = 'Apakah Anda yakin ingin menghapus item ini?',
+  okText = 'Ya, Hapus',
+  cancelText = 'Batal',
+  type = 'danger' // 'danger' atau 'warning'
+}) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('customConfirmModal');
+    const titleEl = document.getElementById('customConfirmTitle');
+    const descEl = document.getElementById('customConfirmDesc');
+    const okBtn = document.getElementById('customConfirmOkBtn');
+    const cancelBtn = document.getElementById('customConfirmCancelBtn');
+    const iconEl = document.getElementById('customConfirmIcon');
+
+    titleEl.innerText = title;
+    descEl.innerHTML = desc;
+    okBtn.innerText = okText;
+    cancelText = cancelText;
+
+    if (type === 'warning') {
+      iconEl.className = 'confirm-modal-icon warning';
+      iconEl.innerHTML = '<i class="bi bi-exclamation-circle-fill"></i>';
+      okBtn.className = 'btn btn-w btn-sm';
+    } else {
+      iconEl.className = 'confirm-modal-icon danger';
+      iconEl.innerHTML = '<i class="bi bi-trash3-fill"></i>';
+      okBtn.className = 'btn btn-d btn-sm';
+    }
+
+    overlay.style.display = 'flex';
+
+    const cleanUp = (result) => {
+      overlay.style.display = 'none';
+      okBtn.onclick = null;
+      cancelBtn.onclick = null;
+      resolve(result);
+    };
+
+    okBtn.onclick = () => cleanUp(true);
+    cancelBtn.onclick = () => cleanUp(false);
+  });
+}
+
+// 1. Hapus Pesan Satu-satu
+async function deleteSingleMessage(msgId) {
+  const confirmed = await showConfirmDialog({
+    title: 'Hapus Pesan?',
+    desc: 'Pesan yang dihapus tidak dapat dipulihkan kembali dari layar obrolan.',
+    okText: 'Hapus Pesan'
+  });
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch(`/admin/api/whatsapp/messages/${msgId}/delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await res.json();
+    if (data.success) {
+      const el = document.getElementById(`msg-row-${msgId}`);
+      if (el) {
+        el.style.transition = 'all .25s ease';
+        el.style.opacity = '0';
+        el.style.transform = 'scale(0.9)';
+        setTimeout(() => el.remove(), 250);
+      }
+    } else {
+      alert('Gagal menghapus pesan: ' + (data.error || 'Terjadi kesalahan'));
+    }
+  } catch (err) {
+    alert('Gagal request: ' + err.message);
+  }
+}
+
+// 2. Hapus Percakapan Per Orang (dari Daftar Kontak Kiri)
+async function deleteConversationByPhone(event, phone, name) {
+  if (event) event.stopPropagation();
+
+  const confirmed = await showConfirmDialog({
+    title: 'Hapus Percakapan?',
+    desc: `Seluruh riwayat obrolan dengan <strong>${name}</strong> (${phone}) akan dihapus secara permanen.`,
+    okText: 'Hapus Chat'
+  });
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch('/admin/api/whatsapp/conversations/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone })
+    });
+    const data = await res.json();
+    if (data.success) {
+      if (activePhone === phone) {
+        resetActiveChatView();
+      }
+      await loadConversations();
+    } else {
+      alert('Gagal menghapus percakapan: ' + (data.error || 'Terjadi kesalahan'));
+    }
+  } catch (err) {
+    alert('Gagal request: ' + err.message);
+  }
+}
+
+// 3. Hapus Percakapan Per Orang (dari Header Chat Kanan)
+async function deleteActiveConversation() {
+  if (!activePhone) return;
+  const currentTitle = document.getElementById('chatHeaderTitle').innerText.trim();
+
+  const confirmed = await showConfirmDialog({
+    title: 'Hapus Percakapan Aktif?',
+    desc: `Semua riwayat chat dengan <strong>${currentTitle}</strong> (${activePhone}) akan dihapus permanen.`,
+    okText: 'Hapus Percakapan'
+  });
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch('/admin/api/whatsapp/conversations/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: activePhone })
+    });
+    const data = await res.json();
+    if (data.success) {
+      resetActiveChatView();
+      await loadConversations();
+    } else {
+      alert('Gagal menghapus percakapan: ' + (data.error || 'Terjadi kesalahan'));
+    }
+  } catch (err) {
+    alert('Gagal request: ' + err.message);
+  }
+}
+
+// 4. Hapus SEMUA Percakapan Sekaligus (Clear All)
+async function clearAllConversations() {
+  const confirmed = await showConfirmDialog({
+    title: 'Bersihkan SEMUA Riwayat Chat?',
+    desc: '⚠️ <strong>Peringatan Serius:</strong> Tindakan ini akan <strong>MENGHAPUS SELURUH OBROLAN</strong> dari semua nomor kontak dan pelanggan di database. Tindakan ini permanen.',
+    okText: 'Ya, Bersihkan Semua',
+    type: 'danger'
+  });
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch('/admin/api/whatsapp/conversations/clear-all', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await res.json();
+    if (data.success) {
+      resetActiveChatView();
+      await loadConversations();
+    } else {
+      alert('Gagal membersihkan riwayat: ' + (data.error || 'Terjadi kesalahan'));
+    }
+  } catch (err) {
+    alert('Gagal request: ' + err.message);
+  }
+}
+/* === AKHIR PERUBAHAN JAVASCRIPT: CUSTOM CONFIRM MODAL === */
+
+function resetActiveChatView() {
+  activePhone = '';
+  document.getElementById('activePhone').value = '';
+  document.getElementById('chatMessages').innerHTML = `
+    <div style="margin:auto;text-align:center;color:var(--muted)">
+      <i class="bi bi-chat-text" style="font-size:48px;display:block;margin-bottom:10px;"></i>
+      Pilih pelanggan dari daftar di sebelah kiri atau klik <strong>+ Chat Baru</strong> untuk membalas/mengirim WhatsApp.
+    </div>`;
+  const delChatBtn = document.getElementById('btnDeleteConversation');
+  if (delChatBtn) delChatBtn.style.display = 'none';
+  document.getElementById('chatHeaderTitle').innerHTML = '<i class="bi bi-person-circle"></i> Memuat chat...';
+  document.getElementById('chatHeaderSub').innerText = '';
+  document.getElementById('chatInput').disabled = true;
+  document.getElementById('sendBtn').disabled = true;
 }
 
 function handleKeyDown(event) {
@@ -336,12 +686,66 @@ function escapeHtml(str) {
   return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+
+let lastSoundboxEventId = 0;
+
+// Polling Pemutar Suara Soundbox
+async function pollSoundboxAudio() {
+  try {
+    const res = await fetch(`/admin/api/soundbox/poll?afterId=${lastSoundboxEventId}`);
+    const data = await res.json();
+    if (data.success && Array.isArray(data.events) && data.events.length > 0) {
+      for (const ev of data.events) {
+        if (ev.id > lastSoundboxEventId) lastSoundboxEventId = ev.id;
+        if (ev.speechText) {
+          playSpeechAudio(ev.speechText);
+        }
+      }
+    }
+  } catch (err) {
+    // Silent polling error
+  }
+}
+
+// Fungsi Memutar Suara TTS Menggunakan Audio Element / Web Speech API
+function playSpeechAudio(text) {
+  try {
+    // 1. Coba putar audio MP3 via endpoint Voice TTS Server
+    const audio = new Audio(`/admin/api/voice-assistant/tts?text=${encodeURIComponent(text)}`);
+    audio.play().catch(() => {
+      // 2. Fallback instan ke SpeechSynthesis browser jika autoplay server diblokir
+      if ('speechSynthesis' in window) {
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = 'id-ID';
+        utter.rate = 1.05;
+        window.speechSynthesis.speak(utter);
+      }
+    });
+  } catch (_) {}
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   loadConversations();
+  
+  // Polling percakapan & pesan baru setiap 5 detik
   setInterval(() => {
     loadConversations();
     if (activePhone) loadChatMessages(activePhone, false);
-  }, 8000);
+  }, 5000);
+
+  // Inisialisasi awal ID soundbox agar tidak membacakan chat masa lalu saat web baru dibuka
+  fetch('/admin/api/soundbox/poll?afterId=0')
+    .then(r => r.json())
+    .then(d => {
+      if (d.events && d.events.length > 0) {
+        lastSoundboxEventId = d.events[d.events.length - 1].id;
+      }
+      // Mulai dengarkan suara event baru setiap 3 detik
+      setInterval(pollSoundboxAudio, 3000);
+    })
+    .catch(() => {
+      setInterval(pollSoundboxAudio, 3000);
+    });
 });
 </script>
 </body>

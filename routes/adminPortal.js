@@ -258,7 +258,7 @@ async function trySendWhatsappPayment(customerPhone, message) {
   }
 }
 
-// ==================== NOTIFIKASI WA & TELEGRAM ====================
+// ==================== AWAL PERBAIKAN FUNGSI NOTIFIKASI WA & TELEGRAM ====================
 async function sendPaymentSuccessWA(customerPhone, customerName, periodText, amountText, paidBy, extraOpts = {}) {
   try {
     const isEnabled = extraOpts.bypassEnabledCheck ? true : (db.getAppSetting('whatsapp_payment_success_enabled', '1') === '1');
@@ -346,7 +346,7 @@ async function sendPaymentSuccessWA(customerPhone, customerName, periodText, amo
     return false;
   }
 }
-// ==================== AKHIR NOTIFIKASI WA & TELEGRAM ====================
+// ==================== AKHIR PERBAIKAN FUNGSI NOTIFIKASI WA & TELEGRAM ====================
 
 // Middleware strictly for Admin
 function restrictToAdmin(req, res, next) {
@@ -833,7 +833,7 @@ router.get('/api/customers/live-sessions', requireAdminSession, async (req, res)
 });
 
 
-/* >>> ENDPOINT API REALTIME OPTICAL DARI OLT UNTUK PETA <<<  */
+/* >>> AWAL PENAMBAHAN: ENDPOINT API REALTIME OPTICAL DARI OLT UNTUK PETA <<<  */
 router.get('/api/customers/:id/olt-optical', requireAdminSession, async (req, res) => {
   try {
     const customerId = Number(req.params.id);
@@ -848,10 +848,10 @@ router.get('/api/customers/:id/olt-optical', requireAdminSession, async (req, re
     return res.status(500).json({ ok: false, error: err.message });
   }
 });
-/* >>> PENAMBAHAN: ENDPOINT API REALTIME OPTICAL DARI OLT UNTUK PETA <<< */
+/* >>> AKHIR PENAMBAHAN: ENDPOINT API REALTIME OPTICAL DARI OLT UNTUK PETA <<< */
 
 
-// ==================== LIVE TRAFFIC & THROUGHPUT ROS6 / ROS7 (PPPOE & HOTSPOT QUEUE) ====================
+// ==================== AWAL PERBAIKAN: LIVE TRAFFIC & THROUGHPUT ROS6 / ROS7 (PPPOE & HOTSPOT QUEUE) ====================
 router.get('/api/customers/:id/pppoe-traffic', requireAdminSession, async (req, res) => {
   const customerId = Number(req.params.id);
   if (!customerId) return res.json({ ok: false, error: 'invalid_customer' });
@@ -898,7 +898,9 @@ router.get('/api/customers/:id/pppoe-traffic', requireAdminSession, async (req, 
     let liveUploadMbps = 0;
     let hasLiveRateFromQueue = false;
 
+    // ──────────────────────────────────────────────────────────
     // KASUS 1: PELANGGAN PPPOE (Router Utama / ROS 7)
+    // ──────────────────────────────────────────────────────────
     if (pppUser && conn && conn.client) {
       let interfaces = [];
       try {
@@ -924,7 +926,9 @@ router.get('/api/customers/:id/pppoe-traffic', requireAdminSession, async (req, 
       }
     }
 
+    // ──────────────────────────────────────────────────────────
     // KASUS 2: PELANGGAN HOTSPOT (MULTI-DEVICE / SHARED USERS) & BINDING (ROS 6)
+    // ──────────────────────────────────────────────────────────
     if (!isOnline && conn && conn.client) {
       let matchedQueuesCount = 0;
 
@@ -1168,6 +1172,7 @@ router.post('/odps/:id/delete', requireAdminSession, restrictToAdmin, (req, res)
 // --- [KODE BARU: API HITUNG REDAMAN JALUR KABEL KE ODP/PELANGGAN] ---
 const { calculateLinkBudget } = require('../utils/opticCalculator'); // Sesuaikan path jika letak file opticCalculator.js berbeda
 
+// === [KODE BARU: KALKULASI REDAMAN LINK BUDGET LENGKAP KE PELANGGAN] ===
 router.post('/api/odps/calculate-budget', requireAdminSession, express.json(), (req, res) => {
   try {
     const { odpId, distanceMeters, spliceCount, connNear, connFar, customInputDbm } = req.body;
@@ -1222,6 +1227,7 @@ router.post('/api/odps/calculate-budget', requireAdminSession, express.json(), (
   }
 });
 // =======================================================================
+// ------------------------------------------------------------------
 
 /* === AWAL PERUBAHAN: ROUTE TEKNISI DENGAN TAB PENDAFTARAN / INSTALASI === */
 // --- TECHNICIAN MANAGEMENT ---
@@ -1316,6 +1322,7 @@ router.post('/registrations/:id/delete', requireAdminSession, restrictToAdmin, (
   }
   res.redirect('/admin/technicians?tab=registrations');
 });
+/* === AKHIR PERUBAHAN: ROUTE TEKNISI DENGAN TAB PENDAFTARAN / INSTALASI === */
 
 // === AWAL PENAMBAHAN: EDIT DATA PENDAFTARAN OLEH ADMIN ===
 router.post('/registrations/:id/update', requireAdminSession, restrictToAdmin, express.urlencoded({ extended: true }), (req, res) => {
@@ -2015,7 +2022,11 @@ router.post('/agents/:id/topup', requireAdminSession, express.urlencoded({ exten
   res.redirect('/admin/agents');
 });
 
+/* ========================================================================= */
 /* [AWAL GANTI: ROUTE LAPORAN AGENT DENGAN FILTER BULAN, TAHUN & REKAP SETORAN] */
+/* Fungsi: Menghitung total uang tunai yang dipegang agen, keuntungan agen,   */
+/* uang wajib setor ke admin, dan sisa saldo untuk model talangan/konsinyasi. */
+/* ========================================================================= */
 router.get('/agents/reports', requireAdminSession, requireSidebarMenuAccess('agents_reports'), restrictToAdmin, (req, res) => {
   const agents = agentSvc.getAllAgents();
   const agentId = req.query.agentId ? Number(req.query.agentId) : null;
@@ -2103,8 +2114,14 @@ router.get('/agents/reports', requireAdminSession, requireSidebarMenuAccess('age
   });
 });
 /* ========================================================================= */
+/* [AKHIR GANTI: ROUTE LAPORAN AGENT]                                        */
+/* ========================================================================= */
 
+/* ========================================================================= */
 /* [AWAL ROUTE: BATALKAN/HAPUS VOUCHER DARI LAPORAN & MIKROTIK]              */
+/* Fungsi: Endpoint untuk Admin menghapus voucher salah buat, memutus sesi,  */
+/* menghapus user di MikroTik, serta me-refund saldo agen secara instan.    */
+/* ========================================================================= */
 router.post('/agents/reports/voucher/:id/delete', requireAdminSession, restrictToAdmin, async (req, res) => {
   try {
     const txId = Number(req.params.id || 0);
@@ -2127,6 +2144,8 @@ router.post('/agents/reports/voucher/:id/delete', requireAdminSession, restrictT
   const referer = req.get('Referer') || '/admin/agents/reports';
   res.redirect(referer);
 });
+/* ========================================================================= */
+/* [AKHIR ROUTE: BATALKAN/HAPUS VOUCHER]                                     */
 /* ========================================================================= */
 
 // Middleware auth khusus JSON API Agen
@@ -2593,7 +2612,17 @@ router.post('/customers', requireAdminSession, express.urlencoded({ extended: tr
 
     customerSvc.createCustomer(req.body);
     
+    // ========================================================================
     // SYNC KE MIKROTIK - PENTING: SECRET TIDAK PERNAH DIHAPUS!
+    // ========================================================================
+    // Logika:
+    // - Jika RADIUS OFFLINE: SELALU create/update secret ke MikroTik
+    // - Jika RADIUS AKTIF tapi is_radius=0: Hybrid mode, tetap ke MikroTik
+    // - Jika RADIUS AKTIF dan is_radius=1: Full RADIUS mode, skip MikroTik
+    // 
+    // CATATAN: Kode ini TIDAK PERNAH menghapus secret dari MikroTik!
+    //          Hanya CREATE (jika belum ada) atau UPDATE PROFILE (jika sudah ada)
+    // ========================================================================
     const shouldSyncToMikrotik = !radiusEnabled || !isRadius;
     if (connectionType === 'pppoe' && req.body.pppoe_username && shouldSyncToMikrotik) {
       const password = String(req.body.pppoe_password || '').trim();
@@ -2799,7 +2828,21 @@ router.post('/customers/:id/update', requireAdminSession, express.urlencoded({ e
     
     customerSvc.updateCustomer(req.params.id, req.body);
     
+    // ========================================================================
     // SYNC KE MIKROTIK SAAT EDIT - PENTING: SECRET TIDAK PERNAH DIHAPUS!
+    // ========================================================================
+    // Logika:
+    // - Jika RADIUS OFFLINE: SELALU sync ke MikroTik
+    // - Jika RADIUS AKTIF tapi is_radius=0: Hybrid mode, tetap sync ke MikroTik  
+    // - Jika RADIUS AKTIF dan is_radius=1: Full RADIUS mode, skip MikroTik
+    //
+    // Proses:
+    // 1. Cek apakah secret sudah ada di MikroTik
+    // 2. Jika sudah ada: UPDATE PROFILE saja (TIDAK HAPUS!)
+    // 3. Jika belum ada: CREATE secret baru (jika ada password)
+    // 
+    // CATATAN: Kode ini TIDAK PERNAH menghapus secret dari MikroTik!
+    // ========================================================================
     const shouldSyncToMikrotik = !radiusEnabled || !isRadius;
     if (connectionType === 'pppoe' && req.body.pppoe_username && shouldSyncToMikrotik) {
       try {
@@ -4465,6 +4508,7 @@ router.post('/billing/:id/send-isolir-wa', requireAdminSession, async (req, res)
   res.redirect('back');
 });
 // ==============================================================================================
+// ==================== AKHIR PERBAIKAN TOMBOL KIRIM WA BILLING + QRIS ====================
 
 router.post('/billing/:id/delete', requireAdminSession, (req, res) => {
   try {
@@ -4475,6 +4519,7 @@ router.post('/billing/:id/delete', requireAdminSession, (req, res) => {
   }
   res.redirect('back');
 });
+
 // ==============================================================================================
 
 // ─── TICKETS ───────────────────────────────────────────────────────────────
@@ -7993,18 +8038,92 @@ router.get('/api/whatsapp/messages', requireAdminSession, (req, res) => {
   }
 });
 
+/* === AWAL PERUBAHAN: SEND-DIRECT DENGAN AUTO READ RECEIPT & ENDPOINT MARK-READ === */
 router.post('/api/whatsapp/send-direct', requireAdminSession, express.json(), async (req, res) => {
   try {
     const { phone, message } = req.body;
     if (!phone || !message) return res.status(400).json({ success: false, error: 'Nomor dan pesan tidak boleh kosong' });
 
+    // 1. Kirim pesan balasan dari admin
     await waSvc.sendWhatsAppMessage(phone, message);
+
+    // 2. OTOMATIS: Begitu admin membalas, tandai semua chat lawan bicara sebagai SUDAH DIBACA (Centang Biru di WA Asli)
+    try {
+      const { markChatAsRead } = await import('../services/whatsappBot.mjs');
+      if (typeof markChatAsRead === 'function') {
+        markChatAsRead(phone).catch(() => {});
+      }
+    } catch (_) {}
+
     res.json({ success: true, message: 'Pesan WhatsApp terkirim' });
   } catch (e) {
     const errorText = e?.message || (typeof e === 'string' ? e : JSON.stringify(e));
     res.status(500).json({ success: false, error: errorText });
   }
 });
+
+// Endpoint untuk menandai chat sudah dibaca saat obrolan dibuka di Live Chat
+router.post('/api/whatsapp/mark-read', requireAdminSession, express.json(), async (req, res) => {
+  try {
+    const phone = String(req.body.phone || '').trim();
+    if (!phone) return res.status(400).json({ success: false, error: 'Nomor telepon wajib diisi' });
+
+    const { markChatAsRead } = await import('../services/whatsappBot.mjs');
+    if (typeof markChatAsRead === 'function') {
+      await markChatAsRead(phone);
+    }
+
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+/* === AKHIR PERUBAHAN === */
+
+/* === AWAL PERUBAHAN: API HAPUS PESAN SATUAN, PER ORANG & SEMUA CHAT === */
+// 1. Hapus pesan satu-satu
+router.post('/api/whatsapp/messages/:id/delete', requireAdminSession, (req, res) => {
+  try {
+    const msgId = Number(req.params.id);
+    if (!msgId) return res.status(400).json({ success: false, error: 'ID pesan tidak valid' });
+
+    db.prepare('DELETE FROM wa_chat_messages WHERE id = ?').run(msgId);
+    res.json({ success: true, message: 'Pesan berhasil dihapus' });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// 2. Hapus percakapan per orang (berdasarkan nomor HP)
+router.post('/api/whatsapp/conversations/delete', requireAdminSession, express.json(), (req, res) => {
+  try {
+    const phone = String(req.body.phone || '').trim();
+    if (!phone) return res.status(400).json({ success: false, error: 'Nomor HP tidak valid' });
+
+    const normalized = phone.replace(/\D/g, '');
+    const last8 = normalized.slice(-8);
+
+    db.prepare(`
+      DELETE FROM wa_chat_messages 
+      WHERE sender_phone LIKE ? OR recipient_phone LIKE ? OR sender_phone LIKE ? OR recipient_phone LIKE ?
+    `).run(`%${last8}%`, `%${last8}%`, `%${normalized}%`, `%${normalized}%`);
+
+    res.json({ success: true, message: 'Percakapan berhasil dihapus' });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// 3. Hapus SEMUA percakapan dari semua orang sekaligus
+router.post('/api/whatsapp/conversations/clear-all', requireAdminSession, restrictToAdmin, (req, res) => {
+  try {
+    db.prepare('DELETE FROM wa_chat_messages').run();
+    res.json({ success: true, message: 'Semua riwayat percakapan berhasil dibersihkan' });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+/* === AKHIR PERUBAHAN: API HAPUS PESAN SATUAN, PER ORANG & SEMUA CHAT === */
 
 // VOICE AI ASSISTANT (TALK-TO-SPEECH) ROUTES
 router.get('/voice-assistant', requireAdminSession, requireSidebarMenuAccess('voice_assistant'), (req, res) => {
@@ -9369,7 +9488,9 @@ router.post('/onu-provision/scan-configured', requireAdminSession, restrictToAdm
   }
 });
 
+// ============================================================================
 // >>> AWAL PERBAIKAN: SCAN UNCONFIGURED MURNI MIB AUTOFIND C-DATA (.4.7.1) <<<
+// ============================================================================
 router.post(
   '/onu-provision/scan-unconfigured',
   requireAdminSession,
@@ -9518,8 +9639,13 @@ router.post(
   }
 );
 // ============================================================================
+// >>> AKHIR PERBAIKAN: SCAN UNCONFIGURED MURNI MIB AUTOFIND C-DATA (.4.7.1) <<<
+// ============================================================================
 
+
+// ============================================================================
 // >>> AWAL PERBAIKAN: ROUTE BIND ONU VIA TELNET (KREDENSIAL DARI DATABASE) <<<
+// ============================================================================
 router.post('/onu-provision/provision', requireAdminSession, restrictToAdmin, express.urlencoded({ extended: true }), async (req, res) => {
   try {
     const oltId = req.body.oltId ? Number(req.body.oltId) : null;
@@ -9583,6 +9709,8 @@ router.post('/onu-provision/provision', requireAdminSession, restrictToAdmin, ex
   
   res.redirect('/admin/onu-provision');
 });
+// ============================================================================
+// >>> AKHIR PERBAIKAN: ROUTE BIND ONU VIA TELNET (KREDENSIAL DARI DATABASE) <<<
 // ============================================================================
 
 // --- AWAL KODE BARU DELETE ONU SNMP ---
@@ -9859,9 +9987,11 @@ router.post('/radius/nas/delete', requireAdminSession, restrictToAdmin, async (r
   }
   res.redirect('/admin/radius-settings');
 });
+
+// ============================================================================
+// >>> BACKGROUND WORKER: AKUMULASI TRAFIK BULANAN OTOMATIS (PPPoE, Hotspot & Binding) <<<
 // ============================================================================
 
-// >>> BACKGROUND WORKER: AKUMULASI TRAFIK BULANAN OTOMATIS (PPPoE, Hotspot & Binding) <<<
 // 1. Pastikan kolom pendukung counter raw byte ada di database customers
 try { db.prepare("ALTER TABLE customers ADD COLUMN last_raw_rx INTEGER DEFAULT 0").run(); } catch (e) {}
 try { db.prepare("ALTER TABLE customers ADD COLUMN last_raw_tx INTEGER DEFAULT 0").run(); } catch (e) {}
@@ -10059,7 +10189,11 @@ setInterval(async () => {
 }, backgroundTrafficWorkerInterval);
 // ============================================================================
 
+/* ========================================================================= */
 /* [AWAL FITUR]: API KONTROL & STATUS AI WATCHDOG (OUTAGE & SECURITY)       */
+/* Fungsi: Menyediakan data status ODP padam, daftar blokir, dan simpan switch */
+/* ========================================================================= */
+
 const outageWatchdogSvc = require('../services/outageWatchdogService');
 const securityWatchdogSvc = require('../services/securityWatchdogService');
 
@@ -10071,8 +10205,9 @@ router.get('/api/watchdog/status', requireAdminSession, async (req, res) => {
 
     return res.json({
       success: true,
-
+      /* ========================================================================= */
 /* [AWAL]: TAMBAHAN CONFIG NOTIFIKASI WA, TELE & BYPASS ODP                  */
+/* ========================================================================= */
       config: {
         outage_enabled: String(getSetting('outage_watchdog_enabled', 'true')) === 'true',
         security_autoblock_enabled: String(getSetting('security_auto_block_enabled', 'true')) === 'true',
@@ -10086,6 +10221,9 @@ router.get('/api/watchdog/status', requireAdminSession, async (req, res) => {
         security_wa_enabled: String(getSetting('security_wa_notif_enabled', 'true')) === 'true',
         security_whitelisted_targets: String(getSetting('security_whitelisted_targets', '') || '')
       },
+/* ========================================================================= */
+/* [AKHIR]: CONFIG TAMBAHAN                                                  */
+/* ========================================================================= */
       outage: outageStatus,
       security: securityStatus
     });
@@ -10093,7 +10231,6 @@ router.get('/api/watchdog/status', requireAdminSession, async (req, res) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 });
-/* ========================================================================= */
 
 // 2. Simpan Perubahan Saklar Switch On / Off (Menggunakan saveSettings bawaan)
 router.post('/api/watchdog/settings', requireAdminSession, express.json(), async (req, res) => {
@@ -10122,5 +10259,6 @@ router.post('/api/watchdog/unblock', requireAdminSession, express.json(), async 
 });
 
 /* [AKHIR FITUR]: API KONTROL & STATUS AI WATCHDOG                            */
+/* ========================================================================= */
 
 module.exports = router;

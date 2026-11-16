@@ -37,38 +37,38 @@ async function sendWhatsAppMessage(toPhone, messageText, options = {}) {
       return await metaWAService.sendMetaTextMessage(toPhone, messageText);
     }
   } else {
+    /* === AWAL PERUBAHAN: LOGGING OUTBOUND DENGAN PENYIMPANAN MESSAGE ID BAILEYS === */
     // Mode BAILEYS WEB (Default Socket)
-    const { sendWA, whatsappStatus } = await import('./whatsappBot.mjs');
+    const { sendWA, whatsappStatus, resolveContactIdentity } = await import('./whatsappBot.mjs');
 
     if (!whatsappStatus || whatsappStatus.connection !== 'open') {
       throw new Error('Bot WhatsApp (Baileys) belum terhubung / offline. Silakan scan QR Code di menu /admin/whatsapp.');
     }
 
-    const ok = await sendWA(toPhone, messageText, options);
+    const sendResult = await sendWA(toPhone, messageText, options);
 
-    if (!ok) {
+    if (!sendResult) {
       throw new Error('Gagal mengirim pesan via Baileys. Pastikan nomor HP tujuan terdaftar di WhatsApp.');
     }
 
-    // Logging ke wa_chat_messages untuk Inbox / Live Chat
+    // Ambil ID unik pesan dari Baileys agar update tanda terima (centang 2 & biru) bisa mencocokkan baris ini
+    const msgId = (sendResult && typeof sendResult === 'object' && (sendResult.messageId || sendResult.key?.id)) ? String(sendResult.messageId || sendResult.key.id) : '';
+
     try {
       const phone = metaWAService.normalizePhone(toPhone);
-      let custName = 'Pelanggan';
-      let custId = null;
-      const cust = db.prepare('SELECT id, name FROM customers WHERE phone LIKE ? OR phone LIKE ?').get(`%${phone.slice(-8)}%`, `%${phone}%`);
-      if (cust) {
-        custName = cust.name;
-        custId = cust.id;
-      }
+      const identity = typeof resolveContactIdentity === 'function' ? resolveContactIdentity(phone) : { name: phone, customerId: null };
 
       db.prepare(`
         INSERT INTO wa_chat_messages 
-        (direction, gateway, sender_phone, recipient_phone, customer_id, customer_name, message_text, status)
-        VALUES ('outbound', 'baileys', 'baileys_bot', ?, ?, ?, ?, 'sent')
-      `).run(phone, custId, custName, messageText);
-    } catch (e) {}
+        (direction, gateway, sender_phone, recipient_phone, customer_id, customer_name, message_text, status, meta_message_id)
+        VALUES ('outbound', 'baileys', 'baileys_bot', ?, ?, ?, ?, 'sent', ?)
+      `).run(phone, identity.customerId, identity.name, messageText, msgId);
+    } catch (e) {
+      logger.warn('[whatsappService sendWA DB log error]: ' + e.message);
+    }
 
-    return ok;
+    return true;
+/* === AKHIR PERUBAHAN === */
   }
 }
 
@@ -89,33 +89,58 @@ function getChatHistory(phone, limit = 50) {
   return rows || [];
 }
 
-/**
- * Ambil daftar percakapan terbaru (Inbox Live Chat)
- */
+/* === AWAL PERUBAHAN: QUERY RECENT CONVERSATIONS DENGAN HITUNGAN UNREAD BADGE === */
 function getRecentConversations(limit = 30) {
   const rows = db.prepare(`
     SELECT 
       m.id,
       m.direction,
       m.gateway,
-      CASE WHEN m.direction = 'inbound' THEN m.sender_phone ELSE m.recipient_phone END as phone,
+      conv.contact_phone as phone,
       m.customer_id,
       m.customer_name,
       m.message_text,
       m.status,
-      m.created_at
+      m.created_at,
+      COALESCE(unread.cnt, 0) as unread_count
     FROM wa_chat_messages m
     INNER JOIN (
-      SELECT MAX(id) as max_id
+      SELECT 
+        MAX(id) as max_id,
+        CASE WHEN direction = 'inbound' THEN sender_phone ELSE recipient_phone END as contact_phone
       FROM wa_chat_messages
       GROUP BY CASE WHEN direction = 'inbound' THEN sender_phone ELSE recipient_phone END
-    ) latest ON m.id = latest.max_id
+    ) conv ON m.id = conv.max_id
+    LEFT JOIN (
+      SELECT 
+        sender_phone, 
+        COUNT(1) as cnt 
+      FROM wa_chat_messages 
+      WHERE direction = 'inbound' AND status != 'read'
+      GROUP BY sender_phone
+    ) unread ON unread.sender_phone = conv.contact_phone
     ORDER BY m.id DESC
     LIMIT ?
   `).all(Number(limit) || 30);
 
-  return rows || [];
+  // Validasi nama kontak dengan fungsi identitas master agar tidak tertukar
+  try {
+    const { resolveContactIdentity } = require('./whatsappBot.mjs');
+    if (typeof resolveContactIdentity === 'function') {
+      return (rows || []).map(r => {
+        const idt = resolveContactIdentity(r.phone, r.customer_name);
+        return {
+          ...r,
+          customer_name: idt.name || r.customer_name || r.phone,
+          unread_count: Number(r.unread_count || 0)
+        };
+      });
+    }
+  } catch (_) {}
+
+  return (rows || []).map(r => ({ ...r, unread_count: Number(r.unread_count || 0) }));
 }
+/* === AKHIR PERUBAHAN === */
 
 const DEFAULT_PAYMENT_SUCCESS_TEMPLATE = 
 `🧾 *BUKTI PEMBAYARAN RESMI (LUNAS)*
