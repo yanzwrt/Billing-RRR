@@ -66,7 +66,7 @@ Implementasi mudah, hasil maksimal! 🚀
 
 #QRIS #Billing #Fintech #OpenSource
 
-github.com/alijayanet/billing-rtrw
+github.com/yanzwrt/Billing-RRR
 ```
 
 ### Visual Suggestion:
