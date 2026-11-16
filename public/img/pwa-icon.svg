@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Gradien Background Squircle Luar (Perak / Abu Elegan) -->
+    <linearGradient id="bgOuter" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="50%" stop-color="#EAEFF5"/>
+      <stop offset="100%" stop-color="#D2D9E2"/>
+    </linearGradient>
+
+    <!-- Gradien Background Squircle Dalam (Frame Glossy Bersih) -->
+    <linearGradient id="bgInner" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F8FAFC"/>
+      <stop offset="100%" stop-color="#E2E8F0"/>
+    </linearGradient>
+
+    <!-- Kilauan Cahaya Atas (Glossy highlight) -->
+    <linearGradient id="gloss" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Gradien Merah Khas Logo IKDMP -->
+    <linearGradient id="redGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E51A24"/>
+      <stop offset="100%" stop-color="#A60E18"/>
+    </linearGradient>
+
+    <!-- Gradien Abu-abu Gelap untuk kata CINTA -->
+    <linearGradient id="darkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2D3136"/>
+      <stop offset="100%" stop-color="#14171A"/>
+    </linearGradient>
+
+    <!-- Gradien Perak Sayap Kanan -->
+    <linearGradient id="silverWing" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#B0BAC5"/>
+    </linearGradient>
+
+    <!-- Shadow Bingkai Squircle -->
+    <filter id="boxShadow" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#718096" flood-opacity="0.3"/>
+    </filter>
+
+    <!-- Drop Shadow Elemen Logo -->
+    <filter id="logoShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="5" flood-color="#000000" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <!-- ================= FRAME SQUIRCLE ================= -->
+  <!-- Layer Luar -->
+  <rect x="20" y="20" width="472" height="472" rx="115" fill="url(#bgOuter)" filter="url(#boxShadow)"/>
+
+  <!-- Layer Dalam -->
+  <rect x="42" y="42" width="428" height="428" rx="95" fill="url(#bgInner)" stroke="#FFFFFF" stroke-width="2"/>
+
+  <!-- Efek Lengkung Kilap / Glossy Atas -->
+  <path d="M 42 140 C 42 86 86 42 140 42 L 372 42 C 426 42 470 86 470 140 C 470 190 350 200 256 200 C 140 200 42 190 42 140 Z" fill="url(#gloss)"/>
+
+  <!-- ================= IKON TENGAH ================= -->
+  <g transform="translate(0, -22)" filter="url(#logoShadow)">
+
+    <!-- Piringan Putih Pusat -->
+    <circle cx="256" cy="225" r="130" fill="#FFFFFF"/>
+
+    <!-- Lingkar Luar / Crescent Orbit -->
+    <!-- Sisi Kiri (Merah) -->
+    <path d="M 256 102 A 122 122 0 0 0 150 286 C 148 264 151 238 165 212 C 183 177 216 133 256 102 Z" fill="url(#redGrad)"/>
+    <!-- Sisi Kanan (Perak) -->
+    <path d="M 256 102 A 122 122 0 0 1 362 286 C 364 264 361 238 347 212 C 329 177 296 133 256 102 Z" fill="url(#silverWing)"/>
+
+    <!-- Atap Rumah -->
+    <path d="M 172 194 L 256 116 L 340 194" fill="none" stroke="url(#redGrad)" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Jendela Kotak 2x2 -->
+    <rect x="240" y="150" width="13.5" height="13.5" rx="2" fill="url(#redGrad)"/>
+    <rect x="258.5" y="150" width="13.5" height="13.5" rx="2" fill="url(#redGrad)"/>
+    <rect x="240" y="168.5" width="13.5" height="13.5" rx="2" fill="url(#redGrad)"/>
+    <rect x="258.5" y="168.5" width="13.5" height="13.5" rx="2" fill="url(#redGrad)"/>
+
+    <!-- Gelombang Sinyal Wi-Fi -->
+    <path d="M 202 230 A 66 66 0 0 1 310 230" fill="none" stroke="url(#redGrad)" stroke-width="15" stroke-linecap="round"/>
+    <path d="M 221 253 A 42 42 0 0 1 291 253" fill="none" stroke="url(#redGrad)" stroke-width="14" stroke-linecap="round"/>
+    <path d="M 239 275 A 19 19 0 0 1 273 275" fill="none" stroke="url(#redGrad)" stroke-width="12" stroke-linecap="round"/>
+    <circle cx="256" cy="298" r="9.5" fill="url(#redGrad)"/>
+
+    <!-- Sayap Hati / Tangan Penopang -->
+    <!-- Sayap Kiri (Merah) -->
+    <path d="M 146 278 C 176 291 220 322 256 366 C 231 340 198 316 150 310 C 172 310 194 328 207 347 C 163 340 146 310 146 278 Z" fill="url(#redGrad)"/>
+    <!-- Sayap Kanan (Perak) -->
+    <path d="M 366 278 C 336 291 292 322 256 366 C 281 340 314 316 362 310 C 340 310 318 328 305 347 C 349 340 366 310 366 278 Z" fill="url(#silverWing)"/>
+  </g>
+
+  <!-- ================= TEKS BRAND (IKDMP - CINTA) ================= -->
+  <g transform="translate(0, 420)">
+    <!-- Teks IKDMP (Merah) -->
+    <text x="228" y="0" 
+          text-anchor="end"
+          font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" 
+          font-size="34" 
+          font-weight="900" 
+          letter-spacing="1.5px" 
+          fill="url(#redGrad)">IKDMP</text>
+
+    <!-- Tanda Strip (-) -->
+    <text x="243" y="-1" 
+          text-anchor="middle"
+          font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" 
+          font-size="32" 
+          font-weight="800" 
+          fill="#555555">-</text>
+
+    <!-- Teks CINTA (Hitam/Abu Gelap) -->
+    <text x="258" y="0" 
+          text-anchor="start"
+          font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" 
+          font-size="34" 
+          font-weight="900" 
+          letter-spacing="2px" 
+          fill="url(#darkGrad)">CINTA</text>
+
+    <!-- Garis Lengkung Sayap Bawah Teks (Khas Logo Asli) -->
+    <path d="M 85 14 C 170 14 220 18 256 32 C 292 18 342 14 427 14" 
+          fill="none" 
+          stroke="url(#redGrad)" 
+          stroke-width="3" 
+          stroke-linecap="round"/>
+  </g>
+</svg>

@@ -1,0 +1,41 @@
+2026-11-07 02:05:07 error: unhandledRejection: no such command
+Error: no such command
+    at Channel.<anonymous> (/opt/billing-ikdmpcinta/services/mikrotikService.js:31:44)
+    at Object.onceWrapper (node:events:639:26)
+    at Channel.emit (node:events:524:28)
+    at Channel.processPacket (/opt/billing-ikdmpcinta/node_modules/node-routeros/src/Channel.ts:150:18)
+    at Object.callback (/opt/billing-ikdmpcinta/node_modules/node-routeros/src/Channel.ts:127:18)
+    at Receiver.sendTagData (/opt/billing-ikdmpcinta/services/mikrotikService.js:45:11)
+    at process (/opt/billing-ikdmpcinta/node_modules/node-routeros/src/connector/Receiver.ts:273:34)
+    at Receiver.processSentence (/opt/billing-ikdmpcinta/node_modules/node-routeros/src/connector/Receiver.ts:303:13)
+    at Receiver.processRawData (/opt/billing-ikdmpcinta/node_modules/node-routeros/src/connector/Receiver.ts:217:26)
+    at Connector.onData (/opt/billing-ikdmpcinta/node_modules/node-routeros/src/connector/Connector.ts:257:23)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:191:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+2026-11-07 02:06:54 error: unhandledRejection: no such command
+Error: no such command
+    at Channel.<anonymous> (/opt/billing-ikdmpcinta/services/mikrotikService.js:31:44)
+    at Object.onceWrapper (node:events:639:26)
+    at Channel.emit (node:events:524:28)
+    at Channel.processPacket (/opt/billing-ikdmpcinta/node_modules/node-routeros/src/Channel.ts:150:18)
+    at Object.callback (/opt/billing-ikdmpcinta/node_modules/node-routeros/src/Channel.ts:127:18)
+    at Receiver.sendTagData (/opt/billing-ikdmpcinta/services/mikrotikService.js:45:11)
+    at process (/opt/billing-ikdmpcinta/node_modules/node-routeros/src/connector/Receiver.ts:273:34)
+    at Receiver.processSentence (/opt/billing-ikdmpcinta/node_modules/node-routeros/src/connector/Receiver.ts:303:13)
+    at Receiver.processRawData (/opt/billing-ikdmpcinta/node_modules/node-routeros/src/connector/Receiver.ts:217:26)
+    at Connector.onData (/opt/billing-ikdmpcinta/node_modules/node-routeros/src/connector/Connector.ts:257:23)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at TCP.onStreamRead (node:internal/stream_base_commons:191:23)
+    at TCP.callbackTrampoline (node:internal/async_hooks:130:17)
+2026-11-07 03:06:06 error: unhandledRejection: no such column: bytes_in_daily
+SqliteError: no such column: bytes_in_daily
+    at Database.prepare (/opt/billing-ikdmpcinta/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+    at /opt/billing-ikdmpcinta/routes/adminPortal.js:891:23
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)

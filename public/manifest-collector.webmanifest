@@ -1,0 +1,25 @@
+{
+  "id": "/collector",
+  "name": "IKDMP Kolektor",
+  "short_name": "Kolektor",
+  "start_url": "/collector",
+  "scope": "/collector",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/img/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/img/logo.png",
+      "sizes": "2000x545",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

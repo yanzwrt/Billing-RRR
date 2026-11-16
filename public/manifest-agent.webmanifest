@@ -1,0 +1,25 @@
+{
+  "id": "/agent",
+  "name": "IKDMP Agen",
+  "short_name": "Agen",
+  "start_url": "/agent",
+  "scope": "/agent",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/img/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/img/logo.png",
+      "sizes": "2000x545",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
