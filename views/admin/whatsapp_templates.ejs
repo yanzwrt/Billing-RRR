@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="<%= lang || 'id' %>">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title><%= title %> | <%= company %></title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <style>
+    .wa-tabs { display: flex; gap: 8px; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
+    .wa-tab { padding: 8px 14px; border-radius: 8px; cursor: pointer; color: var(--muted); transition: all 0.2s; font-weight: 700; text-decoration: none; flex-shrink: 0; }
+    .wa-tab:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+    .wa-tab.active { background: var(--primary); color: white; }
+    .template-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    @media (max-width: 768px) {
+      .template-grid { grid-template-columns: 1fr; }
+      .wa-tab { padding: 6px 10px; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+<%- include('partials/sidebar', { activePage: 'whatsapp', company }) %>
+<div class="mw">
+  <div class="topbar">
+    <div class="tb-title"><button class="hb-menu" onclick="toggleSidebar()"><i class="bi bi-list"></i></button><i class="bi bi-whatsapp"></i> <%= title %></div>
+    <div class="tb-right">
+      <span class="adm-badge"><i class="bi bi-person-fill"></i> <%= (typeof session !== 'undefined' && session && session.isCashier) ? t('admin.role.cashier', 'Kasir') : t('admin.role.admin', 'Admin') %></span>
+      <a href="/admin/logout" class="btn btn-g btn-sm"><i class="bi bi-box-arrow-left"></i></a>
+    </div>
+  </div>
+  <div class="page">
+    <% const waTab = 'templates'; %>
+    <% if (msg) { %>
+    <div class="alert alert-<%= msg.type==='success'?'s':'d' %>">
+      <i class="bi bi-<%= msg.type==='success'?'check-circle':'exclamation-circle' %>"></i> <%= msg.text %>
+    </div>
+    <% } %>
+
+    <div class="wa-tabs">
+      <a href="/admin/whatsapp" class="wa-tab <%= waTab==='status' ? 'active' : '' %>"><i class="bi bi-phone"></i> Status Baileys</a>
+      <a href="/admin/whatsapp/broadcast" class="wa-tab <%= waTab==='broadcast' ? 'active' : '' %>"><i class="bi bi-megaphone"></i> Broadcast & Pengingat</a>
+      <a href="/admin/whatsapp/templates" class="wa-tab <%= waTab==='templates' ? 'active' : '' %>"><i class="bi bi-chat-left-quote"></i> Template Pesan</a>
+      <a href="/admin/whatsapp/live-chat" class="wa-tab"><i class="bi bi-chat-dots-fill"></i> Live Chat (Pesan Langsung)</a>
+    </div>
+
+    <form method="POST" action="/admin/whatsapp/templates">
+      <div class="card mb16">
+        <div class="card-hd">
+          <h6><i class="bi bi-chat-left-quote-fill"></i> Pengaturan Template Notifikasi WhatsApp</h6>
+        </div>
+        <div class="card-bd template-grid">
+          <div>
+            <div class="fg">
+              <label class="fl">Template Pengingat Tagihan (Bulanan / Manual)</label>
+              <textarea class="fc" id="tmpl_auto_billing" name="whatsapp_auto_billing_message" rows="8" required style="width: 100%;"><%= templates.whatsapp_auto_billing_message %></textarea>
+              <div style="font-size: 11px; color: var(--muted); margin-top: 6px; display:flex; justify-content:space-between; align-items:center;">
+                <span><i class="bi bi-info-circle"></i> Variabel: <b>{{nama}}</b>, <b>{{tagihan}}</b>, <b>{{rincian}}</b>, <b>{{paket}}</b>, <b>{{link}}</b>.</span>
+              </div>
+            </div>
+            
+            <div class="fg" style="margin-top: 20px;">
+              <label class="fl">Template Tagihan QRIS (Manual)</label>
+              <textarea class="fc" id="tmpl_billing_qris" name="whatsapp_billing_qris_message" rows="8" required style="width: 100%;"><%= templates.whatsapp_billing_qris_message %></textarea>
+              <div style="font-size: 11px; color: var(--muted); margin-top: 6px;">
+                <i class="bi bi-info-circle"></i> Variabel: <b>{{nama}}</b>, <b>{{periode}}</b>, <b>{{paket}}</b>, <b>{{qris_nominal}}</b>, <b>{{qris_kode}}</b>, <b>{{qris_qr}}</b>.
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="fg">
+              <!-- SAKLAR ON/OFF NOTIFIKASI LUNAS -->
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <label class="fl" style="margin:0;">Template Pembayaran Sukses (Lunas)</label>
+                <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:12px; font-weight:700; background:rgba(255,255,255,0.06); padding:4px 10px; border-radius:6px; border:1px solid var(--border);">
+                  <input type="checkbox" name="whatsapp_payment_success_enabled" value="1" <%= (typeof paymentSuccessEnabled !== 'undefined' ? paymentSuccessEnabled : true) ? 'checked' : '' %> style="cursor:pointer; width:15px; height:15px;">
+                  <span>Kirim Pesan Otomatis</span>
+                </label>
+              </div>
+              <textarea class="fc" id="tmpl_payment_success" name="whatsapp_payment_success_message" rows="8" style="width: 100%;"><%= templates.whatsapp_payment_success_message %></textarea>
+              <div style="font-size: 11px; color: var(--muted); margin-top: 6px;">
+                <i class="bi bi-info-circle"></i> Variabel: <b>{{nama}}</b>, <b>{{no_invoice}}</b>, <b>{{username}}</b>, <b>{{paket}}</b>, <b>{{periode}}</b>, <b>{{waktu}}</b>, <b>{{metode}}</b>, <b>{{total}}</b>, <b>{{company}}</b>, <b>{{company_phone}}</b>, <b>{{link_portal}}</b>.
+              </div>
+            </div>
+
+            <div class="fg" style="margin-top: 20px;">
+              <!-- SAKLAR ON/OFF NOTIFIKASI ISOLIR -->
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <label class="fl" style="margin:0;">Template Pemberitahuan Isolir (Otomatis / Manual)</label>
+                <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:12px; font-weight:700; background:rgba(255,255,255,0.06); padding:4px 10px; border-radius:6px; border:1px solid var(--border);">
+                  <input type="checkbox" name="whatsapp_isolir_notif_enabled" value="1" <%= (typeof isolirNotifEnabled !== 'undefined' ? isolirNotifEnabled : true) ? 'checked' : '' %> style="cursor:pointer; width:15px; height:15px;">
+                  <span>Kirim Pesan Otomatis</span>
+                </label>
+              </div>
+              <textarea class="fc" id="tmpl_isolir" name="whatsapp_isolir_message" rows="8" style="width: 100%;"><%= templates.whatsapp_isolir_message %></textarea>
+              <div style="font-size: 11px; color: var(--muted); margin-top: 6px;">
+                <i class="bi bi-info-circle"></i> Variabel: <b>{{nama}}</b>, <b>{{paket}}</b>, <b>{{tagihan}}</b>, <b>{{link}}</b>.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TEMPLATE & SAKLAR MONITORING GENIEACS (OFFLINE & REDAMAN TINGGI) -->
+        <div class="card-bd" style="border-top: 1px solid var(--border); background: rgba(255, 193, 7, 0.04); padding: 18px 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+            <div>
+              <strong style="color: var(--text); font-size: 13px;">
+                <i class="bi bi-broadcast text-warning"></i> Monitoring Bot GenieACS TR-069 (Perangkat Offline & Redaman Tinggi)
+              </strong>
+              <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">
+                Mengirim laporan otomatis ke WhatsApp Admin & Teknisi saat ada kendala perangkat.
+              </div>
+            </div>
+            <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px; font-weight: 700; background: var(--bg2); padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border);">
+              <input type="checkbox" name="genieacs_monitoring_enabled" value="1" <%= (typeof monitoringAlertEnabled !== 'undefined' && monitoringAlertEnabled) ? 'checked' : '' %> style="width: 16px; height: 16px; cursor: pointer;">
+              <span>Aktifkan Alert Monitoring</span>
+            </label>
+          </div>
+
+          <div class="template-grid">
+            <!-- KIRI: PERANGKAT OFFLINE -->
+            <div>
+              <div class="fg">
+                <label class="fl">Template Perangkat Offline (> 24 Jam)</label>
+                <textarea class="fc" id="tmpl_device_offline" name="whatsapp_device_offline_message" rows="7" style="width: 100%; font-family: monospace; font-size: 12px;"><%= templates.whatsapp_device_offline_message || '' %></textarea>
+                <div style="font-size: 11px; color: var(--muted); margin-top: 6px;">
+                  <i class="bi bi-info-circle"></i> Variabel: <b>{{daftar_perangkat}}</b>, <b>{{total_offline}}</b>, <b>{{threshold_jam}}</b>, <b>{{company}}</b>.
+                </div>
+              </div>
+            </div>
+
+            <!-- KANAN: REDAMAN TINGGI -->
+            <div>
+              <div class="fg">
+                <label class="fl">Template Redaman Tinggi (Drop RX Power)</label>
+                <textarea class="fc" id="tmpl_device_rxpower" name="whatsapp_device_rxpower_message" rows="7" style="width: 100%; font-family: monospace; font-size: 12px;"><%= templates.whatsapp_device_rxpower_message || '' %></textarea>
+                <div style="font-size: 11px; color: var(--muted); margin-top: 6px;">
+                  <i class="bi bi-info-circle"></i> Variabel: <b>{{daftar_perangkat}}</b>, <b>{{total_redaman}}</b>, <b>{{threshold}}</b>, <b>{{company}}</b>.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+		
+		<!-- === AWAL TAMBAHAN: TEMPLATE PENDAFTARAN & TEKNISI === -->
+        <div class="card-bd" style="border-top: 1px solid var(--border); background: rgba(56, 189, 248, 0.04); padding: 18px 24px;">
+          <div style="margin-bottom: 14px;">
+            <strong style="color: var(--text); font-size: 13px;">
+              <i class="bi bi-person-plus-fill text-info"></i> Template Alur Pendaftaran Baru & Tugas Teknisi
+            </strong>
+            <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">
+              Format pesan otomatis saat pelanggan mendaftar, admin menunjuk PIC teknisi, dan aktivasi layanan setelah selesai.
+            </div>
+          </div>
+
+          <div class="template-grid">
+            <!-- KIRI: NOTIFIKASI KE ADMIN -->
+            <div>
+              <div class="fg">
+                <label class="fl">Template 1: Notifikasi Calon Pelanggan Masuk (Ke Admin)</label>
+                <textarea class="fc" id="tmpl_reg_admin" name="whatsapp_reg_admin_template" rows="9" style="width: 100%; font-family: monospace; font-size: 12px;"><%= templates.whatsapp_reg_admin_template || '' %></textarea>
+                <div style="font-size: 11px; color: var(--muted); margin-top: 6px;">
+                  <i class="bi bi-info-circle"></i> Variabel: <b>{{id}}</b>, <b>{{nama}}</b>, <b>{{nohp}}</b>, <b>{{alamat}}</b>, <b>{{paket}}</b>, <b>{{lokasi}}</b>.
+                </div>
+              </div>
+            </div>
+
+            <!-- KANAN: PENUGASAN KE TEKNISI -->
+            <div>
+              <div class="fg">
+                <label class="fl">Template 2: Penugasan Pasang Baru (Ke WA Teknisi)</label>
+                <textarea class="fc" id="tmpl_reg_tech" name="whatsapp_reg_tech_template" rows="9" style="width: 100%; font-family: monospace; font-size: 12px;"><%= templates.whatsapp_reg_tech_template || '' %></textarea>
+                <div style="font-size: 11px; color: var(--muted); margin-top: 6px;">
+                  <i class="bi bi-info-circle"></i> Variabel: <b>{{id}}</b>, <b>{{jadwal}}</b>, <b>{{nama}}</b>, <b>{{nohp}}</b>, <b>{{alamat}}</b>, <b>{{paket}}</b>, <b>{{lokasi}}</b>.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- BAWAH: UCAPAN SELAMAT DATANG KE PELANGGAN AKTIF -->
+          <div class="fg" style="margin-top: 18px;">
+            <label class="fl">Template 3: Sambutan Layanan Aktif (Ke Pelanggan saat Teknisi Ketik SELESAI)</label>
+            <textarea class="fc" id="tmpl_reg_welcome" name="whatsapp_reg_welcome_template" rows="6" style="width: 100%; font-family: monospace; font-size: 12px;"><%= templates.whatsapp_reg_welcome_template || '' %></textarea>
+            <div style="font-size: 11px; color: var(--muted); margin-top: 6px;">
+              <i class="bi bi-info-circle"></i> Variabel: <b>{{nama}}</b>, <b>{{company}}</b>.
+            </div>
+          </div>
+        </div>
+        <!-- === AKHIR TAMBAHAN: TEMPLATE PENDAFTARAN & TEKNISI === -->
+		
+		<!-- TEMPLATE 4: PENOLAKAN / REJECT PENDAFTARAN -->
+          <div class="fg" style="margin-top: 18px;">
+            <label class="fl">Template 4: Pemberitahuan Penolakan Pendaftaran (Ke Pemohon saat Admin Klik Tolak)</label>
+            <textarea class="fc" id="tmpl_reg_reject" name="whatsapp_reg_reject_template" rows="8" style="width: 100%; font-family: monospace; font-size: 12px;"><%= templates.whatsapp_reg_reject_template || '' %></textarea>
+            <div style="font-size: 11px; color: var(--muted); margin-top: 6px;">
+              <i class="bi bi-info-circle"></i> Variabel: <b>{{nama}}</b>, <b>{{id}}</b>, <b>{{alasan}}</b>, <b>{{company}}</b>.
+            </div>
+          </div>
+		  <!-- === AKHIR TAMBAHAN: TEMPLATE PENOLAKAN / REJECT === -->
+		  
+		  <!-- === KARTU 1: TEMPLATE LAYANAN MODEM & VOUCHER === -->
+        <div class="card-bd" style="border-top: 1px solid var(--border); background: rgba(16, 185, 129, 0.04); padding: 18px 24px;">
+          <div style="margin-bottom: 14px;">
+            <strong style="color: var(--text); font-size: 13px;">
+              <i class="bi bi-wifi text-success"></i> Template Notifikasi Modem WiFi & Voucher Hotspot
+            </strong>
+            <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">
+              Format pesan saat nama WiFi/Password diubah admin atau saat voucher hotspot online dikirim ulang.
+            </div>
+          </div>
+
+          <div class="template-grid">
+            <!-- GANTI SSID -->
+            <div>
+              <div class="fg">
+                <label class="fl">Notifikasi Perubahan SSID WiFi</label>
+                <textarea class="fc" id="tmpl_wifi_ssid" name="whatsapp_wifi_ssid_changed_template" rows="7" style="width: 100%; font-family: monospace; font-size: 12px;"><%= templates.whatsapp_wifi_ssid_changed_template || '' %></textarea>
+                <div style="font-size: 11px; color: var(--muted); margin-top: 6px;">
+                  <i class="bi bi-info-circle"></i> Variabel: <b>{{nama}}</b>, <b>{{ssid}}</b>, <b>{{waktu}}</b>.
+                </div>
+              </div>
+            </div>
+
+            <!-- GANTI PASSWORD -->
+            <div>
+              <div class="fg">
+                <label class="fl">Notifikasi Perubahan Password WiFi</label>
+                <textarea class="fc" id="tmpl_wifi_pass" name="whatsapp_wifi_pass_changed_template" rows="7" style="width: 100%; font-family: monospace; font-size: 12px;"><%= templates.whatsapp_wifi_pass_changed_template || '' %></textarea>
+                <div style="font-size: 11px; color: var(--muted); margin-top: 6px;">
+                  <i class="bi bi-info-circle"></i> Variabel: <b>{{nama}}</b>, <b>{{password}}</b>, <b>{{waktu}}</b>.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RESEND VOUCHER ONLINE -->
+          <div class="fg" style="margin-top: 18px;">
+            <label class="fl">Kirim Ulang Pesanan Voucher Hotspot Online (Orders)</label>
+            <textarea class="fc" id="tmpl_voucher_resend" name="whatsapp_voucher_resend_template" rows="7" style="width: 100%; font-family: monospace; font-size: 12px;"><%= templates.whatsapp_voucher_resend_template || '' %></textarea>
+            <div style="font-size: 11px; color: var(--muted); margin-top: 6px;">
+              <i class="bi bi-info-circle"></i> Variabel: <b>{{gateway}}</b>, <b>{{paket}}</b>, <b>{{validity}}</b>, <b>{{harga}}</b>, <b>{{username}}</b>, <b>{{password}}</b>.
+            </div>
+          </div>
+        </div>
+
+        <!-- === KARTU 2: TEMPLATE DOKUMEN, TIKET, PAYROLL & SYSTEM === -->
+        <div class="card-bd" style="border-top: 1px solid var(--border); background: rgba(99, 102, 241, 0.04); padding: 18px 24px;">
+          <div style="margin-bottom: 14px;">
+            <strong style="color: var(--text); font-size: 13px;">
+              <i class="bi bi-file-earmark-text text-primary"></i> Template Dokumen PDF, Tiket, Payroll & Uji Coba
+            </strong>
+            <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">
+              Format caption PDF Invoice, tiket gangguan yang diselesaikan admin, pengiriman slip gaji, dan tes bot WA.
+            </div>
+          </div>
+
+          <div class="template-grid">
+            <!-- CAPTION PDF INVOICE -->
+            <div>
+              <div class="fg">
+                <label class="fl">Caption Pengiriman Dokumen PDF Invoice</label>
+                <textarea class="fc" id="tmpl_pdf_caption" name="whatsapp_invoice_pdf_caption_template" rows="8" style="width: 100%; font-family: monospace; font-size: 12px;"><%= templates.whatsapp_invoice_pdf_caption_template || '' %></textarea>
+                <div style="font-size: 11px; color: var(--muted); margin-top: 6px;">
+                  <i class="bi
+		    
+		  
+        <div class="card-bd" style="border-top: 1px solid var(--border); background: var(--bg2); display: flex; flex-wrap:wrap; gap:10px; justify-content: space-between; align-items: center;">
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-primary btn-sm" onclick="fillOfficialReceiptPreset()"><i class="bi bi-receipt-cutoff"></i> Muat Template Struk Resmi Lengkap</button>
+            <button type="button" class="btn btn-g btn-sm" onclick="fillSpintaxPreset()"><i class="bi bi-magic"></i> Muat Template Ringkas (Spintax Anti-Ban)</button>
+            <button type="button" class="btn btn-w btn-sm" onclick="showMetaConverter()"><i class="bi bi-meta"></i> 🪄 Konversi Format Meta Cloud API</button>
+          </div>
+          <button type="submit" class="btn btn-p"><i class="bi bi-save"></i> Simpan Template</button>
+        </div>
+      </div>
+    </form>
+
+    <!-- MODAL META CONVERTER -->
+    <div class="mo" id="metaConverterModal">
+      <div class="mb" style="max-width: 680px;">
+        <div class="mh">
+          <span class="mt"><i class="bi bi-meta"></i> Tool Konversi Template Meta WhatsApp Cloud API</span>
+          <button type="button" class="mc" onclick="closeModal('metaConverterModal')">&times;</button>
+        </div>
+        <div class="mbody" style="max-height:70vh; overflow-y:auto;">
+          <div class="fg mb12">
+            <label class="fl">Pilih Template yang Akan Dikonversi ke Format Meta:</label>
+            <select class="fs" id="metaSourceSelect" onchange="convertCurrentTemplate()">
+              <option value="tmpl_auto_billing">Template Pengingat Tagihan</option>
+              <option value="tmpl_billing_qris">Template Tagihan QRIS</option>
+              <option value="tmpl_payment_success">Template Pembayaran Sukses</option>
+              <option value="tmpl_isolir">Template Pemberitahuan Isolir</option>
+              <option value="tmpl_device_offline">Template Perangkat Offline</option>
+              <option value="tmpl_device_rxpower">Template Redaman Tinggi</option>
+              <!-- === TAMBAHAN OPSI === -->
+              <option value="tmpl_reg_admin">Template Pendaftaran Baru (Admin)</option>
+              <option value="tmpl_reg_tech">Template Penugasan Teknisi</option>
+              <option value="tmpl_reg_welcome">Template Sambutan Pelanggan Selesai</option>
+            </select>
+          </div>
+
+          <div class="fg mb12">
+            <label class="fl">Hasil Format Teks Template untuk Meta Business Manager (Placeholder {{1}}, {{2}}...):</label>
+            <textarea class="fc" id="metaFormattedResult" rows="6" readonly style="background:var(--bg3); font-family:monospace;"></textarea>
+          </div>
+
+          <div class="fg mb12">
+            <label class="fl">Daftar Variabel Urutan Parameter (Components Payload):</label>
+            <div id="metaParamMapping" style="background:var(--bg3); padding:10px 14px; border-radius:8px; font-size:12px; font-family:monospace;"></div>
+          </div>
+        </div>
+        <div class="mf">
+          <button type="button" class="btn btn-g" onclick="closeModal('metaConverterModal')">Tutup</button>
+          <button type="button" class="btn btn-p" onclick="copyMetaTemplateResult()"><i class="bi bi-clipboard-check"></i> Salin Teks Meta</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function fillOfficialReceiptPreset() {
+  if (!confirm('Ganti template dengan Format Struk Pembayaran Resmi Lengkap (mencakup ID Pelanggan, Paket, Jam Bayar, Kop Perusahaan)?')) return;
+  const company = "<%- company %>";
+  document.querySelector('[name="whatsapp_payment_success_message"]').value = `🧾 *BUKTI PEMBAYARAN RESMI (LUNAS)*\n🏢 *{{company}}*\n────────────────────────────\nYth. Pelanggan *{{nama}}*,\n\nTerima kasih, pembayaran tagihan internet Anda telah kami terima dan diverifikasi.\n\n📋 *Rincian Pembayaran:*\n• *No. Invoice:* #INV-{{no_invoice}}\n• *ID Pelanggan:* {{username}}\n• *Paket Layanan:* {{paket}}\n• *Periode:* {{periode}}\n• *Waktu Bayar:* {{waktu}}\n• *Metode Bayar:* {{metode}}\n• *Total Bayar:* *Rp {{total}}*\n• *Status:* *LUNAS ✅*\n\n🌐 *Status Layanan:*\nLayanan internet Anda saat ini dalam status *AKTIF* dan dapat digunakan dengan nyaman.\n\n────────────────────────────\n🔗 *Cek Tagihan / Riwayat:*\n{{link_portal}}\n\n📞 *Bantuan & Layanan Pelanggan:*\nWhatsApp: {{company_phone}}\n\n_Simpan pesan ini sebagai bukti pembayaran yang sah dari {{company}}._`;
+}
+
+function fillSpintaxPreset() {
+  if (!confirm('Isi otomatis form template dengan format Anti-Ban (Spintax)? Teks lama di form akan digantikan.')) return;
+  const company = "<%- company %>";
+  document.querySelector('[name="whatsapp_auto_billing_message"]').value = `{Halo|Selamat Pagi|Yth.} Pelanggan {{nama}},\n\n{Ini adalah|Berikut} pengingat {sebelum tanggal jatuh tempo|pembayaran tagihan internet} Anda.\n\n📌 *Paket:* {{paket}}\n📌 *Total Tagihan:* Rp {{tagihan}}\n📌 *Periode:* {{rincian}}\n\n{Mohon|Silakan} {segera lakukan|lakukan} pembayaran melalui portal pelanggan: {{link}}\n\n{Terima kasih atas perhatian dan kerja samanya.|Terima kasih.}\nSalam,\nAdmin ` + company;
+
+  document.querySelector('[name="whatsapp_billing_qris_message"]').value = `{Halo|Selamat Pagi|Yth.} Pelanggan {{nama}},\n\n{Berikut|Ini adalah} pengingat tagihan internet Anda:\n📌 *Paket:* {{paket}}\n📌 *Total Tagihan:* Rp {{tagihan}}\n📌 *Periode:* {{rincian}}\n\n{Silakan scan|Mohon scan} QRIS terlampir atau buka link berikut: {{link}}\n\nTerima kasih.`;
+
+  document.querySelector('[name="whatsapp_payment_success_message"]').value = `🧾 *BUKTI PEMBAYARAN RESMI (LUNAS)*\n🏢 *{{company}}*\n────────────────────────────\nYth. Pelanggan *{{nama}}*,\n\nTerima kasih, pembayaran tagihan internet Anda telah kami terima dan diverifikasi.\n\n📋 *Rincian Pembayaran:*\n• *No. Invoice:* #INV-{{no_invoice}}\n• *ID Pelanggan:* {{username}}\n• *Paket Layanan:* {{paket}}\n• *Periode:* {{periode}}\n• *Waktu Bayar:* {{waktu}}\n• *Metode Bayar:* {{metode}}\n• *Total Bayar:* *Rp {{total}}*\n• *Status:* *LUNAS ✅*\n\n🌐 *Status Layanan:*\nLayanan internet Anda saat ini dalam status *AKTIF* dan dapat digunakan dengan nyaman.\n\n────────────────────────────\n🔗 *Cek Tagihan / Riwayat:*\n{{link_portal}}\n\n📞 *Bantuan & Layanan Pelanggan:*\nWhatsApp: {{company_phone}}\n\n_Simpan pesan ini sebagai bukti pembayaran yang sah dari {{company}}._`;
+
+  document.querySelector('[name="whatsapp_isolir_message"]').value = `{Halo|Selamat Pagi|Yth.} Pelanggan {{nama}},\n\nLayanan internet Anda (Paket {{paket}}) saat ini {ditangguhkan|terisolir sementara} karena belum melunasi tagihan sebesar *Rp {{tagihan}}*.\n\n{Mohon segera|Silakan} lakukan pembayaran melalui portal pelanggan: {{link}}\n\nTerima kasih.`;
+}
+
+function showMetaConverter() {
+  document.getElementById('metaConverterModal').classList.add('show');
+  convertCurrentTemplate();
+}
+
+function convertCurrentTemplate() {
+  const selectId = document.getElementById('metaSourceSelect').value;
+  const sourceText = document.getElementById(selectId).value || '';
+
+  const varMatches = [];
+  const regex = /\{\{([^}]+)\}\}/g;
+  let match;
+  let counter = 1;
+  const mapping = {};
+
+  let convertedText = sourceText;
+
+  convertedText = convertedText.replace(/\{([^{}]+)\}/g, (full, choices) => {
+    return choices.split('|')[0];
+  });
+
+  while ((match = regex.exec(sourceText)) !== null) {
+    const varName = match[1].trim();
+    if (!mapping[varName]) {
+      mapping[varName] = `{{${counter}}}`;
+      varMatches.push({ index: counter, name: varName });
+      counter++;
+    }
+  }
+
+  for (const [varName, metaPlaceholder] of Object.entries(mapping)) {
+    const replaceReg = new RegExp(`\\{\\{${varName}\\}\\}`, 'g');
+    convertedText = convertedText.replace(replaceReg, metaPlaceholder);
+  }
+
+  document.getElementById('metaFormattedResult').value = convertedText;
+
+  if (varMatches.length === 0) {
+    document.getElementById('metaParamMapping').innerHTML = `<span class="text-muted">Tidak ada variabel {{variabel}} dalam template ini.</span>`;
+  } else {
+    document.getElementById('metaParamMapping').innerHTML = varMatches.map(v => `<b>{{${v.index}}}</b> ➔ ${v.name}`).join('<br>');
+  }
+}
+
+function copyMetaTemplateResult() {
+  const resultEl = document.getElementById('metaFormattedResult');
+  resultEl.select();
+  navigator.clipboard.writeText(resultEl.value).then(() => {
+    alert('Teks format Meta API berhasil disalin! Silakan paste di Meta Business Manager untuk pengajuan template.');
+  });
+}
+</script>
+</body>
+</html>

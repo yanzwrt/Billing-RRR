@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="<%= lang || 'id' %>">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title><%= t('admin.billing.title', 'Tagihan') %> | <%= company %></title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <style>
+    .filter-bar{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .paid-row td{opacity:.7}
+    .highlight-row {
+      animation: highlightFade 3.5s ease forwards;
+    }
+    @keyframes highlightFade {
+      0% { background-color: rgba(37, 211, 102, 0.35); outline: 2px solid #25d366; }
+      100% { background-color: transparent; outline: none; }
+    }
+    @keyframes modalPop {
+      0% { transform: scale(0.92); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    /* Badge Status Isolir & Buka Isolir */
+    .badge-isolir-manual {
+      background: #ef4444;
+      color: #ffffff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      letter-spacing: 0.3px;
+      box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+      animation: pulseAlert 2s infinite;
+    }
+    .badge-isolir-auto {
+      background: #7f1d1d;
+      color: #fca5a5;
+      border: 1px solid #b91c1c;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      letter-spacing: 0.3px;
+    }
+    .badge-unisolate-manual {
+      background: #0284c7;
+      color: #ffffff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      letter-spacing: 0.3px;
+      box-shadow: 0 2px 4px rgba(2, 132, 199, 0.3);
+    }
+    @keyframes pulseAlert {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.75; }
+    }
+  </style>
+</head>
+<body>
+<%- include('partials/sidebar', { activePage: 'billing', company }) %>
+<div class="mw">
+  <div class="topbar">
+    <div class="tb-title"><button class="hb-menu" onclick="toggleSidebar()"><i class="bi bi-list"></i></button><i class="bi bi-receipt"></i> <%= t('admin.billing.manage_title', 'Manajemen Tagihan') %></div>
+    <div class="tb-right">
+      <button class="btn btn-p btn-sm" onclick="openModal('genModal')"><i class="bi bi-lightning-charge"></i> <%= t('admin.billing.generate', 'Generate Tagihan') %></button>
+      <span class="adm-badge"><i class="bi bi-person-fill"></i> <%= (typeof session !== 'undefined' && session.isCashier) ? t('admin.role.cashier', 'Kasir') : t('admin.role.admin', 'Admin') %></span>
+      <a href="/admin/logout" class="btn btn-g btn-sm"><i class="bi bi-box-arrow-left"></i></a>
+    </div>
+  </div>
+  <div class="page">
+
+    <% if (msg) { %>
+    <div class="alert alert-<%= msg.type==='success'?'s':'d' %>">
+      <i class="bi bi-<%= msg.type==='success'?'check-circle':'exclamation-circle' %>"></i> <%= msg.text %>
+    </div>
+    <% } %>
+
+    <!-- Summary Cards -->
+    <div class="stat-grid" style="grid-template-columns:repeat(4,1fr)">
+      <div class="sc p"><i class="bi bi-receipt sc-icon"></i><div class="sc-label"><%= t('admin.billing.summary.total', 'Total Tagihan') %></div><div class="sc-val"><%= summary.total.count||0 %></div><div class="sc-sub">Rp <%= (summary.total.total||0).toLocaleString('id-ID') %></div></div>
+      <div class="sc s"><i class="bi bi-check-circle sc-icon"></i><div class="sc-label"><%= t('admin.billing.summary.paid', 'Sudah Bayar') %></div><div class="sc-val"><%= summary.paid.count||0 %></div><div class="sc-sub">Rp <%= (summary.paid.total||0).toLocaleString('id-ID') %></div></div>
+      <div class="sc d"><i class="bi bi-hourglass sc-icon"></i><div class="sc-label"><%= t('admin.billing.summary.unpaid', 'Belum Bayar') %></div><div class="sc-val"><%= summary.unpaid.count||0 %></div><div class="sc-sub">Rp <%= (summary.unpaid.total||0).toLocaleString('id-ID') %></div></div>
+      <div class="sc w"><i class="bi bi-percent sc-icon"></i><div class="sc-label"><%= t('admin.billing.summary.collected_pct', '% Terkumpul') %></div><div class="sc-val"><%= summary.total.count>0 ? Math.round((summary.paid.count/summary.total.count)*100) : 0 %>%</div></div>
+    </div>
+
+    <!-- Filter (Live Instant Search & Server Filters) -->
+    <form method="GET" action="/admin/billing" class="filter-bar" id="filterForm">
+      <div class="sinput" style="max-width:280px; position:relative;">
+        <i class="bi bi-search"></i>
+        <input class="fc" id="liveSearchInput" name="search" placeholder="Ketik langsung cari nama / HP..." value="<%= search %>" autocomplete="off">
+        <button type="button" id="clearSearchBtn" style="display:none; position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--muted); cursor:pointer;">
+          <i class="bi bi-x-circle-fill"></i>
+        </button>
+      </div>
+      <select class="fs" name="month" style="width:130px" onchange="this.form.submit()">
+        <option value=""><%= t('admin.billing.all_months', 'Semua Bulan') %></option>
+        <% const monthNames = (lang === 'en')
+          ? ['January','February','March','April','May','June','July','August','September','October','November','December']
+          : ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+           for(let m=1;m<=12;m++){%>
+        <option value="<%= m %>" <%= filterMonth==m?'selected':'' %>><%= monthNames[m-1] %></option>
+        <% } %>
+      </select>
+      <select class="fs" name="year" style="width:100px" onchange="this.form.submit()">
+        <% for(let y=new Date().getFullYear(); y>=2023; y--){ %>
+        <option value="<%= y %>" <%= filterYear==y?'selected':'' %>><%= y %></option>
+        <% } %>
+      </select>
+      <select class="fs" name="status" style="width:130px" onchange="this.form.submit()">
+        <option value="all" <%= filterStatus==='all'?'selected':'' %>><%= t('admin.billing.all_status', 'Semua Status') %></option>
+        <option value="unpaid" <%= filterStatus==='unpaid'?'selected':'' %>><%= t('admin.billing.unpaid', 'Belum Bayar') %></option>
+        <option value="paid" <%= filterStatus==='paid'?'selected':'' %>><%= t('admin.billing.paid', 'Sudah Bayar') %></option>
+      </select>
+      <a href="/admin/billing" class="btn btn-g btn-sm"><i class="bi bi-arrow-counterclockwise"></i> <%= t('common.reset', 'Reset') %></a>
+    </form>
+
+    <!-- Table -->
+    <div class="card">
+      <div class="card-hd">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;width:100%">
+          <h6 style="margin:0"><i class="bi bi-list-ul"></i> <%= t('admin.billing.list', 'Daftar Tagihan') %> (<span id="visibleInvoiceCount"><%= invoices.length %></span>)</h6>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <button type="button" class="btn btn-g btn-sm" onclick="window.print()" title="Cetak Rekap Tagihan"><i class="bi bi-printer"></i> Cetak Rekap</button>
+            <span class="text-muted small" id="bulkCount">0 dipilih</span>
+            <button type="button" class="btn btn-s btn-sm" id="bulkPayBtn" disabled><i class="bi bi-check-lg"></i> Bayar Massal</button>
+            <button type="button" class="btn btn-d btn-sm" id="bulkDeleteBtn" disabled><i class="bi bi-trash"></i> Hapus Massal</button>
+          </div>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table class="dtbl" id="billingTable">
+          <thead>
+            <tr>
+              <th style="width:34px"><input type="checkbox" id="inv_all" style="width:16px;height:16px"></th>
+              <th>#</th>
+              <th><%= t('admin.billing.table.customer', 'Pelanggan') %></th>
+              <th><%= t('admin.billing.table.period', 'Periode') %></th>
+              <th><%= t('admin.billing.table.package', 'Paket') %></th>
+              <th class="num"><%= t('admin.billing.table.amount', 'Jumlah') %></th>
+              <th><%= t('admin.billing.table.status', 'Status') %></th>
+              <th><%= t('admin.billing.table.paid_by', 'Dibayar Oleh') %></th>
+              <th><%= t('admin.billing.table.paid_time', 'Waktu Bayar') %></th>
+              <th><%= t('admin.billing.table.actions', 'Aksi') %></th>
+            </tr>
+          </thead>
+          <tbody>
+          <% if (invoices.length===0) { %>
+            <tr id="emptyRow"><td colspan="10" class="text-center text-muted" style="padding:32px"><%= t('admin.billing.empty', 'Tidak ada tagihan. Generate tagihan bulanan terlebih dahulu.') %></td></tr>
+          <% } %>
+          <% invoices.forEach((inv,i)=>{ 
+               const isCustSuspended = (inv.customer_status === 'suspended' || inv.customer_status === 'isolated');
+               const isManualIsolir = isCustSuspended && (inv.status === 'paid' || (inv.isolate_day && new Date().getDate() < Number(inv.isolate_day)));
+               const isManualUnisolate = (inv.customer_status === 'ditangguhkan') || (!isCustSuspended && inv.status === 'unpaid' && inv.isolate_day && new Date().getDate() >= Number(inv.isolate_day));
+          %>
+            <tr id="inv-row-<%= inv.id %>" class="invoice-data-row <%= inv.status==='paid'?'paid-row':'' %>" data-search-text="<%= (inv.customer_name + ' ' + (inv.customer_phone||'') + ' ' + (inv.genieacs_tag||'') + ' ' + (inv.package_name||'') + ' ' + inv.id).toLowerCase() %>">
+              <td>
+                <input
+                  type="checkbox"
+                  class="inv_sel"
+                  style="width:16px;height:16px"
+                  data-id="<%= inv.id %>"
+                  data-status="<%= String(inv.status || '') %>"
+                  data-customer-id="<%= inv.customer_id %>"
+                  data-customer-name="<%= String(inv.customer_name || '').replace(/\"/g, '&quot;') %>"
+                  data-period-month="<%= inv.period_month %>"
+                  data-period-year="<%= inv.period_year %>"
+                  data-amount="<%= Number(inv.amount || 0) %>"
+                  data-package="<%= String(inv.package_name || '-').replace(/\"/g, '&quot;') %>"
+                >
+              </td>
+              <td class="text-muted"><%= i+1 %></td>
+              <td>
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                  <span class="fw6"><%= inv.customer_name %></span>
+                  
+                  <!-- 🏷️ TANDA STATUS ISOLIR / BUKA ISOLIR DIBUAT DENGAN LENGKAP -->
+                  <% if (isCustSuspended) { %>
+                    <% if (isManualIsolir) { %>
+                      <span class="badge-isolir-manual" title="Pelanggan di-isolir manual oleh Admin">
+                        <i class="bi bi-slash-circle-fill"></i> ISOLIR (MANUAL)
+                      </span>
+                    <% } else { %>
+                      <span class="badge-isolir-auto" title="Pelanggan terisolir otomatis (Jatuh Tempo)">
+                        <i class="bi bi-clock-history"></i> ISOLIR (OTOMATIS)
+                      </span>
+                    <% } %>
+                  <% } else if (isManualUnisolate) { %>
+                    <span class="badge-unisolate-manual" title="Isolir dibuka manual oleh Admin (Dispensasi)">
+                      <i class="bi bi-wifi"></i> DIBUKA (MANUAL)
+                    </span>
+                  <% } %>
+                </div>
+
+                <div style="font-size:11px;color:var(--muted);margin-top:2px"><%= inv.customer_phone||inv.genieacs_tag||'' %></div>
+                <% if (inv.status === 'unpaid' && inv.unpaidCount > 1) { %>
+                  <span class="badge bd" style="font-size:10px;margin-top:4px;display:inline-block;padding:2px 6px;">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Menunggak <%= inv.unpaidCount %> Bulan
+                  </span>
+                <% } %>
+              </td>
+              <td>
+                <% const mns = (lang === 'en')
+                  ? ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+                  : ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des']; %>
+                <span class="badge bm"><%= mns[inv.period_month-1] %> <%= inv.period_year %></span>
+                <% if (inv.status === 'unpaid' && inv.unpaidCount > 1 && inv.unpaidPeriods) { %>
+                  <div style="font-size:10px;color:var(--danger);font-weight:600;margin-top:4px;line-height:1.3;">
+                    Total: <%= inv.unpaidPeriods %>
+                  </div>
+                <% } %>
+              </td>
+              <td style="font-size:12px;color:var(--muted)"><%= inv.package_name||'-' %></td>
+              <td class="num fw6" style="color:var(--success)">
+                <div>Rp <%= inv.amount.toLocaleString('id-ID') %></div>
+                <% if (inv.status === 'unpaid' && inv.unpaidCount > 1 && inv.totalUnpaidAmount) { %>
+                  <div style="font-size:11px;color:var(--danger);font-weight:700;margin-top:2px">
+                    Total Akumulasi: Rp <%= inv.totalUnpaidAmount.toLocaleString('id-ID') %>
+                  </div>
+                <% } %>
+                <% if (inv.status === 'unpaid' && (inv.accumulatedQrisAmount || inv.qris_amount_unique)) { %>
+                  <div style="font-size:11px;color:var(--muted);margin-top:4px">
+                    QRIS: <span class="mono" style="font-weight:600;color:var(--primary)">Rp <%= Number(inv.accumulatedQrisAmount || inv.qris_amount_unique).toLocaleString('id-ID') %></span>
+                    <% if (inv.qris_unique_code) { %>
+                      <span class="badge bm" style="margin-left:4px">Kode <%= String(inv.qris_unique_code).padStart(3, "0") %></span>
+                    <% } %>
+                  </div>
+                <% } %>
+              </td>
+              <td>
+                <% if(inv.status==='paid'){%><span class="badge bs"><i class="bi bi-check-circle-fill" style="font-size:9px"></i> <%= t('admin.billing.status.paid', 'Lunas') %></span>
+                <%}else{%><span class="badge bd"><i class="bi bi-clock-fill" style="font-size:9px"></i> <%= t('admin.billing.status.unpaid', 'Belum Bayar') %></span><%}%>
+              </td>
+              <td style="font-size:12px">
+                <div><%= inv.paid_by_name||'-' %></div>
+                <% if (inv.notes) { %>
+                  <div style="font-size:10px;color:var(--muted)"><%= inv.notes %></div>
+                <% } %>
+              </td>
+              <td style="font-size:11px;color:var(--muted)"><%= inv.paid_at ? new Date(inv.paid_at).toLocaleString('id-ID',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '-' %></td>
+              <td>
+                <% if(inv.status==='unpaid'){%>
+                  <button class="btn btn-s btn-icon btn-sm pay-btn" title="<%= t('admin.billing.actions.mark_paid', 'Tandai Lunas') %>"
+                    data-id="<%= inv.id %>"
+                    data-customer-id="<%= inv.customer_id %>"
+                    data-name="<%= inv.customer_name.replace(/'/g, '&#39;') %>"
+                    data-amount="<%= inv.amount %>"
+                    data-period="<%= mns[inv.period_month-1] %> <%= inv.period_year %>">
+                    <i class="bi bi-check-lg"></i>
+                  </button>
+                  <form method="POST" action="/admin/billing/<%= inv.id %>/qris-assign" style="display:inline" onsubmit="rememberTargetRow('<%= inv.id %>')">
+                    <button class="btn btn-g btn-icon btn-sm" title="Buat nominal unik QRIS"><i class="bi bi-qr-code"></i></button>
+                  </form>
+                  <% if (inv.qris_amount_unique) { %>
+                    <form method="POST" action="/admin/billing/<%= inv.id %>/qris-assign?force=1" style="display:inline" onsubmit="rememberTargetRow('<%= inv.id %>'); return confirm('Ganti kode QRIS untuk tagihan ini?')">
+                      <button class="btn btn-w btn-icon btn-sm" title="Regenerate kode QRIS"><i class="bi bi-arrow-repeat"></i></button>
+                    </form>
+                    <form method="POST" action="/admin/billing/<%= inv.id %>/qris-clear" style="display:inline" onsubmit="rememberTargetRow('<%= inv.id %>'); return confirm('Hapus kode QRIS dari tagihan ini?')">
+                      <button class="btn btn-d btn-icon btn-sm" title="Hapus kode QRIS"><i class="bi bi-x-lg"></i></button>
+                    </form>
+                  <% } %>
+
+                  <!-- 🟢 1. Tombol Kirim WA Tagihan Biasa + QRIS -->
+                  <form id="form-send-wa-<%= inv.id %>" method="POST" action="/admin/billing/<%= inv.id %>/whatsapp" style="display:inline">
+                    <button type="button" onclick="confirmSendWA('<%= inv.id %>', '<%= inv.customer_name.replace(/'/g, '\\\'') %>', '<%= inv.amount %>', 'billing')" class="btn btn-icon btn-sm" style="background:#25d366;color:white" title="Kirim Tagihan WA + QRIS">
+                      <i class="bi bi-whatsapp"></i>
+                    </button>
+                  </form>
+
+                  <!-- 🟠 2. Tombol Kirim WA Pemberitahuan Isolir + QRIS -->
+                  <form id="form-send-isolir-<%= inv.id %>" method="POST" action="/admin/billing/<%= inv.id %>/send-isolir-wa" style="display:inline">
+                    <button type="button" onclick="confirmSendWA('<%= inv.id %>', '<%= inv.customer_name.replace(/'/g, '\\\'') %>', '<%= inv.amount %>', 'isolir')" class="btn btn-icon btn-sm" style="background:#f97316;color:white" title="Kirim Pesan Isolir + QRIS ke WA Pelanggan">
+                      <i class="bi bi-shield-slash-fill"></i>
+                    </button>
+                  </form>
+                <%}else{%>
+                  <a href="/admin/billing/<%= inv.id %>/print" target="_blank" class="btn btn-s btn-icon btn-sm" title="Cetak Faktur A4"><i class="bi bi-printer"></i></a>
+                  <a href="/admin/billing/<%= inv.id %>/print-thermal" target="_blank" class="btn btn-p btn-icon btn-sm" title="Cetak Struk Bluetooth Thermal (58mm/80mm)"><i class="bi bi-receipt"></i></a>
+                  <a href="/admin/billing/<%= inv.id %>/pdf" target="_blank" class="btn btn-g btn-icon btn-sm" title="Unduh Invoice PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+                  <% if (inv.customer_phone) { %>
+                    <button type="button" onclick="sendInvoicePdfWa('<%= inv.id %>', this)" class="btn btn-icon btn-sm" style="background:#25d366;color:white" title="Kirim Invoice PDF ke WA"><i class="bi bi-file-earmark-arrow-up"></i></button>
+                  <% } %>
+                  
+                  <!-- Batalkan Lunas -->
+                  <form id="form-unpay-<%= inv.id %>" method="POST" action="/admin/billing/<%= inv.id %>/unpay" style="display:inline">
+                    <button type="button" onclick="confirmActionModal('unpay', '<%= inv.id %>', '<%= inv.customer_name.replace(/'/g, '\\\'') %>', 'form-unpay-<%= inv.id %>')" class="btn btn-w btn-icon btn-sm" title="Batalkan Lunas">
+                      <i class="bi bi-arrow-counterclockwise"></i>
+                    </button>
+                  </form>
+                <%}%>
+				
+				  <!-- Buka Isolir Tanpa Bayar -->
+                  <form id="form-unisolate-<%= inv.id %>" method="POST" action="/admin/customers/<%= inv.customer_id %>/unisolate" style="display:inline">
+                    <button type="button" onclick="confirmActionModal('unisolate', '<%= inv.id %>', '<%= inv.customer_name.replace(/'/g, '\\\'') %>', 'form-unisolate-<%= inv.id %>')" class="btn btn-p btn-icon btn-sm" title="Buka Isolir">
+                      <i class="bi bi-wifi"></i>
+                    </button>
+                  </form>
+
+                  <!-- 🔴 3. Isolir Manual (Modal Modern) -->
+                  <form id="form-isolate-<%= inv.id %>" method="POST" action="/admin/customers/<%= inv.customer_id %>/isolate" style="display:inline">
+                    <button type="button" onclick="confirmActionModal('isolate', '<%= inv.id %>', '<%= inv.customer_name.replace(/'/g, '\\\'') %>', 'form-isolate-<%= inv.id %>')" class="btn btn-w btn-icon btn-sm" title="Isolir Manual">
+                      <i class="bi bi-wifi-off"></i>
+                    </button>
+                  </form>
+
+                  <!-- 🗑️ 4. Hapus Tagihan (Modal Modern) -->
+                  <form id="form-delete-<%= inv.id %>" method="POST" action="/admin/billing/<%= inv.id %>/delete" style="display:inline">
+                    <button type="button" onclick="confirmActionModal('delete', '<%= inv.id %>', '<%= inv.customer_name.replace(/'/g, '\\\'') %>', 'form-delete-<%= inv.id %>')" class="btn btn-d btn-icon btn-sm" title="Hapus Tagihan">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+              </td>
+            </tr>
+          <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <form id="bulkDeleteForm" method="POST" action="/admin/billing/delete-bulk" style="display:none"></form>
+  </div>
+</div>
+
+<!-- ==================== MODAL KONFIRMASI WA ==================== -->
+<div id="modalConfirmWA" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,0.65);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+  <div style="background:#ffffff;width:90%;max-width:420px;border-radius:16px;padding:24px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.2),0 8px 10px -6px rgba(0,0,0,0.1);text-align:center;animation:modalPop 0.2s cubic-bezier(0.16,1,0.3,1);">
+    
+    <div id="waModalIconBg" style="width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px auto;">
+      <i id="waModalIcon" class="bi bi-whatsapp" style="font-size:30px;"></i>
+    </div>
+
+    <h3 id="waModalTitle" style="margin:0 0 8px 0;font-size:18px;font-weight:700;color:#0f172a;">Konfirmasi Kirim WhatsApp</h3>
+    <p id="waModalDesc" style="margin:0 0 16px 0;font-size:13.5px;color:#64748b;line-height:1.5;">
+      Apakah Anda yakin ingin mengirim pesan tagihan dan <strong>QRIS Pembayaran</strong> ke pelanggan:
+    </p>
+
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:22px;text-align:left;">
+      <div style="font-size:12px;color:#64748b;margin-bottom:2px;">Nama Pelanggan:</div>
+      <div id="waModalCustName" style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:6px;">-</div>
+      <div style="font-size:12px;color:#64748b;margin-bottom:2px;">Total Tagihan:</div>
+      <div id="waModalAmount" style="font-size:15px;font-weight:800;color:#16a34a;">-</div>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:center;">
+      <button type="button" onclick="closeConfirmWA()" style="flex:1;padding:10px 16px;border:1px solid #cbd5e1;background:#ffffff;color:#475569;font-size:14px;font-weight:600;border-radius:8px;cursor:pointer;">
+        Batal
+      </button>
+      <button type="button" id="waModalSubmitBtn" onclick="submitSendWA()" style="flex:1;padding:10px 16px;border:none;color:#ffffff;font-size:14px;font-weight:600;border-radius:8px;cursor:pointer;">
+        Kirim Sekarang
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==================== MODAL KONFIRMASI AKSI ==================== -->
+<div id="modalConfirmAction" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,0.65);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+  <div style="background:#ffffff;width:90%;max-width:400px;border-radius:16px;padding:24px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.2),0 8px 10px -6px rgba(0,0,0,0.1);text-align:center;animation:modalPop 0.2s cubic-bezier(0.16,1,0.3,1);">
+    
+    <div id="actModalIconBg" style="width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px auto;">
+      <i id="actModalIcon" class="bi" style="font-size:28px;"></i>
+    </div>
+
+    <h3 id="actModalTitle" style="margin:0 0 8px 0;font-size:17.5px;font-weight:700;color:#0f172a;">Konfirmasi Tindakan</h3>
+    <p id="actModalDesc" style="margin:0 0 16px 0;font-size:13.5px;color:#64748b;line-height:1.5;">-</p>
+
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:20px;text-align:left;">
+      <div style="font-size:12px;color:#64748b;margin-bottom:2px;">Target Pelanggan:</div>
+      <div id="actModalCustName" style="font-size:14.5px;font-weight:700;color:#0f172a;">-</div>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:center;">
+      <button type="button" onclick="closeConfirmAction()" style="flex:1;padding:10px 16px;border:1px solid #cbd5e1;background:#ffffff;color:#475569;font-size:14px;font-weight:600;border-radius:8px;cursor:pointer;">
+        Batal
+      </button>
+      <button type="button" id="actModalSubmitBtn" onclick="submitActionModal()" style="flex:1;padding:10px 16px;border:none;color:#ffffff;font-size:14px;font-weight:600;border-radius:8px;cursor:pointer;">
+        Lanjutkan
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal Generate -->
+<div class="mo" id="genModal">
+  <div class="mb">
+    <div class="mh"><span class="mt"><i class="bi bi-lightning-charge"></i> <%= t('admin.billing.generate_monthly', 'Generate Tagihan Bulanan') %></span><button class="mc" onclick="closeModal('genModal')">&times;</button></div>
+    <form method="POST" action="/admin/billing/generate">
+      <div class="mbody">
+        <div class="alert alert-i"><i class="bi bi-info-circle"></i> <%= t('admin.billing.generate_hint', 'Tagihan akan dibuat untuk semua pelanggan aktif yang belum memiliki tagihan di periode yang dipilih.') %></div>
+        <div class="form-row">
+          <div class="fg">
+            <label class="fl"><%= t('admin.billing.month', 'Bulan') %></label>
+            <select class="fs" name="month" required>
+              <% const mns2 = (lang === 'en')
+                ? ['January','February','March','April','May','June','July','August','September','October','November','December']
+                : ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+                 for(let m=1;m<=12;m++){%>
+              <option value="<%= m %>" <%= m===new Date().getMonth()+1?'selected':'' %>><%= mns2[m-1] %></option>
+              <% } %>
+            </select>
+          </div>
+          <div class="fg">
+            <label class="fl"><%= t('admin.billing.year', 'Tahun') %></label>
+            <select class="fs" name="year" required>
+              <% for(let y=new Date().getFullYear(); y>=2023; y--){ %>
+              <option value="<%= y %>"><%= y %></option>
+              <% } %>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="mf">
+        <button type="button" class="btn btn-g" onclick="closeModal('genModal')"><%= t('common.cancel', 'Batal') %></button>
+        <button type="submit" class="btn btn-p"><i class="bi bi-lightning-charge"></i> <%= t('admin.billing.generate', 'Generate Tagihan') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Tandai Bayar -->
+<div class="mo" id="payModal">
+  <div class="mb">
+    <div class="mh"><span class="mt"><i class="bi bi-cash-coin"></i> <%= t('admin.billing.actions.mark_paid', 'Tandai Lunas') %></span><button class="mc" onclick="closeModal('payModal')">&times;</button></div>
+    <form method="POST" id="payForm" onsubmit="saveTargetRowFromPayForm()">
+      <div class="mbody">
+        <p class="text-muted" id="payDesc" style="margin-bottom:14px;font-size:13px"></p>
+        
+        <div id="multiPaySection" style="display:none; margin-bottom: 20px; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+          <label class="fl" style="margin-bottom:8px"><%= t('admin.billing.choose_invoice', 'Pilih Tagihan yang akan dilunasi:') %></label>
+          <div id="unpaidList" style="display:flex; flex-direction:column; gap:8px">
+          </div>
+        </div>
+
+        <% const payByDefault = (typeof session !== 'undefined' && session.isCashier)
+          ? (`Kasir ${(session.cashierName || '').trim()}` + ((session.cashierUsername || '').trim() ? ` (@${String(session.cashierUsername).trim()})` : '')).trim()
+          : 'Admin'; %>
+        <div class="form-row">
+          <div class="fg">
+            <label class="fl"><%= t('admin.billing.received_by', 'Diterima Oleh') %></label>
+            <input class="fc" name="paid_by_name" placeholder="<%= t('admin.billing.received_by_placeholder', 'Nama petugas / teknisi') %>" value="<%= payByDefault || 'Admin' %>">
+          </div>
+          <div class="fg">
+            <label class="fl"><i class="bi bi-wallet2 text-primary"></i> Metode Pembayaran</label>
+            <select class="fs" name="payment_method_select" id="payBillMethodSelect" onchange="handlePaymentMethodChange('payBill', this.value)">
+              <option value="Tunai / Cash" selected>💵 Tunai / Cash</option>
+              <option value="Transfer Bank BCA">🏦 Transfer Bank BCA</option>
+              <option value="Transfer Bank Mandiri">🏦 Transfer Bank Mandiri</option>
+              <option value="Transfer Bank BRI">🏦 Transfer Bank BRI</option>
+              <option value="Transfer Bank BNI">🏦 Transfer Bank BNI</option>
+              <option value="QRIS / E-Wallet">📱 QRIS / E-Wallet (Gopay, OVO, Dana)</option>
+              <option value="Kolektor / Saldo Dompet">👛 Saldo Dompet / Kolektor</option>
+              <option value="custom">✏️ Catatan / Ketik Manual...</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="fg" id="payBillNotesCustomFg" style="display:none;">
+          <label class="fl"><%= t('admin.billing.notes_optional', 'Catatan / Detail Pembayaran') %></label>
+          <input class="fc" name="notes" id="payBillNotesInput" value="Tunai / Cash" placeholder="<%= t('admin.billing.notes_placeholder', 'Transfer BRI, tunai, dll...') %>">
+        </div>
+
+        <div class="fg" style="margin-top:14px;padding:12px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px">
+          <label class="fl" style="margin-bottom:8px;font-weight:700;color:var(--text)"><i class="bi bi-bell-fill text-warning"></i> Opsi Kirim Bukti & Dokumentasi:</label>
+          <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:10px;align-items:center;">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;padding:6px 8px;background:rgba(37,211,102,0.08);border:1px solid rgba(37,211,102,0.25);border-radius:6px;">
+              <input type="checkbox" name="send_wa" value="1" style="width:16px;height:16px;accent-color:#25d366">
+              <i class="bi bi-whatsapp" style="color:#25d366"></i> WhatsApp
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;padding:6px 8px;background:rgba(34,158,217,0.08);border:1px solid rgba(34,158,217,0.25);border-radius:6px;">
+              <input type="checkbox" name="send_tg" value="1" style="width:16px;height:16px;accent-color:#229ED9">
+              <i class="bi bi-telegram" style="color:#229ED9"></i> Telegram
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;padding:6px 8px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:6px;">
+              <input type="checkbox" name="send_pdf" value="1" style="width:16px;height:16px;accent-color:#ef4444">
+              <i class="bi bi-file-earmark-pdf" style="color:#ef4444"></i> PDF Invoice
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="mf">
+        <button type="button" class="btn btn-g" onclick="closeModal('payModal')"><%= t('common.cancel', 'Batal') %></button>
+        <button type="submit" class="btn btn-s"><i class="bi bi-check-lg"></i> <%= t('admin.billing.confirm_paid', 'Konfirmasi Lunas') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openModal(id){document.getElementById(id).classList.add('show')}
+function closeModal(id){document.getElementById(id).classList.remove('show')}
+document.querySelectorAll('.mo').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show')}));
+const LANG = "<%= lang || 'id' %>";
+const MONTHS = (LANG === "en")
+  ? ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  : ['','Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agt','Sep','Okt','Nov','Des'];
+const I18N = {
+  customerPrefix: "<%= t('admin.billing.js.customer_prefix', 'Pelanggan:') %>",
+  loadingOther: "<%= t('admin.billing.loading_other_invoices', 'Loading tagihan lainnya...') %>",
+  periodPrefix: "<%= t('admin.billing.table.period', 'Periode') %>",
+  packageFallback: "<%= t('admin.billing.js.package_fallback', 'Internet') %>"
+};
+
+// ==================== AUTO REMEMBER TARGET ROW & SOUNDBOX QUEUE ====================
+function rememberTargetRow(invId) {
+  if (invId) sessionStorage.setItem('lastTargetInvId', invId);
+}
+
+function saveTargetRowFromPayForm() {
+  const checkedOne = document.querySelector('#unpaidList input[type="checkbox"]:checked');
+  if (checkedOne && checkedOne.value) {
+    sessionStorage.setItem('lastTargetInvId', checkedOne.value);
+  }
+  // Queue soundbox agar dimainkan setelah reload page
+  const custName = document.getElementById('payDesc')?.textContent?.replace(I18N.customerPrefix, '')?.trim() || 'Pelanggan';
+  sessionStorage.setItem('playPaidSoundbox', JSON.stringify({
+    name: custName,
+    time: Date.now()
+  }));
+}
+
+// Handle "Tandai Lunas"
+document.addEventListener('click', async function(e) {
+  const btn = e.target.closest('.pay-btn');
+  if (!btn) return;
+  
+  const id         = btn.dataset.id;
+  const customerId = btn.dataset.customerId;
+  const name       = btn.dataset.name;
+  const period     = btn.dataset.period;
+
+  rememberTargetRow(id);
+  
+  const form = document.getElementById('payForm');
+  const multiSection = document.getElementById('multiPaySection');
+  const unpaidList = document.getElementById('unpaidList');
+  const payDesc = document.getElementById('payDesc');
+  
+  payDesc.textContent = I18N.customerPrefix + ' ' + name;
+  unpaidList.innerHTML = '<div class="text-muted small">' + I18N.loadingOther + '</div>';
+  multiSection.style.display = 'block';
+  
+  openModal('payModal');
+
+  try {
+    const res = await fetch('/admin/api/billing/unpaid/' + customerId);
+    const invoices = await res.json();
+    
+    unpaidList.innerHTML = '';
+    if (invoices.length > 0) {
+      invoices.forEach(inv => {
+        const div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.alignItems = 'center';
+        div.style.gap = '10px';
+        const isCurrent = inv.id == id;
+        div.innerHTML = `
+          <input type="checkbox" name="invoice_ids" value="${inv.id}" id="inv_${inv.id}" ${isCurrent ? 'checked' : ''} style="width:16px; height:16px">
+          <label for="inv_${inv.id}" style="font-size:13px; cursor:pointer">
+            ${I18N.periodPrefix} ${(MONTHS[inv.period_month] || '')} ${inv.period_year} 
+            <span class="text-muted">(${inv.package_name || I18N.packageFallback})</span> - 
+            <strong style="color:var(--success)">Rp ${inv.amount.toLocaleString('id-ID')}</strong>
+          </label>
+        `;
+        unpaidList.appendChild(div);
+      });
+      form.action = '/admin/billing/pay-bulk';
+    } else {
+      multiSection.style.display = 'none';
+      form.action = '/admin/billing/' + id + '/pay';
+    }
+  } catch (err) {
+    multiSection.style.display = 'none';
+    form.action = '/admin/billing/' + id + '/pay';
+  }
+});
+
+function getSelectedInvoices() {
+  return Array.from(document.querySelectorAll('.inv_sel:checked')).map(cb => cb.dataset || {});
+}
+
+function updateBulkUi() {
+  const list = getSelectedInvoices();
+  const countEl = document.getElementById('bulkCount');
+  const payBtn = document.getElementById('bulkPayBtn');
+  const delBtn = document.getElementById('bulkDeleteBtn');
+  if (countEl) countEl.textContent = `${list.length} dipilih`;
+  if (payBtn) payBtn.disabled = list.length === 0;
+  if (delBtn) delBtn.disabled = list.length === 0;
+}
+
+document.addEventListener('change', function(e) {
+  const all = document.getElementById('inv_all');
+  if (e.target && e.target.id === 'inv_all') {
+    const checked = Boolean(all && all.checked);
+    document.querySelectorAll('.inv_sel').forEach(cb => { cb.checked = checked; });
+    updateBulkUi();
+    return;
+  }
+  if (e.target && e.target.classList && e.target.classList.contains('inv_sel')) {
+    updateBulkUi();
+  }
+});
+
+document.getElementById('bulkPayBtn')?.addEventListener('click', function() {
+  const selected = getSelectedInvoices();
+  const unpaid = selected.filter(x => String(x.status || '').toLowerCase() === 'unpaid');
+  if (unpaid.length === 0) return alert('Pilih minimal 1 tagihan BELUM BAYAR.');
+
+  const form = document.getElementById('payForm');
+  const multiSection = document.getElementById('multiPaySection');
+  const unpaidList = document.getElementById('unpaidList');
+  const payDesc = document.getElementById('payDesc');
+
+  if (payDesc) payDesc.textContent = `Bayar massal: ${unpaid.length} tagihan`;
+  if (unpaidList) unpaidList.innerHTML = '';
+  if (multiSection) multiSection.style.display = 'block';
+
+  for (const inv of unpaid) {
+    const div = document.createElement('div');
+    div.style.display = 'flex';
+    div.style.alignItems = 'center';
+    div.style.gap = '10px';
+    const id = String(inv.id || '').trim();
+    const customerName = String(inv.customerName || '').trim();
+    const pkg = String(inv.package || '').trim();
+    const period = `${(MONTHS[Number(inv.periodMonth || 0)] || '')} ${String(inv.periodYear || '')}`.trim();
+    const amt = Number(inv.amount || 0) || 0;
+    div.innerHTML = `
+      <input type="checkbox" name="invoice_ids" value="${id}" id="bulk_inv_${id}" checked style="width:16px; height:16px">
+      <label for="bulk_inv_${id}" style="font-size:13px; cursor:pointer">
+        ${customerName ? `<strong>${customerName}</strong> • ` : ''}${I18N.periodPrefix} ${period}
+        <span class="text-muted">(${pkg || I18N.packageFallback})</span> -
+        <strong style="color:var(--success)">Rp ${amt.toLocaleString('id-ID')}</strong>
+      </label>
+    `;
+    unpaidList.appendChild(div);
+  }
+  if (form) form.action = '/admin/billing/pay-bulk';
+  openModal('payModal');
+});
+
+document.getElementById('bulkDeleteBtn')?.addEventListener('click', function() {
+  const selected = getSelectedInvoices();
+  if (selected.length === 0) return;
+  if (!confirm(`Hapus ${selected.length} tagihan terpilih?`)) return;
+
+  const f = document.getElementById('bulkDeleteForm');
+  if (!f) return;
+  f.innerHTML = '';
+  for (const inv of selected) {
+    const id = String(inv.id || '').trim();
+    if (!id) continue;
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'invoice_ids';
+    input.value = id;
+    f.appendChild(input);
+  }
+  f.submit();
+});
+
+async function sendInvoicePdfWa(invoiceId, btn) {
+  if (!btn) return;
+  rememberTargetRow(invoiceId);
+  const oldHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="bi bi-hourglass-split"></i>';
+  try {
+    const res = await fetch(`/admin/billing/${invoiceId}/send-pdf-wa`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert('✅ ' + data.message);
+    } else {
+      alert('❌ ' + data.message);
+    }
+  } catch (err) {
+    alert('❌ Error: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = oldHtml;
+  }
+}
+
+updateBulkUi();
+setTimeout(()=>document.querySelectorAll('.alert').forEach(a=>a.style.display='none'),5000);
+
+function handlePaymentMethodChange(type, val) {
+  const notesFg = document.getElementById(type + 'NotesCustomFg');
+  const notesInput = document.getElementById(type + 'NotesInput');
+  if (val === 'custom') {
+    if (notesFg) notesFg.style.display = 'block';
+    if (notesInput) { notesInput.value = ''; notesInput.focus(); }
+  } else {
+    if (notesFg) notesFg.style.display = 'none';
+    if (notesInput) notesInput.value = val;
+  }
+}
+
+// ==================== 1. LIVE INSTANT SEARCH ====================
+const searchInput = document.getElementById('liveSearchInput');
+const clearBtn = document.getElementById('clearSearchBtn');
+const rows = document.querySelectorAll('.invoice-data-row');
+const countEl = document.getElementById('visibleInvoiceCount');
+
+if (searchInput) {
+  searchInput.addEventListener('input', function() {
+    const query = this.value.trim().toLowerCase();
+    let visibleCount = 0;
+
+    if (query.length > 0) {
+      clearBtn.style.display = 'block';
+    } else {
+      clearBtn.style.display = 'none';
+    }
+
+    rows.forEach(row => {
+      const text = row.getAttribute('data-search-text') || '';
+      if (!query || text.includes(query)) {
+        row.style.display = '';
+        visibleCount++;
+      } else {
+        row.style.display = 'none';
+      }
+    });
+
+    if (countEl) countEl.innerText = visibleCount;
+  });
+
+  clearBtn.addEventListener('click', function() {
+    searchInput.value = '';
+    searchInput.dispatchEvent(new Event('input'));
+    searchInput.focus();
+  });
+}
+
+// ==================== 2. MODAL KONFIRMASI WA ====================
+let currentTargetFormId = null;
+
+function confirmSendWA(invId, customerName, amount, mode) {
+  currentTargetFormId = (mode === 'isolir') ? ('form-send-isolir-' + invId) : ('form-send-wa-' + invId);
+  rememberTargetRow(invId);
+
+  document.getElementById('waModalCustName').innerText = customerName || 'Pelanggan';
+  const num = Number(amount) || 0;
+  document.getElementById('waModalAmount').innerText = 'Rp ' + num.toLocaleString('id-ID');
+
+  const iconBg = document.getElementById('waModalIconBg');
+  const icon = document.getElementById('waModalIcon');
+  const title = document.getElementById('waModalTitle');
+  const desc = document.getElementById('waModalDesc');
+  const submitBtn = document.getElementById('waModalSubmitBtn');
+
+  if (mode === 'isolir') {
+    iconBg.style.background = '#ffedd5';
+    icon.className = 'bi bi-shield-slash-fill';
+    icon.style.color = '#ea580c';
+    title.innerText = 'Kirim Pesan Isolir';
+    desc.innerHTML = 'Kirim peringatan <strong>Layanan Terisolir</strong> beserta <strong>QRIS Pembayaran</strong> ke pelanggan:';
+    submitBtn.style.background = '#ea580c';
+    submitBtn.innerText = 'Kirim Pesan Isolir';
+  } else {
+    iconBg.style.background = '#dcfce7';
+    icon.className = 'bi bi-whatsapp';
+    icon.style.color = '#16a34a';
+    title.innerText = 'Kirim Tagihan WhatsApp';
+    desc.innerHTML = 'Kirim rincian tagihan beserta <strong>QRIS Pembayaran</strong> ke pelanggan:';
+    submitBtn.style.background = '#16a34a';
+    submitBtn.innerText = 'Kirim Tagihan';
+  }
+
+  const modal = document.getElementById('modalConfirmWA');
+  modal.style.display = 'flex';
+}
+
+function closeConfirmWA() {
+  const modal = document.getElementById('modalConfirmWA');
+  modal.style.display = 'none';
+  currentTargetFormId = null;
+}
+
+function submitSendWA() {
+  if (currentTargetFormId) {
+    const form = document.getElementById(currentTargetFormId);
+    const btn = document.getElementById('waModalSubmitBtn');
+    btn.innerText = 'Sedang Mengirim...';
+    btn.disabled = true;
+    if (form) form.submit();
+  }
+}
+
+// ==================== 3. MODAL KONFIRMASI AKSI ====================
+let currentActionFormId = null;
+
+function confirmActionModal(actionType, invId, customerName, formId) {
+  currentActionFormId = formId;
+  rememberTargetRow(invId);
+
+  document.getElementById('actModalCustName').innerText = customerName || 'Pelanggan';
+
+  const iconBg = document.getElementById('actModalIconBg');
+  const icon = document.getElementById('actModalIcon');
+  const title = document.getElementById('actModalTitle');
+  const desc = document.getElementById('actModalDesc');
+  const submitBtn = document.getElementById('actModalSubmitBtn');
+
+  if (actionType === 'isolate') {
+    iconBg.style.background = '#fef3c7';
+    icon.className = 'bi bi-wifi-off';
+    icon.style.color = '#d97706';
+    title.innerText = 'Konfirmasi Isolir Manual';
+    desc.innerHTML = 'Apakah Anda yakin ingin <strong>memutus (mengisolir)</strong> layanan internet pelanggan ini secara manual?';
+    submitBtn.style.background = '#d97706';
+    submitBtn.innerText = 'Ya, Isolir Sekarang';
+  } else if (actionType === 'delete') {
+    iconBg.style.background = '#fee2e2';
+    icon.className = 'bi bi-trash3-fill';
+    icon.style.color = '#dc2626';
+    title.innerText = 'Hapus Tagihan Pelanggan';
+    desc.innerHTML = 'Apakah Anda yakin ingin <strong>menghapus permanen</strong> data tagihan ini? Tindakan ini tidak dapat dibatalkan.';
+    submitBtn.style.background = '#dc2626';
+    submitBtn.innerText = 'Ya, Hapus Tagihan';
+  } else if (actionType === 'unisolate') {
+    iconBg.style.background = '#e0e7ff';
+    icon.className = 'bi bi-wifi';
+    icon.style.color = '#4f46e5';
+    title.innerText = 'Buka Isolir Pelanggan';
+    desc.innerHTML = 'Aktifkan kembali koneksi internet pelanggan ini <strong>tanpa menunggu pembayaran lunas</strong>?';
+    submitBtn.style.background = '#4f46e5';
+    submitBtn.innerText = 'Ya, Buka Isolir';
+  } else if (actionType === 'unpay') {
+    iconBg.style.background = '#fef3c7';
+    icon.className = 'bi bi-arrow-counterclockwise';
+    icon.style.color = '#d97706';
+    title.innerText = 'Batalkan Status Lunas';
+    desc.innerHTML = 'Apakah Anda yakin ingin mengembalikan status tagihan ini menjadi <strong>Belum Bayar</strong>?';
+    submitBtn.style.background = '#d97706';
+    submitBtn.innerText = 'Ya, Batalkan Lunas';
+  }
+
+  const modal = document.getElementById('modalConfirmAction');
+  modal.style.display = 'flex';
+}
+
+function closeConfirmAction() {
+  const modal = document.getElementById('modalConfirmAction');
+  modal.style.display = 'none';
+  currentActionFormId = null;
+}
+
+function submitActionModal() {
+  if (currentActionFormId) {
+    const form = document.getElementById(currentActionFormId);
+    const btn = document.getElementById('actModalSubmitBtn');
+    btn.innerText = 'Memproses...';
+    btn.disabled = true;
+    if (form) form.submit();
+  }
+}
+
+// ==================== 4. AUTO-SCROLL & SOUNDBOX POST-RELOAD ====================
+window.addEventListener('DOMContentLoaded', () => {
+  // 1. Auto-scroll ke posisi baris terakhir
+  const lastId = sessionStorage.getItem('lastTargetInvId');
+  if (lastId) {
+    const rowEl = document.getElementById('inv-row-' + lastId);
+    if (rowEl) {
+      setTimeout(() => {
+        rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        rowEl.classList.add('highlight-row');
+      }, 150);
+    }
+    sessionStorage.removeItem('lastTargetInvId');
+  }
+
+  // 2. Mainkan Soundbox jika ada antrean setelah reload lunas
+  const soundQueue = sessionStorage.getItem('playPaidSoundbox');
+  if (soundQueue) {
+    try {
+      const data = JSON.parse(soundQueue);
+      if (Date.now() - (data.time || 0) < 15000) {
+        setTimeout(async () => {
+          try {
+            const speechText = `Pembayaran tagihan atas nama ${data.name} berhasil diterima dan lunas.`;
+            const audioUrl = `/admin/api/voice-assistant/tts?text=${encodeURIComponent(speechText)}`;
+            const audio = new Audio(audioUrl);
+            await audio.play();
+          } catch (audioErr) {
+            console.log('[Soundbox] Auto-play was prevented or handled by soundbox worker:', audioErr);
+          }
+        }, 300);
+      }
+    } catch (_) {}
+    sessionStorage.removeItem('playPaidSoundbox');
+  }
+});
+</script>
+</body>
+</html>

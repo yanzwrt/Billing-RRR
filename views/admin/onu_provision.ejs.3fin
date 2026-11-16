@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="<%= lang || 'id' %>">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ONU Provision | <%= company %></title>
+  <meta name="theme-color" content="#ffffff">
+  <link rel="manifest" href="/admin/manifest.webmanifest">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <style>
+    /* ─── BASE KARTU ONU (LIGHT THEME) ─── */
+    .onu-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      transition: all 0.2s ease-in-out;
+    }
+    .onu-card:hover {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.07);
+    }
+    .onu-title {
+      font-weight: 700;
+      color: #1e293b;
+      font-size: 15px;
+      margin-left: 8px;
+    }
+    .onu-prop-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #64748b;
+      margin-bottom: 3px;
+    }
+    .onu-prop-val {
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
+    }
+    .onu-prop-val.mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      color: #0f172a;
+    }
+    
+    /* ─── STATUS BADGES ─── */
+    .onu-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .onu-status::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+    .onu-status.online { background: #dcfce7; color: #15803d; }
+    .onu-status.online::before { background: #22c55e; }
+    .onu-status.offline { background: #fee2e2; color: #b91c1c; }
+    .onu-status.offline::before { background: #ef4444; }
+    .onu-status.unconfigured { background: #fef3c7; color: #b45309; }
+    .onu-status.unconfigured::before { background: #f59e0b; }
+
+    /* ─── VENDOR BADGES FISIK MODEM ONU ─── */
+    .vendor-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .vendor-zte { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .vendor-huawei { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+    .vendor-fiberhome { background: #ccfbf1; color: #0f766e; border: 1px solid #99f6e4; }
+    .vendor-cdata { background: #ffedd5; color: #c2410c; border: 1px solid #fdba74; }
+    .vendor-vsol { background: #d1fae5; color: #047857; border: 1px solid #a7f3d0; }
+    .vendor-nokia { background: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe; }
+    .vendor-generic { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+
+    /* ─── TABS ─── */
+    .tab-buttons {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 0;
+    }
+    .tab-btn {
+      padding: 12px 20px;
+      background: transparent;
+      border: none;
+      color: #64748b;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13.5px;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+      margin-bottom: -2px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .tab-btn:hover { color: #3b82f6; }
+    .tab-btn.active { color: #3b82f6; border-bottom-color: #3b82f6; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ─── ACTION BUTTONS ─── */
+    .btn-action-icon {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+      color: #475569;
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+    .btn-action-icon:hover { background: #f1f5f9; color: #0f172a; }
+    .btn-action-icon.reboot:hover { color: #d97706; background: #fef3c7; border-color: #fde68a; }
+    .btn-action-icon.delete:hover { color: #dc2626; background: #fee2e2; border-color: #fca5a5; }
+
+    /* ─── DUKUNGAN TEMA GELAP (DARK MODE) ─── */
+    [data-theme="dark"], body.dark-theme, body.dark {
+      background-color: #0b1120;
+      color: #f8fafc;
+    }
+    [data-theme="dark"] .card, body.dark-theme .card, body.dark .card,
+    [data-theme="dark"] .onu-card, body.dark-theme .onu-card, body.dark .onu-card,
+    [data-theme="dark"] .mo .mb, body.dark-theme .mo .mb, body.dark .mo .mb {
+      background: #1e293b;
+      border-color: #334155;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
+    }
+    [data-theme="dark"] .onu-card:hover, body.dark-theme .onu-card:hover, body.dark .onu-card:hover {
+      background: #243248;
+      border-color: #475569;
+    }
+    [data-theme="dark"] .card-hd, body.dark-theme .card-hd, body.dark .card-hd,
+    [data-theme="dark"] .mo .mh, body.dark-theme .mo .mh, body.dark .mo .mh,
+    [data-theme="dark"] .mo .mf, body.dark-theme .mo .mf, body.dark .mo .mf {
+      background: #0f172a !important;
+      border-color: #334155 !important;
+      color: #f1f5f9 !important;
+    }
+    [data-theme="dark"] .tab-buttons, body.dark-theme .tab-buttons, body.dark .tab-buttons {
+      border-color: #334155;
+    }
+    [data-theme="dark"] .tab-btn, body.dark-theme .tab-btn, body.dark .tab-btn {
+      color: #94a3b8;
+    }
+    [data-theme="dark"] .tab-btn.active, body.dark-theme .tab-btn.active, body.dark .tab-btn.active {
+      color: #60a5fa;
+      border-bottom-color: #60a5fa;
+    }
+    [data-theme="dark"] .onu-title, body.dark-theme .onu-title, body.dark .onu-title,
+    [data-theme="dark"] .onu-prop-val, body.dark-theme .onu-prop-val, body.dark .onu-prop-val,
+    [data-theme="dark"] .onu-prop-val.mono, body.dark-theme .onu-prop-val.mono, body.dark .onu-prop-val.mono {
+      color: #f1f5f9;
+    }
+    [data-theme="dark"] .onu-prop-label, body.dark-theme .onu-prop-label, body.dark .onu-prop-label {
+      color: #94a3b8;
+    }
+    [data-theme="dark"] .btn-action-icon, body.dark-theme .btn-action-icon, body.dark .btn-action-icon {
+      background: #0f172a;
+      border-color: #334155;
+      color: #94a3b8;
+    }
+    [data-theme="dark"] .btn-action-icon:hover, body.dark-theme .btn-action-icon:hover, body.dark .btn-action-icon:hover {
+      background: #334155;
+      color: #f8fafc;
+    }
+    [data-theme="dark"] .fc, body.dark-theme .fc, body.dark .fc,
+    [data-theme="dark"] .fs, body.dark-theme .fs, body.dark .fs {
+      background: #0f172a;
+      border-color: #475569;
+      color: #f8fafc;
+    }
+    [data-theme="dark"] .hint, body.dark-theme .hint, body.dark .hint {
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+<%- include('partials/sidebar', { activePage: 'onu_provision', company }) %>
+<div class="mw">
+  <div class="topbar">
+    <div class="tb-title">
+      <button class="hb-menu" onclick="toggleSidebar()"><i class="bi bi-list"></i></button>
+      <i class="bi bi-hdd-network-fill"></i> <%= t('admin.onu_provision.title', 'ONU Provision') %>
+    </div>
+    <div class="tb-right">
+      <span class="adm-badge" style="font-size:12px;opacity:0.7;"><%= company %></span>
+      <span class="adm-badge">
+        <i class="bi bi-person-fill"></i>
+        <%= (typeof session !== 'undefined' && session && session.isCashier) ? t('admin.role.cashier', 'Kasir') : t('admin.role.admin', 'Admin') %>
+      </span>
+      <a href="/admin/logout" class="btn btn-g btn-sm"><i class="bi bi-box-arrow-left"></i></a>
+    </div>
+  </div>
+
+  <div class="page">
+    <% if (msg) { %>
+      <div class="alert alert-<%= msg.type === 'success' ? 's' : 'd' %>">
+        <i class="bi bi-<%= msg.type === 'success' ? 'check-circle' : 'exclamation-circle' %>"></i>
+        <%= msg.text %>
+      </div>
+    <% } %>
+
+<!-- AWAL BAGIAN BARU: PEMILIH PERANGKAT OLT (DATABASE TERPUSAT) -->
+    <div class="card mb-3">
+      <div class="card-bd" style="padding: 14px 20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <i class="bi bi-hdd-rack text-primary" style="font-size:22px;"></i>
+            <label class="fw-bold text-muted small text-uppercase" style="margin:0;">Pilih Perangkat OLT:</label>
+            <select id="provisionOltSelect" class="custom-select-v2" onchange="changeProvisionOlt(this.value)" style="min-width:260px;">
+              <% if (!olts || olts.length === 0) { %>
+                <option value="">Belum ada OLT di database</option>
+              <% } else { %>
+                <% olts.forEach(o => { %>
+                  <option value="<%= o.id %>" <%= (currentOlt && currentOlt.id === o.id) ? 'selected' : '' %>>
+                    <%= o.name %> (<%= o.host %>) [<%= o.brand ? o.brand.toUpperCase() : 'CDATA' %>]
+                  </option>
+                <% }) %>
+              <% } %>
+            </select>
+          </div>
+          <div class="d-flex gap-2">
+            <a href="/admin/olts" class="btn btn-g btn-sm">
+              <i class="bi bi-gear"></i> Kelola di Manajemen OLT
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <% if (currentOlt) { %>
+<!-- AKHIR BAGIAN BARU: PEMILIH PERANGKAT OLT -->
+
+    <!-- Tabs Nav -->
+    <div class="tab-buttons">
+      <button class="tab-btn" id="btn-tab-unconfigured" onclick="switchTab('unconfigured')">
+        <i class="bi bi-exclamation-triangle"></i> ONU Belum Terkonfigurasi
+      </button>
+      <button class="tab-btn active" id="btn-tab-configured" onclick="switchTab('configured')">
+        <i class="bi bi-check-circle"></i> ONU Terkonfigurasi
+      </button>
+      <button class="tab-btn" id="btn-tab-provision" onclick="switchTab('provision')">
+        <i class="bi bi-plus-circle"></i> Provision Manual
+      </button>
+    </div>
+
+    <!-- Tab: Unconfigured ONUs -->
+    <div id="tab-unconfigured" class="tab-content">
+      <div class="card">
+        <div class="card-hd" style="display:flex;justify-content:space-between;align-items:center">
+          <h6 style="margin:0"><i class="bi bi-search"></i> Daftar ONU Belum Terkonfigurasi (Unbind/Auto-Find)</h6>
+          <button onclick="scanUnconfiguredONUs()" class="btn btn-p btn-sm">
+            <i class="bi bi-arrow-clockwise"></i> Scan Ulang
+          </button>
+        </div>
+        <div class="card-bd">
+          <div id="unconfiguredList">
+            <div class="hint" style="text-align:center;padding:40px">
+              <i class="bi bi-info-circle" style="font-size:32px;color:#94a3b8"></i>
+              <p style="margin-top:10px;color:#64748b">Klik "Scan Ulang" untuk mencari ONU yang baru terhubung atau yang baru saja di-unbind</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Configured ONUs (Active) -->
+    <div id="tab-configured" class="tab-content active">
+      <div class="card">
+        <div class="card-hd" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <h6 style="margin:0"><i class="bi bi-list-check"></i> Daftar ONU Terkonfigurasi</h6>
+            <!-- KOTAK PENCARIAN ONU INSTAN -->
+            <div style="position:relative;">
+              <i class="bi bi-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:12px;"></i>
+              <input type="text" id="onuSearchInput" class="fc fc-sm" placeholder="Cari Nama, SN, atau ID..." onkeyup="filterOnuCards()" style="padding-left:28px;width:230px;font-size:12px;border-radius:20px;">
+            </div>
+          </div>
+          <button onclick="scanConfiguredONUs()" class="btn btn-p btn-sm">
+            <i class="bi bi-arrow-clockwise"></i> Muat Ulang / Scan
+          </button>
+        </div>
+        <div class="card-bd">
+          <div id="configuredList">
+            <div class="hint" style="text-align:center;padding:40px">
+              <i class="bi bi-hourglass-split" style="font-size:32px;color:#3b82f6"></i>
+              <p style="margin-top:10px;color:#64748b">Memuat data ONU via MIB SNMP...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Manual Provision -->
+    <div id="tab-provision" class="tab-content">
+      <div class="card">
+        <div class="card-hd">
+          <h6 style="margin:0"><i class="bi bi-plus-circle"></i> Provision ONU Manual</h6>
+        </div>
+        <div class="card-bd">
+          <form method="POST" action="/admin/onu-provision/provision">
+			<input type="hidden" name="oltId" value="<%= currentOlt ? currentOlt.id : '' %>">
+			<input type="hidden" name="vendor" value="<%= currentOlt ? currentOlt.brand : 'cdata' %>">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
+              <div class="fg">
+                <label class="fl">PON Interface</label>
+                <input type="text" class="fc" name="pon" placeholder="0/0/1" value="0/0/1" required>
+              </div>
+              <div class="fg">
+                <label class="fl">ONU ID</label>
+                <input type="number" class="fc" name="onuId" id="provOnuId" placeholder="1" min="1" max="128" required>
+              </div>
+              <div class="fg">
+                <label class="fl">Serial Number</label>
+                <input type="text" class="fc" name="sn" id="provSn" placeholder="FHTT12345678" required>
+              </div>
+              <div class="fg">
+                <label class="fl">Nama ONU</label>
+                <input type="text" class="fc" name="name" id="provName" placeholder="Pelanggan-001" required>
+              </div>
+              <!-- Auth Policy C-Data (Menggantikan input VLAN manual) -->
+              <div class="fg">
+                <label class="fl">Auth Policy</label>
+                <select class="fs" name="authPolicy" required>
+                  <option value="default-mult-srv-profile" selected>default-mult-srv-profile</option>
+                  <option value="mult-srv-profile_omci_RAPA">mult-srv-profile_omci_RAPA</option>
+                  <option value="mult-srv-uplink2-rpa">mult-srv-uplink2-rpa</option>
+                </select>
+              </div>
+			  </div>
+            
+            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:24px">
+              <button type="submit" class="btn btn-p">
+                <i class="bi bi-check-circle"></i> Simpan & Otorisasi
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <% } %>
+
+  </div>
+</div>
+
+<!-- Modal Detail Perangkat & Trafik ONU (Realtime MikroTik & Optik) -->
+<div class="mo" id="onuDetailModal">
+  <div class="mb" style="max-width: 650px;">
+    <div class="mh" style="display:flex;justify-content:space-between;align-items:center;">
+      <span class="mt" style="font-size:15px; font-weight:700;">
+        <i class="bi bi-hdd-network text-primary"></i> Detail Perangkat ONU
+      </span>
+      <button type="button" class="mc" onclick="closeOnuDetailModal()">&times;</button>
+    </div>
+    <div class="mbody" style="padding:20px;">
+      <div id="onu-detail-loading" style="text-align:center; padding:30px; display:none;">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="text-muted small mt-2">Mengambil data perangkat & trafik live...</p>
+      </div>
+
+      <div id="onu-detail-content">
+        <!-- Header Info -->
+        <div style="padding:14px; border-radius:10px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; border:1px solid #e2e8f0;">
+          <div>
+            <h5 id="det-onu-name" style="margin:0; font-weight:700;">-</h5>
+            <span id="det-onu-sn" style="font-family:monospace; font-size:12px; color:#64748b;">-</span>
+          </div>
+          <span id="det-onu-status" class="status-pill-v2 pill-online">Online</span>
+        </div>
+
+        <!-- Kartu Live Trafik ONU -->
+        <div style="border:1px solid #bfdbfe; border-radius:12px; padding:16px; margin-bottom:16px;">
+          <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:#2563eb; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+            <i class="bi bi-activity"></i> Live Throughput Trafik Pelanggan (MikroTik)
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; text-align:center;">
+            <div style="padding:12px; border-radius:8px; border:1px solid #e2e8f0;">
+              <div style="font-size:11px; color:#16a34a; font-weight:700;"><i class="bi bi-arrow-down"></i> DOWNLOAD / RX</div>
+              <h4 id="det-traffic-rx" style="margin:4px 0 0 0; font-weight:800;">-</h4>
+            </div>
+            <div style="padding:12px; border-radius:8px; border:1px solid #e2e8f0;">
+              <div style="font-size:11px; color:#2563eb; font-weight:700;"><i class="bi bi-arrow-up"></i> UPLOAD / TX</div>
+              <h4 id="det-traffic-tx" style="margin:4px 0 0 0; font-weight:800;">-</h4>
+            </div>
+          </div>
+        </div>
+
+        <!-- Spesifikasi Optik & Jarak -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px;">
+          <div style="border:1px solid #e2e8f0; border-radius:8px; padding:10px;">
+            <div style="font-size:10px; color:#64748b; font-weight:700;">RX OPTICAL</div>
+            <strong id="det-onu-rx" style="color:#059669; font-size:13px;">-</strong>
+          </div>
+          <div style="border:1px solid #e2e8f0; border-radius:8px; padding:10px;">
+            <div style="font-size:10px; color:#64748b; font-weight:700;">TX OPTICAL</div>
+            <strong id="det-onu-tx" style="color:#0284c7; font-size:13px;">-</strong>
+          </div>
+          <div style="border:1px solid #e2e8f0; border-radius:8px; padding:10px;">
+            <div style="font-size:10px; color:#64748b; font-weight:700;">ESTIMASI JARAK</div>
+            <strong id="det-onu-dist" style="font-size:13px;">-</strong>
+          </div>
+          <div style="border:1px solid #e2e8f0; border-radius:8px; padding:10px;">
+            <div style="font-size:10px; color:#64748b; font-weight:700;">SUHU MODEM</div>
+            <strong id="det-onu-temp" style="font-size:13px;">-</strong>
+          </div>
+        </div>
+
+        <!-- Informasi Pelanggan Terkait -->
+        <div id="det-cust-box" style="border:1px dashed #cbd5e1; border-radius:10px; padding:12px; font-size:12px;">
+          <div style="font-weight:700; margin-bottom:6px;"><i class="bi bi-person-badge"></i> Data Pelanggan Terhubung:</div>
+          <div id="det-cust-info" class="text-muted">Mencari data billing...</div>
+        </div>
+      </div>
+    </div>
+    <div class="mf" style="display:flex; justify-content:flex-end;">
+      <button type="button" class="btn btn-g btn-sm" onclick="closeOnuDetailModal()">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+function switchTab(tabName) {
+  document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  
+  const targetTab = document.getElementById('tab-' + tabName);
+  const targetBtn = document.getElementById('btn-tab-' + tabName);
+  if (targetTab) targetTab.classList.add('active');
+  if (targetBtn) targetBtn.classList.add('active');
+}
+
+/**
+ * Filter Kartu ONU Secara Instan saat Diketik di Kotak Pencarian
+ */
+function filterOnuCards() {
+  const query = (document.getElementById('onuSearchInput').value || '').toLowerCase().trim();
+  const cards = document.querySelectorAll('#configuredList .onu-card');
+  
+  cards.forEach(card => {
+    const text = card.innerText.toLowerCase();
+    card.style.display = text.includes(query) ? '' : 'none';
+  });
+}
+
+/**
+ * Deteksi Merk Asli Modem ONU dari Awalan Serial Number (Vendor ID)
+ */
+function detectOnuBrand(sn) {
+  if (!sn) return { name: 'GENERIC', css: 'generic' };
+  
+  const clean = sn.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  
+  if (clean.startsWith('46485454') || clean.startsWith('FHTT') || clean.startsWith('FH')) {
+    return { name: 'FIBERHOME', css: 'fiberhome' };
+  }
+  if (clean.startsWith('48575443') || clean.startsWith('HWTC') || clean.startsWith('HW')) {
+    return { name: 'HUAWEI', css: 'huawei' };
+  }
+  if (clean.startsWith('5A544547') || clean.startsWith('ZTEG') || clean.startsWith('ZTE')) {
+    return { name: 'ZTE', css: 'zte' };
+  }
+  if (clean.startsWith('43444154') || clean.startsWith('CDAT')) {
+    return { name: 'C-DATA', css: 'cdata' };
+  }
+  if (clean.startsWith('56534F4C') || clean.startsWith('VSOL')) {
+    return { name: 'VSOL', css: 'vsol' };
+  }
+  if (clean.startsWith('414C434C') || clean.startsWith('ALCL')) {
+    return { name: 'NOKIA', css: 'nokia' };
+  }
+  if (clean.startsWith('5853544E') || clean.startsWith('XSTN') || clean.startsWith('XONT')) {
+    return { name: 'XPON', css: 'generic' };
+  }
+
+  return { name: 'XPON', css: 'generic' };
+}
+
+function formatBytes(bytesPerSec) {
+  if (!bytesPerSec || bytesPerSec <= 0) return '0 bps';
+  const bitsPerSec = Number(bytesPerSec) * 8;
+
+  if (bitsPerSec >= 1000000000) {
+    return (bitsPerSec / 1000000000).toFixed(2) + ' Gbps';
+  }
+  if (bitsPerSec >= 1000000) {
+    return (bitsPerSec / 1000000).toFixed(2) + ' Mbps';
+  }
+  if (bitsPerSec >= 1000) {
+    return (bitsPerSec / 1000).toFixed(2) + ' Kbps';
+  }
+  return Math.round(bitsPerSec) + ' bps';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  scanConfiguredONUs();
+});
+
+// --- AWAL GANTI FUNGSI scanConfiguredONUs() DI onu_provision.ejs ---
+async function scanConfiguredONUs() {
+  const listDiv = document.getElementById('configuredList');
+  const selOlt = document.getElementById('provisionOltSelect');
+  const oltId = selOlt ? selOlt.value : '';
+
+  listDiv.innerHTML = '<div class="hint" style="text-align:center;padding:40px"><i class="bi bi-arrow-repeat spin" style="font-size:32px;color:#3b82f6"></i><p style="margin-top:10px;color:#64748b">Mengambil data ONU via MIB SNMP...</p></div>';
+  
+  try {
+    const response = await fetch('/admin/onu-provision/scan-configured', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ oltId })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success && data.onus && data.onus.length > 0) {
+      let html = '';
+      data.onus.forEach(onu => {
+        const brand = detectOnuBrand(onu.sn);
+        const isOnline = String(onu.status || '').toLowerCase() === 'online';
+
+        html += `
+          <div class="onu-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid #f1f5f9;padding-bottom:10px;flex-wrap:wrap;gap:8px;">
+              <div style="display:flex;align-items:center;gap:6px">
+                <span class="vendor-badge vendor-${brand.css}">${brand.name}</span>
+                <span class="onu-status ${isOnline ? 'online' : 'offline'}">${isOnline ? 'Online' : 'Offline'}</span>
+                <span class="onu-title">${onu.name}</span>
+              </div>
+              <div style="display:flex;gap:6px">
+                <button onclick="showOnuDetailModal('${data.oltId}', '${onu.index}', '${onu.name}')" class="btn btn-sm btn-outline-info py-0 px-2" style="font-size:11px;" title="Lihat Detail & Trafik Live">
+                  <i class="bi bi-info-circle"></i> Detail
+                </button>
+                <button onclick="renameConfiguredOnu('${data.oltId}', '${onu.index}', '${onu.name}')" class="btn-action-icon" title="Ubah Nama (MIB)">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button onclick="rebootConfiguredOnu('${data.oltId}', '${onu.index}')" class="btn-action-icon reboot" title="Reboot ONU (MIB)">
+                  <i class="bi bi-arrow-clockwise"></i>
+                </button>
+                <button onclick="deleteAndUnbindOnu('${data.oltId}', '${onu.index}', '${onu.sn}')" class="btn-action-icon delete" title="Unbind / Hapus (MIB)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
+            
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px">
+              <div>
+                <div class="onu-prop-label">Serial Number</div>
+                <div class="onu-prop-val mono">${onu.sn}</div>
+              </div>
+              <div>
+                <div class="onu-prop-label">Interface / ID</div>
+                <div class="onu-prop-val">${onu.id || onu.index}</div>
+              </div>
+              <div>
+                <div class="onu-prop-label">Sinyal RX / TX</div>
+                <div class="onu-prop-val">
+                  <span style="color: ${parseFloat(onu.rx) < -27 ? '#ef4444' : '#16a34a'}">${onu.rx || 'N/A'}</span> / 
+                  <span style="color: #64748b">${onu.tx || 'N/A'}</span>
+                </div>
+              </div>
+              <div>
+                <div class="onu-prop-label">Uptime / Jarak</div>
+                <div class="onu-prop-val">${onu.uptime || '-'} / ${onu.distance || '-'}</div>
+              </div>
+              ${onu.customer_name ? `
+              <div>
+                <div class="onu-prop-label">Nama Pelanggan</div>
+                <div class="onu-prop-val" style="color:#0284c7"><i class="bi bi-person-fill"></i> ${onu.customer_name}</div>
+              </div>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      });
+      listDiv.innerHTML = html;
+      // Jalankan filter jika sebelumnya ada teks di search box
+      filterOnuCards();
+    } else {
+      const errorMsg = data.error || 'Tidak ada ONU terkonfigurasi';
+      listDiv.innerHTML = `<div class="hint" style="text-align:center;padding:40px"><i class="bi bi-info-circle" style="font-size:32px;color:#f59e0b"></i><p style="margin-top:10px;color:#64748b">${errorMsg}</p></div>`;
+    }
+  } catch (error) {
+    listDiv.innerHTML = '<div class="alert alert-d"><i class="bi bi-exclamation-circle"></i> Error: ' + error.message + '</div>';
+  }
+}
+
+// --- AWAL HANDLER GANTI OLT ---
+function changeProvisionOlt(oltId) {
+  if (!oltId) return;
+  window.location.href = '/admin/onu-provision?olt_id=' + encodeURIComponent(oltId);
+}
+// --- AKHIR HANDLER GANTI OLT ---
+
+// ─── MODAL DETAIL PERANGKAT & TRAFIK LIVE MIKROTIK ───
+let currentDetailTimer = null;
+
+async function showOnuDetailModal(oltId, index, name) {
+  openModal('onuDetailModal');
+  document.getElementById('onu-detail-loading').style.display = 'block';
+  document.getElementById('onu-detail-content').style.display = 'none';
+
+  let linkedCustomerId = null;
+
+  async function loadDetail() {
+    try {
+      const res = await fetch(`/admin/olts/${encodeURIComponent(oltId)}/onu/${encodeURIComponent(index)}/detail`);
+      const result = await res.json();
+      if (!result.success) return;
+
+      const d = result.data;
+      document.getElementById('det-onu-name').innerText = d.name || name || '-';
+      document.getElementById('det-onu-sn').innerText = d.sn || '-';
+      document.getElementById('det-onu-rx').innerText = d.rx || '-';
+      document.getElementById('det-onu-tx').innerText = d.tx || '-';
+      document.getElementById('det-onu-dist').innerText = d.distance || '-';
+      document.getElementById('det-onu-temp').innerText = d.temp || '-';
+
+      const st = document.getElementById('det-onu-status');
+      st.className = `status-pill-v2 ${d.status === 'Online' ? 'pill-online' : 'pill-offline'}`;
+      st.innerText = d.status;
+
+      if (d.customer) {
+        linkedCustomerId = d.customer.id;
+        document.getElementById('det-cust-info').innerHTML = `
+          <div style="line-height:1.6;">
+            <strong>Nama Pelanggan:</strong> <span style="font-weight:700;">${d.customer.name}</span><br>
+            <strong>Username PPPoE:</strong> <code style="color:#2563eb;font-weight:700;">${d.customer.pppoe_username || '-'}</code><br>
+            <strong>No. WhatsApp:</strong> ${d.customer.phone || '-'}<br>
+            <strong>Alamat:</strong> ${d.customer.address || '-'}
+          </div>
+        `;
+      } else {
+        linkedCustomerId = null;
+        document.getElementById('det-cust-info').innerHTML = `
+          <span class="text-muted">Modem ini belum ditautkan ke akun pelanggan di menu Data Pelanggan.</span>
+        `;
+      }
+
+      document.getElementById('onu-detail-loading').style.display = 'none';
+      document.getElementById('onu-detail-content').style.display = 'block';
+    } catch (err) {}
+  }
+
+  // Ambil trafik live PPPoE MikroTik khusus pelanggan ini
+  async function pollCustomerLiveTraffic() {
+    if (!linkedCustomerId) return;
+    try {
+      const tRes = await fetch(`/admin/api/customers/${linkedCustomerId}/pppoe-traffic`);
+      if (tRes.ok) {
+        const tData = await tRes.json();
+        if (tData.ok && tData.online) {
+          const downloadBps = Math.round((tData.txMbps || 0) * 1000000 / 8);
+          const uploadBps = Math.round((tData.rxMbps || 0) * 1000000 / 8);
+
+          document.getElementById('det-traffic-rx').innerText = formatBytes(downloadBps);
+          document.getElementById('det-traffic-tx').innerText = formatBytes(uploadBps);
+        } else {
+          document.getElementById('det-traffic-rx').innerText = '0 bps (Idle)';
+          document.getElementById('det-traffic-tx').innerText = '0 bps (Idle)';
+        }
+      }
+    } catch (e) {}
+  }
+
+  await loadDetail();
+  await pollCustomerLiveTraffic();
+
+  if (currentDetailTimer) clearInterval(currentDetailTimer);
+  currentDetailTimer = setInterval(pollCustomerLiveTraffic, 1500);
+}
+
+function closeOnuDetailModal() {
+  if (currentDetailTimer) clearInterval(currentDetailTimer);
+  closeModal('onuDetailModal');
+}
+
+// ============================================================================
+// --- AWAL UPDATE scanUnconfiguredONUs() DI onu_provision.ejs ---
+// ============================================================================
+async function scanUnconfiguredONUs() {
+  const listDiv = document.getElementById('unconfiguredList');
+  const selOlt = document.getElementById('provisionOltSelect');
+  const oltId = selOlt ? selOlt.value : '';
+
+  listDiv.innerHTML = '<div class="hint" style="text-align:center;padding:40px"><i class="bi bi-arrow-repeat spin" style="font-size:32px;color:#f59e0b"></i><p style="margin-top:10px;color:#64748b">Scanning ONU belum terkonfigurasi...</p></div>';
+  
+  try {
+    const response = await fetch('/admin/onu-provision/scan-unconfigured', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ oltId })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success && data.onus && data.onus.length > 0) {
+      let html = '';
+      data.onus.forEach(onu => {
+        const brand = detectOnuBrand(onu.sn);
+        html += `
+          <div class="onu-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+              <div style="display:flex;align-items:center;gap:6px">
+                <span class="vendor-badge vendor-${brand.css}">${brand.name}</span>
+                <span class="onu-status unconfigured">Belum Terkonfigurasi</span>
+              </div>
+              <button onclick="fillProvisionForm('${onu.sn}', '${onu.onuId || ''}', '${onu.pon || '0/0/1'}')" class="btn btn-p btn-sm">
+                <i class="bi bi-plus-circle"></i> Otorisasi Sekarang
+              </button>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+              <div>
+                <div class="onu-prop-label">Serial Number</div>
+                <div class="onu-prop-val mono">${onu.sn}</div>
+              </div>
+              <div>
+                <div class="onu-prop-label">PON Interface</div>
+                <div class="onu-prop-val">${onu.pon || '0/0/1'}</div>
+              </div>
+              <div>
+                <div class="onu-prop-label">Kandidat ONU ID</div>
+                <div class="onu-prop-val">${onu.onuId || 'Auto'}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      listDiv.innerHTML = html;
+    } else {
+      listDiv.innerHTML = '<div class="hint" style="text-align:center;padding:40px"><i class="bi bi-check-circle" style="font-size:32px;color:#22c55e"></i><p style="margin-top:10px;color:#64748b">Tidak ada ONU yang belum terkonfigurasi.</p></div>';
+    }
+  } catch (error) {
+    listDiv.innerHTML = '<div class="alert alert-d"><i class="bi bi-exclamation-circle"></i> Error: ' + error.message + '</div>';
+  }
+}
+
+function fillProvisionForm(sn, onuId, pon) {
+  switchTab('provision');
+  document.getElementById('provSn').value = sn;
+  if (onuId) document.getElementById('provOnuId').value = onuId;
+  const ponInput = document.querySelector('input[name="pon"]');
+  if (ponInput && pon) ponInput.value = pon;
+  document.getElementById('provName').focus();
+}
+// ============================================================================
+// --- AKHIR UPDATE scanUnconfiguredONUs() ---
+// ============================================================================
+
+/**
+ * UNBIND / HAPUS ONU MURNI LEWAT MIB SNMP
+ */
+async function deleteAndUnbindOnu(oltId, index, sn) {
+  if (!confirm(`Apakah Anda yakin ingin UNBIND / MENGHAPUS ONU ini via MIB SNMP?\n\nIndex: ${index}\nSN: ${sn}\n\nSetelah dihapus, ONU akan kembali ke status 'Belum Terkonfigurasi'.`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch('/admin/onu-provision/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        oltId, 
+        index, 
+        sn,
+        params: { index, sn, onuId: index }
+      })
+    });
+    
+    const data = await res.json();
+    if (data.success) {
+      alert('ONU berhasil di-unbind via MIB SNMP!');
+      switchTab('unconfigured');
+      scanUnconfiguredONUs();
+    } else {
+      alert('Gagal unbind ONU: ' + (data.error || 'Terjadi kesalahan'));
+    }
+  } catch (error) {
+    alert('Error koneksi: ' + error.message);
+  }
+}
+
+/**
+ * REBOOT ONU MURNI LEWAT MIB SNMP
+ */
+async function rebootConfiguredOnu(oltId, index) {
+  if (!confirm('Reboot ONU dengan ID ' + index + ' via MIB SNMP?')) return;
+  try {
+    const res = await fetch(`/admin/olts/${oltId}/onu/${index}/reboot`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      alert('Perintah reboot via MIB SNMP berhasil dikirim!');
+      scanConfiguredONUs();
+    } else {
+      alert('Gagal: ' + data.error);
+    }
+  } catch (error) {
+    alert('Error: ' + error.message);
+  }
+}
+
+/**
+ * RENAME ONU MURNI LEWAT MIB SNMP
+ */
+async function renameConfiguredOnu(oltId, index, oldName) {
+  const newName = prompt('Masukkan nama baru untuk ONU:', oldName);
+  if (!newName || newName.trim() === '') return;
+  try {
+    const res = await fetch(`/admin/olts/${oltId}/onu/${index}/rename`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ name: newName })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert('Nama ONU berhasil diubah via MIB SNMP!');
+      scanConfiguredONUs();
+    } else {
+      alert('Gagal: ' + data.error);
+    }
+  } catch (error) {
+    alert('Error: ' + error.message);
+  }
+}
+</script>
+</body>
+</html>

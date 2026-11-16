@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="<%= lang || 'id' %>">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title><%= t('admin.agent_reports.title', 'Laporan Agent') %> | <%= company %></title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+<%- include('partials/sidebar', { activePage: 'agents_reports', company }) %>
+
+<div class="mw">
+  <div class="topbar">
+    <div class="tb-title">
+      <button class="hb-menu" onclick="toggleSidebar()"><i class="bi bi-list"></i></button>
+      <i class="bi bi-journal-text"></i>
+      <span><%= t('admin.agent_reports.title', 'Laporan Agent') %></span>
+    </div>
+    <div class="tb-right">
+      <span class="adm-badge"><i class="bi bi-person-fill"></i> <%= (typeof session !== 'undefined' && session.isCashier) ? t('admin.role.cashier', 'Kasir') : t('admin.role.admin', 'Admin') %></span>
+      <a href="/admin/agents" class="btn btn-g btn-sm"><i class="bi bi-arrow-left"></i></a>
+    </div>
+  </div>
+
+  <div class="page">
+    <% if (msg) { %>
+      <div class="alert alert-<%= msg.type==='error'?'d':'s' %>"><%= msg.text %></div>
+    <% } %>
+
+    <!-- ================================================================= -->
+    <!-- [KARTU FILTER ADMIN: PILIH AGEN, BULAN, DAN TAHUN]                -->
+    <!-- ================================================================= -->
+    <div class="card">
+      <div class="card-hd">
+        <h6><i class="bi bi-funnel"></i> Filter Laporan & Rekap Tutup Buku</h6>
+      </div>
+      <div class="card-bd">
+        <form method="GET" action="/admin/agents/reports" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+          <div>
+            <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Pilih Agen:</label>
+            <select name="agentId" class="fs" style="min-width:220px" onchange="this.form.submit()">
+              <option value="">-- Semua Agen --</option>
+              <% (agents || []).forEach(a => { %>
+                <option value="<%= a.id %>" <%= agentId && Number(agentId)===Number(a.id) ? 'selected' : '' %>>
+                  <%= a.name %> (@<%= a.username %>)
+                </option>
+              <% }) %>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Bulan:</label>
+            <select name="month" class="fs" style="min-width:140px" onchange="this.form.submit()">
+              <% 
+                const bulanList = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+                bulanList.forEach((nm, idx) => { 
+                  const mVal = idx + 1;
+              %>
+                <option value="<%= mVal %>" <%= Number(filterMonth) === mVal ? 'selected' : '' %>><%= nm %></option>
+              <% }) %>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Tahun:</label>
+            <select name="year" class="fs" style="min-width:110px" onchange="this.form.submit()">
+              <% for(let y = 2024; y <= 2030; y++) { %>
+                <option value="<%= y %>" <%= Number(filterYear) === y ? 'selected' : '' %>><%= y %></option>
+              <% } %>
+            </select>
+          </div>
+
+          <div>
+            <span class="badge bm" style="padding:8px 12px;font-size:12px"><i class="bi bi-list-check"></i> <%= (txs || []).length %> Transaksi</span>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- [4 KOTAK REKAPITULASI SETORAN - MODEL TALANGAN BULANAN]           -->
+    <!-- ================================================================= -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:12px;margin-top:16px">
+      <!-- Kotak 1: Total Uang Warga Masuk -->
+      <div class="card" style="margin:0;border-left:4px solid #3b82f6">
+        <div class="card-bd" style="padding:14px">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700">Total Penjualan</div>
+          <div style="font-size:20px;font-weight:900;color:#3b82f6;margin:4px 0">
+            Rp <%= Number(summary?.totalCashCollected || 0).toLocaleString('id-ID') %>
+          </div>
+          <div style="font-size:11px;color:var(--muted)">Uang cash dipegang agen</div>
+        </div>
+      </div>
+
+      <!-- Kotak 2: Keuntungan Hak Agen -->
+      <div class="card" style="margin:0;border-left:4px solid #22c55e">
+        <div class="card-bd" style="padding:14px">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700">Keuntungan Agen</div>
+          <div style="font-size:20px;font-weight:900;color:#22c55e;margin:4px 0">
+            Rp <%= Number(summary?.totalAgentProfit || 0).toLocaleString('id-ID') %>
+          </div>
+          <div style="font-size:11px;color:var(--muted)">Hak upah milik agen</div>
+        </div>
+      </div>
+
+      <!-- Kotak 3: Uang yang Wajib Disetor ke Admin -->
+      <div class="card" style="margin:0;border-left:4px solid #ef4444;background:rgba(239,68,68,0.06)">
+        <div class="card-bd" style="padding:14px">
+          <div style="font-size:11px;color:#ef4444;text-transform:uppercase;font-weight:800">WAJIB SETOR KE ADMIN</div>
+          <div style="font-size:22px;font-weight:950;color:#ef4444;margin:4px 0">
+            Rp <%= Number(summary?.totalAdminDeposit || 0).toLocaleString('id-ID') %>
+          </div>
+          <div style="font-size:11px;color:var(--muted)">diserahkan ke Admin</div>
+        </div>
+      </div>
+
+      <!-- Kotak 4: Status Sisa Saldo di Sistem -->
+      <div class="card" style="margin:0;border-left:4px solid #f59e0b">
+        <div class="card-bd" style="padding:14px">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700">Sisa Saldo Agen di Web</div>
+          <div style="font-size:20px;font-weight:900;color:#f59e0b;margin:4px 0">
+            Rp <%= Number(summary?.currentBalance || 0).toLocaleString('id-ID') %>
+          </div>
+          <div style="font-size:11px;color:var(--muted)">
+            <%= selectedAgent ? 'Saldo aktif saat ini' : 'Pilih agen di filter' %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- [TOMBOL SALIN REKAP SETORAN KE WHATSAPP]                          -->
+    <!-- ================================================================= -->
+    <% if (selectedAgent) { %>
+      <div style="margin-top:12px;display:flex;justify-content:flex-end">
+        <!-- Textarea tersembunyi dengan posisi off-screen agar tidak diblokir browser -->
+        <textarea id="copy-settlement-text" readonly style="position:fixed;left:-9999px;top:0;opacity:0">📊 *REKAP SETORAN AGEN BULANAN*
+🌐 *<%= company %>*
+────────────────────────
+🏪 *Nama Agen:* <%= selectedAgent.name %> (@<%= selectedAgent.username %>)
+📅 *Periode:* <%= bulanList[filterMonth - 1] %> <%= filterYear %>
+────────────────────────
+💵 *Total Penjualan Voucher   :* Rp <%= Number(summary.totalCashCollected).toLocaleString('id-ID') %>
+🎁 *Keuntungan Agen           :* Rp <%= Number(summary.totalAgentProfit).toLocaleString('id-ID') %> (Hak Agen)
+────────────────────────
+🏧 *TOTAL SETOR KE ADMIN      :* *Rp <%= Number(summary.totalAdminDeposit).toLocaleString('id-ID') %>*
+────────────────────────
+📦 *Sisa Saldo di Sistem      :* Rp <%= Number(summary.currentBalance).toLocaleString('id-ID') %>
+
+_Catatan: Harap serahkan uang setoran sesuai rincian di atas. Terima kasih atas kerja samanya!_</textarea>
+
+        <button type="button" class="btn btn-sm" id="btn-copy-settle" style="background:#22c55e;color:#fff;border:none;display:inline-flex;align-items:center;gap:6px;font-weight:700;padding:8px 14px;border-radius:8px">
+          <i class="bi bi-whatsapp"></i> Salin Rekap Setoran WA
+        </button>
+      </div>
+    <% } %>
+
+    <!-- ================================================================= -->
+    <!-- [TABEL RINCIAN TRANSAKSI DENGAN BADGE WEB / WA]                   -->
+    <!-- ================================================================= -->
+    <div class="card" style="margin-top:14px">
+      <div class="card-hd">
+        <h6><i class="bi bi-list-ul"></i> <%= t('admin.agent_reports.history', 'Riwayat Transaksi') %></h6>
+      </div>
+      <div class="tbl-wrap">
+        <table class="dtbl">
+          <!-- ================================================================= -->
+          <!-- [AWAL GANTI: HEADER TABEL DENGAN KOLOM AKSI HAPUS VOUCHER]        -->
+          <!-- ================================================================= -->
+          <thead>
+            <tr>
+              <th><%= t('admin.agent_reports.table.time', 'Waktu') %></th>
+              <th><%= t('admin.agent_reports.table.agent', 'Agent') %></th>
+              <th><%= t('admin.agent_reports.table.type', 'Jenis & Sumber') %></th>
+              <th><%= t('admin.agent_reports.table.detail', 'Detail') %></th>
+              <th class="num">Uang Masuk (Warga)</th>
+              <th class="num">Hak Admin (Modal)</th>
+              <th class="num">Hak Agen (Profit)</th>
+              <th class="num"><%= t('admin.agent_reports.table.balance_after', 'Saldo Akhir') %></th>
+              <th style="text-align:center;width:70px">Aksi</th>
+            </tr>
+          </thead>
+          <!-- ================================================================= -->
+          <!-- [AKHIR GANTI: HEADER TABEL]                                       -->
+          <!-- ================================================================= -->
+          <tbody>
+            <% if (!txs || txs.length === 0) { %>
+              <tr><td colspan="8" class="text-center text-muted" style="padding:24px"><%= t('admin.agent_reports.empty', 'Belum ada transaksi pada periode bulan ini.') %></td></tr>
+            <% } else { %>
+              <% txs.forEach(tx => { 
+                   const sell = Number(tx.amount_sell || 0);
+                   const buy = Number(tx.amount_buy || 0);
+                   const fee = Number(tx.fee || 0);
+                   let displayCollected = sell;
+                   let displayProfit = fee > 0 ? fee : Math.max(0, sell - buy);
+                   if (tx.type === 'invoice_payment') {
+                     displayCollected = Number(tx.amount_invoice || sell);
+                     displayProfit = fee;
+                   }
+                %>
+                <tr>
+                  <td style="font-size:11px;color:var(--muted)"><%= tx.created_at ? new Date(tx.created_at).toLocaleString('id-ID',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '-' %></td>
+                  <td class="fw6"><%= tx.agent_name %></td>
+                  
+                  <!-- Kolom Jenis & Badge Sumber (Web Agent vs WA Bot) -->
+                  <td>
+                    <span class="badge <%= tx.type==='topup' ? 'bs' : (tx.type==='invoice_payment' ? 'bm' : (tx.type==='voucher_sale' ? 'bp' : 'bd')) %>">
+                      <%= tx.type === 'topup' ? 'TOPUP' : (tx.type === 'invoice_payment' ? 'TAGIHAN' : (tx.type === 'voucher_sale' ? 'VOUCHER' : (tx.type === 'pulsa' ? 'PULSA' : 'ADJUST'))) %>
+                    </span>
+                    <% if (tx.type === 'voucher_sale') { %>
+                      <div style="margin-top:4px">
+                        <% if (String(tx.note || '').includes('[WhatsApp]')) { %>
+                          <span class="badge" style="background:rgba(34,197,94,0.15);color:#22c55e;font-size:10px;padding:2px 6px;border:1px solid rgba(34,197,94,0.3)">
+                            <i class="bi bi-whatsapp"></i> WA Bot
+                          </span>
+                        <% } else { %>
+                          <span class="badge" style="background:rgba(59,130,246,0.15);color:#38bdf8;font-size:10px;padding:2px 6px;border:1px solid rgba(59,130,246,0.3)">
+                            <i class="bi bi-globe"></i> Web Agent
+                          </span>
+                        <% } %>
+                      </div>
+                    <% } %>
+                  </td>
+
+                  <td style="font-size:12px">
+                    <% if (tx.type === 'invoice_payment') { %>
+                      <div class="fw6"><%= tx.customer_name || '-' %></div>
+                      <div class="text-muted" style="font-size:11px">INV #<%= tx.invoice_id %> &bull; Rp <%= Number(tx.amount_invoice||0).toLocaleString('id-ID') %></div>
+                    <% } else if (tx.type === 'voucher_sale') { %>
+                      <div class="fw6"><%= tx.profile_name || '-' %> <span class="text-muted" style="font-size:11px"><%= tx.router_name ? '(' + tx.router_name + ')' : '' %></span></div>
+                      <div class="text-muted" style="font-size:11px"><code><%= tx.voucher_code %></code> / <code><%= tx.voucher_password %></code></div>
+                    <% } else if (tx.type === 'pulsa') { %>
+                      <div class="fw6"><%= tx.digi_sku || 'Pulsa' %></div>
+                      <div class="text-muted" style="font-size:11px"><%= tx.digi_target || '-' %> &bull; <%= (tx.digi_status||'-').toUpperCase() %></div>
+                    <% } else { %>
+                      <div class="text-muted"><%= tx.note || '-' %></div>
+                    <% } %>
+                  </td>
+
+                  <td class="num fw6" style="color:#3b82f6">
+                    <%= tx.type === 'topup' ? '-' : 'Rp ' + displayCollected.toLocaleString('id-ID') %>
+                  </td>
+                  <td class="num fw6" style="color:var(--danger)">
+                    <%= tx.type === 'topup' ? '+Rp ' + buy.toLocaleString('id-ID') : 'Rp ' + buy.toLocaleString('id-ID') %>
+                  </td>
+                  <td class="num" style="color:var(--success)">
+                    <%= tx.type === 'topup' ? '-' : '+Rp ' + displayProfit.toLocaleString('id-ID') %>
+                  </td>
+                  <td class="num fw6">Rp <%= Number(tx.balance_after||0).toLocaleString('id-ID') %></td>
+                  
+                  <!-- ================================================================= -->
+                  <!-- [AWAL GANTI TITIK 1: TOMBOL PEMANGGIL MODAL CUSTOM HAPUS VOUCHER] -->
+                  <!-- ================================================================= -->
+                  <td style="text-align:center">
+                    <% if (tx.type === 'voucher_sale') { %>
+                      <button type="button" class="btn btn-d btn-sm" style="padding:4px 8px;font-size:11px" 
+                              title="Batalkan & Hapus Voucher"
+                              onclick="openDeleteVoucherModal('<%= tx.id %>', '<%= tx.voucher_code %>', '<%= tx.profile_name %>', '<%= tx.agent_name %>', '<%= Number(tx.amount_buy||0).toLocaleString('id-ID') %>')">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    <% } else { %>
+                      <span class="text-muted" style="font-size:11px">-</span>
+                    <% } %>
+                  </td>
+                  <!-- ================================================================= -->
+                  <!-- [AKHIR GANTI TITIK 1: TOMBOL PEMANGGIL MODAL CUSTOM]              -->
+                  <!-- ================================================================= -->
+                </tr>
+              <% }) %>
+            <% } %>
+          </tbody>
+
+          <!-- Kaki Tabel: Total Akumulasi -->
+          <% if (txs && txs.length > 0) { %>
+            <tfoot style="background:var(--panel2, rgba(15,23,42,0.55));font-weight:800;border-top:2px solid var(--border)">
+              <tr>
+                <td colspan="4" class="text-end" style="padding:10px">TOTAL PERIODE INI:</td>
+                <td class="num" style="color:#3b82f6">Rp <%= Number(summary?.totalCashCollected || 0).toLocaleString('id-ID') %></td>
+                <td class="num" style="color:#ef4444">Rp <%= Number(summary?.totalAdminDeposit || 0).toLocaleString('id-ID') %></td>
+                <td class="num" style="color:#22c55e">Rp <%= Number(summary?.totalAgentProfit || 0).toLocaleString('id-ID') %></td>
+                <td colspan="2"></td>
+              </tr>
+            </tfoot>
+          <% } %>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================= -->
+<!-- [SCRIPT COPY TEXT MULTI-DEVICE (ANTI-GAGAL DI HP & LAPTOP)]       -->
+<!-- ================================================================= -->
+
+<!-- ================================================================= -->
+<!-- [AWAL TAMBAH TITIK 2: MODAL NOTIFIKASI CUSTOM HAPUS & REFUND]     -->
+<!-- Fungsi: Pop-up konfirmasi berpenampilan rapi dengan rincian saldo  -->
+<!-- refund, kode voucher, dan status penghapusan MikroTik.            -->
+<!-- ================================================================= -->
+<div class="mo" id="deleteVoucherModal">
+  <div class="mb" style="max-width:440px;width:92%">
+    <form id="deleteVoucherForm" method="POST">
+      <div class="mh" style="border-bottom:1px solid rgba(239,68,68,0.25);padding:14px 18px">
+        <span class="mt" style="display:flex;align-items:center;gap:8px;color:#ef4444;font-size:15px">
+          <i class="bi bi-exclamation-octagon-fill"></i> Hapus & Refund Voucher
+        </span>
+        <button type="button" class="mc" onclick="closeModal('deleteVoucherModal')">&times;</button>
+      </div>
+      <div class="mbody" style="padding:18px">
+        <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:12px;margin-bottom:14px">
+          <div style="font-size:12px;color:var(--text,#e2e8f0);line-height:1.5">
+            Apakah Anda yakin ingin membatalkan transaksi ini? User voucher akan <strong>langsung dihapus dari MikroTik</strong>.
+          </div>
+        </div>
+
+        <table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:12px">
+          <tr>
+            <td style="padding:4px 0;color:var(--muted);width:110px">Kode Voucher:</td>
+            <td style="padding:4px 0;font-weight:700"><code id="del-vc-code" style="font-size:13px;color:#38bdf8">-</code></td>
+          </tr>
+          <tr>
+            <td style="padding:4px 0;color:var(--muted)">Paket:</td>
+            <td style="padding:4px 0;font-weight:600" id="del-vc-profile">-</td>
+          </tr>
+          <tr>
+            <td style="padding:4px 0;color:var(--muted)">Nama Agen:</td>
+            <td style="padding:4px 0;font-weight:600" id="del-vc-agent">-</td>
+          </tr>
+          <tr style="border-top:1px dashed var(--border,#334155)">
+            <td style="padding:8px 0 4px;color:var(--muted)">Refund Saldo:</td>
+            <td style="padding:8px 0 4px;font-weight:800;font-size:14px;color:#22c55e" id="del-vc-refund">Rp 0</td>
+          </tr>
+        </table>
+        
+        <div style="font-size:11px;color:var(--muted);background:var(--bg3, rgba(15,23,42,0.45));padding:8px 10px;border-radius:6px">
+          <i class="bi bi-info-circle"></i> Saldo agen akan otomatis bertambah kembali dan rekap setoran akan diperbarui.
+        </div>
+      </div>
+      <div class="mf" style="padding:12px 18px;display:flex;justify-content:flex-end;gap:8px">
+        <button type="button" class="btn btn-g btn-sm" onclick="closeModal('deleteVoucherModal')">Batal</button>
+        <button type="submit" class="btn btn-d btn-sm" style="display:inline-flex;align-items:center;gap:6px">
+          <i class="bi bi-trash"></i> Ya, Hapus & Refund
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+<!-- ================================================================= -->
+<!-- [AKHIR TAMBAH TITIK 2: MODAL NOTIFIKASI CUSTOM]                   -->
+<!-- ================================================================= -->
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const btn = document.getElementById('btn-copy-settle');
+  if (!btn) return;
+
+  btn.addEventListener('click', async function () {
+    const ta = document.getElementById('copy-settlement-text');
+    if (!ta) return;
+
+    let success = false;
+
+    // Metode 1: Clipboard API modern
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(ta.value);
+        success = true;
+      } catch (e) {
+        success = false;
+      }
+    }
+
+    // Metode 2: Fallback eksekusi seleksi teks (pasti berhasil di HP dan HTTP biasa)
+    if (!success) {
+      try {
+        ta.focus();
+        ta.select();
+        ta.setSelectionRange(0, 99999);
+        document.execCommand('copy');
+        success = true;
+      } catch (err) {
+        success = false;
+      }
+    }
+
+    if (success) {
+      const origHtml = btn.innerHTML;
+      btn.innerHTML = `<i class="bi bi-check-circle-fill"></i> Berhasil Disalin!`;
+      btn.style.background = '#15803d';
+      alert('✅ Rincian setoran berhasil disalin! Silakan paste ke chat WhatsApp Agen.');
+      setTimeout(() => {
+        btn.innerHTML = origHtml;
+        btn.style.background = '#22c55e';
+      }, 2000);
+    } else {
+      alert('Gagal menyalin otomatis. Silakan salin teks secara manual.');
+    }
+  });
+});
+
+/* ========================================================================= */
+/* [AWAL TAMBAH TITIK 3: FUNGSI BUKA MODAL NOTIFIKASI HAPUS VOUCHER]         */
+/* ========================================================================= */
+function openModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('show');
+}
+
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('show');
+}
+
+function openDeleteVoucherModal(txId, code, profile, agentName, refundStr) {
+  document.getElementById('deleteVoucherForm').action = '/admin/agents/reports/voucher/' + txId + '/delete';
+  document.getElementById('del-vc-code').innerText = code;
+  document.getElementById('del-vc-profile').innerText = profile;
+  document.getElementById('del-vc-agent').innerText = agentName;
+  document.getElementById('del-vc-refund').innerText = '+Rp ' + refundStr;
+  openModal('deleteVoucherModal');
+}
+/* ========================================================================= */
+/* [AKHIR TAMBAH TITIK 3: FUNGSI BUKA MODAL NOTIFIKASI HAPUS VOUCHER]        */
+/* ========================================================================= */
+
+</script>
+</body>
+</html>

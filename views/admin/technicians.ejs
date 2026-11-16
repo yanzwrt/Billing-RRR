@@ -1,0 +1,510 @@
+<!-- === AWAL FILE: technicians.ejs DENGAN TAB PEMASANGAN BARU === -->
+<!DOCTYPE html>
+<html lang="<%= lang || 'id' %>">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title><%= t('admin.nav.technicians', 'Teknisi & Pemasangan') %> | <%= company %></title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <style>
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      border-bottom: 2px solid rgba(148, 163, 184, 0.2);
+      padding-bottom: 8px;
+    }
+    .nav-tab-btn {
+      background: none;
+      border: none;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #94a3b8;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+    .nav-tab-btn:hover {
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.08);
+    }
+    .nav-tab-btn.active {
+      color: #fff;
+      background: #0284c7;
+    }
+    .badge-status {
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .status-pending { background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.4); }
+    .status-assigned { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); }
+    .status-approved { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
+    .status-progress { background: rgba(6, 182, 212, 0.2); color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.4); }
+    .status-completed { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.4); }
+  </style>
+</head>
+<body>
+<%- include('partials/sidebar', { activePage: 'technicians', company }) %>
+
+<div class="mw">
+  <div class="topbar">
+    <div class="tb-title">
+      <button class="hb-menu" onclick="toggleSidebar()"><i class="bi bi-list"></i></button>
+      <i class="bi bi-person-gear"></i>
+      <span><%= t('admin.nav.technicians', 'Teknisi & Pemasangan') %></span>
+    </div>
+    <div class="tb-right">
+      <span class="adm-badge">
+        <i class="bi bi-person-fill"></i> 
+        <%= (typeof session !== 'undefined' && session && session.isCashier) ? t('admin.role.cashier', 'Kasir') : t('admin.role.admin', 'Admin') %>
+      </span>
+      <button class="btn btn-p btn-sm" id="btnTambahTech" onclick="openModal('addTechModal')"><i class="bi bi-plus-lg"></i> <%= t('admin.technicians.add', 'Tambah Teknisi') %></button>
+    </div>
+  </div>
+
+  <div class="page">
+    <% if (msg) { %>
+      <div class="alert alert-<%= msg.type==='error'?'d':'s' %>"><%= msg.text %></div>
+    <% } %>
+
+    <!-- TAB NAVIGASI -->
+    <div class="nav-tabs">
+      <button class="nav-tab-btn active" id="tabTechBtn" onclick="switchTab('tech')">
+        <i class="bi bi-people-fill"></i> Daftar Teknisi
+      </button>
+      <button class="nav-tab-btn" id="tabRegBtn" onclick="switchTab('reg')">
+        <i class="bi bi-tools"></i> Pemasangan Baru / Pendaftaran
+        <% const pendingCount = (typeof registrations !== 'undefined') ? registrations.filter(r => r.status !== 'completed').length : 0; %>
+        <% if (pendingCount > 0) { %>
+          <span style="background:#ef4444;color:#fff;font-size:10px;padding:2px 6px;border-radius:99px;"><%= pendingCount %></span>
+        <% } %>
+      </button>
+    </div>
+
+    <!-- PANE 1: DAFTAR TEKNISI -->
+    <div id="paneTech" class="card">
+      <div class="card-hd">
+        <h6><i class="bi bi-list-ul"></i> <%= t('admin.technicians.list', 'Daftar Teknisi Lapangan') %></h6>
+      </div>
+      <div class="tbl-wrap">
+        <table class="dtbl">
+          <thead>
+            <tr>
+              <th><%= t('admin.technicians.table.name', 'Nama') %></th>
+              <th><%= t('admin.technicians.table.username', 'Username') %></th>
+              <th><%= t('admin.technicians.table.password', 'Password') %></th>
+              <th><%= t('admin.technicians.table.whatsapp', 'WhatsApp') %></th>
+              <th><%= t('admin.technicians.table.area', 'Area Tugas') %></th>
+              <th><%= t('admin.technicians.table.status', 'Status') %></th>
+              <th><%= t('admin.technicians.table.actions', 'Aksi') %></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (technicians.length === 0) { %>
+              <tr><td colspan="7" class="text-center text-muted" style="padding:20px"><%= t('admin.technicians.empty', 'Belum ada data teknisi.') %></td></tr>
+            <% } else { %>
+            <% technicians.forEach(tech => { %>
+                <tr>
+                  <td><strong><%= tech.name %></strong></td>
+                  <td><code><%= tech.username %></code></td>
+                  <td><span class="text-muted"><%= tech.password %></span></td>
+                  <td><%= tech.phone || '-' %></td>
+                  <td>
+                    <% if (tech.area) { %>
+                      <span class="badge" style="background:#0284c7;color:#fff"><i class="bi bi-geo-alt"></i> <%= tech.area %></span>
+                    <% } else { %>
+                      <span class="text-muted"><%= t('admin.technicians.all_areas', 'Semua Area / Bebas') %></span>
+                    <% } %>
+                  </td>
+                  <td>
+                    <span class="badge <%= tech.is_active ? 'bs' : 'bd' %>">
+                      <%= tech.is_active ? t('common.active', 'Aktif') : t('common.inactive', 'Nonaktif') %>
+                    </span>
+                  </td>
+                  <td>
+                    <div class="d-flex gap-2">
+                      <button class="btn btn-g btn-icon btn-sm" onclick='editTech(<%- JSON.stringify(tech) %>)'><i class="bi bi-pencil"></i></button>
+                      <form action="/admin/technicians/<%= tech.id %>/delete" method="POST" onsubmit="return confirm(I18N.confirmDeleteTechnician)">
+                        <button type="submit" class="btn btn-d btn-icon btn-sm"><i class="bi bi-trash"></i></button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              <% }) %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PANE 2: PENDAFTARAN & INSTALASI -->
+    <div id="paneReg" class="card" style="display:none;">
+      <div class="card-hd">
+        <h6><i class="bi bi-tools"></i> Daftar Antrean Pasang Baru (Registrations)</h6>
+      </div>
+      <div class="tbl-wrap">
+        <table class="dtbl">
+          <thead>
+            <tr>
+              <th style="width:60px">ID</th>
+              <th>Calon Pelanggan</th>
+              <th>Kontak & Alamat</th>
+              <th>Paket</th>
+              <th>Teknisi (PIC)</th>
+              <th>Tgl Pasang</th>
+              <th>Status</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (typeof registrations === 'undefined' || registrations.length === 0) { %>
+              <tr><td colspan="8" class="text-center text-muted" style="padding:20px">Belum ada pendaftaran pasang baru.</td></tr>
+            <% } else { %>
+              <% registrations.forEach(reg => { %>
+                <% const formattedId = String(reg.id).padStart(3, '0'); %>
+                <tr>
+                  <td><strong>#<%= formattedId %></strong></td>
+                  <td>
+                    <strong><%= reg.name %></strong>
+                    <% if (reg.notes) { %><div style="font-size:11px;color:#94a3b8;"><%= reg.notes %></div><% } %>
+                  </td>
+                  <td>
+                    <div><i class="bi bi-whatsapp text-success"></i> <%= reg.phone %></div>
+                    <div style="font-size:11px;color:#cbd5e1;"><%= reg.address %></div>
+                    <% if (reg.lat && reg.lng) { %>
+                      <a href="https://maps.google.com/?q=<%= reg.lat %>,<%= reg.lng %>" target="_blank" style="font-size:10.5px;color:#38bdf8;text-decoration:none;">
+                        <i class="bi bi-geo-alt-fill"></i> Peta Lokasi
+                      </a>
+                    <% } %>
+                  </td>
+                  <td><%= reg.package_name || '-' %></td>
+                  <td>
+                    <% if (reg.technician_name) { %>
+                      <span style="font-weight:700;color:#38bdf8;"><i class="bi bi-person-badge"></i> <%= reg.technician_name %></span>
+                    <% } else { %>
+                      <span class="text-muted"><em>Belum ditunjuk</em></span>
+                    <% } %>
+                  </td>
+                  <td><%= reg.install_date || '-' %></td>
+                  <td>
+                    <span class="badge-status status-<%= (reg.status || 'pending').toLowerCase() %>">
+                      <%= reg.status || 'PENDING' %>
+                    </span>
+                  </td>
+                  <td>
+                    <div class="d-flex gap-1 flex-wrap">
+                      <!-- Tombol Detail / Edit Data -->
+                      <button class="btn btn-g btn-icon btn-sm" onclick='openEditRegModal(<%- JSON.stringify(reg) %>)' title="Detail & Edit Data Pendaftar">
+                        <i class="bi bi-pencil"></i>
+                      </button>
+
+                      <!-- Tombol Tugaskan Teknisi -->
+                      <button class="btn btn-p btn-sm" onclick='openAssignModal(<%- JSON.stringify(reg) %>)' title="Tugaskan Teknisi">
+                        <i class="bi bi-person-plus"></i> Tugaskan
+                      </button>
+
+                      <!-- Tombol Tolak / Reject (Jika belum selesai) -->
+                      <% if (reg.status !== 'completed' && reg.status !== 'rejected') { %>
+                        <button class="btn btn-w btn-icon btn-sm" style="background:#dc2626;color:#fff;" onclick='openRejectModal(<%- JSON.stringify(reg) %>)' title="Tolak Pendaftaran">
+                          <i class="bi bi-x-circle"></i>
+                        </button>
+                      <% } %>
+
+                      <!-- Tombol Hapus -->
+                      <form action="/admin/registrations/<%= reg.id %>/delete" method="POST" onsubmit="return confirm('Hapus antrean pendaftaran #<%= formattedId %> ini?')">
+                        <button type="submit" class="btn btn-d btn-icon btn-sm" title="Hapus"><i class="bi bi-trash"></i></button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              <% }) %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal Tambah Teknisi -->
+<div class="mo" id="addTechModal">
+  <div class="mb">
+    <form action="/admin/technicians" method="POST">
+      <div class="mh"><span class="mt"><%= t('admin.technicians.modal.add_title', 'Tambah Teknisi Baru') %></span><button type="button" class="mc" onclick="closeModal('addTechModal')">&times;</button></div>
+      <div class="mbody">
+        <div class="fg"><label class="fl"><%= t('admin.technicians.form.full_name', 'Nama Lengkap') %></label><input type="text" name="name" class="fc" required></div>
+        <div class="fg"><label class="fl"><%= t('admin.technicians.form.login_username', 'Username Login') %></label><input type="text" name="username" class="fc" required></div>
+        <div class="fg"><label class="fl"><%= t('admin.technicians.form.password', 'Password') %></label><input type="text" name="password" class="fc" required></div>
+        <div class="fg"><label class="fl"><%= t('admin.technicians.form.whatsapp', 'No. WhatsApp') %></label><input type="text" name="phone" class="fc" placeholder="<%= t('admin.technicians.form.whatsapp_placeholder', 'Contoh: 08123456789') %>"></div>
+        <div class="fg">
+          <label class="fl"><%= t('admin.technicians.form.area', 'Area Tugas') %></label>
+          <select name="area" class="fs">
+            <option value=""><%= t('admin.technicians.form.all_areas', '-- Semua Area / Bebas --') %></option>
+            <% if (typeof masterAreas !== 'undefined' && masterAreas && masterAreas.length > 0) { %>
+              <% masterAreas.forEach(a => { %>
+                <option value="<%= a.name %>"><%= a.name %></option>
+              <% }) %>
+            <% } %>
+          </select>
+        </div>
+      </div>
+      <div class="mf">
+        <button type="button" class="btn btn-g" onclick="closeModal('addTechModal')"><%= t('common.cancel', 'Batal') %></button>
+        <button type="submit" class="btn btn-p"><%= t('common.save', 'Simpan') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Edit Teknisi -->
+<div class="mo" id="editTechModal">
+  <div class="mb">
+    <form id="editForm" method="POST">
+      <div class="mh"><span class="mt"><%= t('admin.technicians.modal.edit_title', 'Edit Data Teknisi') %></span><button type="button" class="mc" onclick="closeModal('editTechModal')">&times;</button></div>
+      <div class="mbody">
+        <div class="fg"><label class="fl"><%= t('admin.technicians.form.full_name', 'Nama Lengkap') %></label><input type="text" name="name" id="e-name" class="fc" required></div>
+        <div class="fg"><label class="fl"><%= t('admin.technicians.form.login_username', 'Username Login') %></label><input type="text" name="username" id="e-username" class="fc" required></div>
+        <div class="fg"><label class="fl"><%= t('admin.technicians.form.password', 'Password') %></label><input type="text" name="password" id="e-password" class="fc" required></div>
+        <div class="fg"><label class="fl"><%= t('admin.technicians.form.whatsapp', 'No. WhatsApp') %></label><input type="text" name="phone" id="e-phone" class="fc"></div>
+        <div class="fg">
+          <label class="fl"><%= t('admin.technicians.form.area', 'Area Tugas') %></label>
+          <select name="area" id="e-area" class="fs">
+            <option value=""><%= t('admin.technicians.form.all_areas', '-- Semua Area / Bebas --') %></option>
+            <% if (typeof masterAreas !== 'undefined' && masterAreas && masterAreas.length > 0) { %>
+              <% masterAreas.forEach(a => { %>
+                <option value="<%= a.name %>"><%= a.name %></option>
+              <% }) %>
+            <% } %>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="fl"><%= t('admin.technicians.form.account_status', 'Status Akun') %></label>
+          <select name="is_active" id="e-status" class="fs">
+            <option value="1"><%= t('common.active', 'Aktif') %></option>
+            <option value="0"><%= t('common.inactive', 'Nonaktif') %></option>
+          </select>
+        </div>
+      </div>
+      <div class="mf">
+        <button type="button" class="btn btn-g" onclick="closeModal('editTechModal')"><%= t('common.cancel', 'Batal') %></button>
+        <button type="submit" class="btn btn-p"><%= t('admin.technicians.save_changes', 'Simpan Perubahan') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Tugaskan Teknisi / Update Pendaftaran -->
+<div class="mo" id="assignModal">
+  <div class="mb">
+    <form id="assignForm" method="POST">
+      <div class="mh">
+        <span class="mt" id="assignModalTitle">Tugaskan Teknisi (Pasang Baru)</span>
+        <button type="button" class="mc" onclick="closeModal('assignModal')">&times;</button>
+      </div>
+      <div class="mbody">
+        <div class="fg">
+          <label class="fl">Pilih Teknisi (PIC)</label>
+          <select name="technician_id" id="assign_tech_id" class="fs" required>
+            <option value="">-- Pilih Teknisi Lapangan --</option>
+            <% technicians.filter(t => t.is_active).forEach(t => { %>
+              <option value="<%= t.id %>"><%= t.name %> (<%= t.phone || 'No WA belum ada' %>)</option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="fl">Jadwal Pasang (Tanggal)</label>
+          <input type="text" name="install_date" id="assign_date" class="fc" placeholder="Contoh: 15/11/2026 atau DD/MM/YYYY" required>
+        </div>
+        <div class="fg">
+          <label class="fl">Status Pengerjaan</label>
+          <select name="status" id="assign_status" class="fs">
+            <option value="pending">PENDING (Menunggu Teknisi)</option>
+            <option value="assigned">ASSIGNED (Teknisi Ditunjuk)</option>
+            <option value="approved">APPROVED (Diterima Teknisi)</option>
+            <option value="progress">PROGRESS (Sedang Dikerjakan)</option>
+            <option value="completed">COMPLETED (Selesai & Aktif)</option>
+          </select>
+        </div>
+        <div class="hint" style="font-size:11px;color:#94a3b8;line-height:1.4;">
+          💡 Menyimpan penugasan ini akan otomatis mengirimkan notifikasi rincian tugas ke nomor WhatsApp teknisi yang dipilih.
+        </div>
+      </div>
+      <div class="mf">
+        <button type="button" class="btn btn-g" onclick="closeModal('assignModal')">Batal</button>
+        <button type="submit" class="btn btn-p">Simpan & Kirim WA</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- === MODAL EDIT DATA PENDAFTAR === -->
+<div class="mo" id="editRegModal">
+  <div class="mb">
+    <form id="editRegForm" method="POST">
+      <div class="mh">
+        <span class="mt" id="editRegModalTitle">Edit Data Pendaftar</span>
+        <button type="button" class="mc" onclick="closeModal('editRegModal')">&times;</button>
+      </div>
+      <div class="mbody">
+        <div class="fg">
+          <label class="fl">Nama Lengkap</label>
+          <input type="text" name="name" id="er_name" class="fc" required>
+        </div>
+        <div class="fg">
+          <label class="fl">No. WhatsApp</label>
+          <input type="text" name="phone" id="er_phone" class="fc" required>
+        </div>
+        <div class="fg">
+          <label class="fl">Email (Opsional)</label>
+          <input type="email" name="email" id="er_email" class="fc">
+        </div>
+        <div class="fg">
+          <label class="fl">Alamat Pemasangan</label>
+          <textarea name="address" id="er_address" class="fc" rows="2" required></textarea>
+        </div>
+        <div class="fg">
+          <label class="fl">Paket Layanan</label>
+          <select name="package_id" id="er_package_id" class="fs">
+            <option value="">-- Pilih Paket Layanan --</option>
+            <% if (typeof packages !== 'undefined' && packages && packages.length > 0) { %>
+              <% packages.forEach(pkg => { %>
+                <option value="<%= pkg.id %>"><%= pkg.name %> (Rp <%= Number(pkg.price || 0).toLocaleString('id-ID') %>)</option>
+              <% }) %>
+            <% } %>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="fl">Catatan Tambahan</label>
+          <input type="text" name="notes" id="er_notes" class="fc" placeholder="Patokan lokasi / info lain">
+        </div>
+      </div>
+      <div class="mf">
+        <button type="button" class="btn btn-g" onclick="closeModal('editRegModal')">Batal</button>
+        <button type="submit" class="btn btn-p">Simpan Perubahan</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- === MODAL TOLAK / REJECT PENDAFTARAN === -->
+<div class="mo" id="rejectModal">
+  <div class="mb" style="max-width:480px;">
+    <form id="rejectForm" method="POST">
+      <div class="mh" style="border-bottom:1px solid rgba(239, 68, 68, 0.3);">
+        <span class="mt" style="color:#ef4444;"><i class="bi bi-x-circle-fill me-1"></i> Tolak Pendaftaran Pasang Baru</span>
+        <button type="button" class="mc" onclick="closeModal('rejectModal')">&times;</button>
+      </div>
+      <div class="mbody">
+        <div class="alert alert-d" style="font-size:12px;margin-bottom:14px;">
+          ⚠️ Menolak pendaftaran akan mengubah status menjadi <strong>REJECTED</strong> dan secara otomatis mengirim pesan WhatsApp permohonan maaf ke calon pelanggan.
+        </div>
+        <div class="fg">
+          <label class="fl">Nama Calon Pelanggan</label>
+          <input type="text" id="rej_cust_name" class="fc" readonly style="background:rgba(255,255,255,0.05);color:#94a3b8;">
+        </div>
+        <div class="fg">
+          <label class="fl">Alasan Penolakan (Akan dikirimkan ke WhatsApp Pelanggan)</label>
+          <textarea name="reason" id="rej_reason" class="fc" rows="3" required placeholder="Contoh: Kapasitas ODP terdekat sudah penuh atau jarak kabel melebihi batas standar teknis."></textarea>
+        </div>
+      </div>
+      <div class="mf">
+        <button type="button" class="btn btn-g" onclick="closeModal('rejectModal')">Batal</button>
+        <button type="submit" class="btn btn-d" style="background:#dc2626;">Tolak & Kirim WA</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const I18N = {
+  confirmDeleteTechnician: "<%= t('admin.technicians.confirm_delete', 'Hapus teknisi ini?') %>"
+};
+
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+function switchTab(tab) {
+  const paneTech = document.getElementById('paneTech');
+  const paneReg = document.getElementById('paneReg');
+  const tabTechBtn = document.getElementById('tabTechBtn');
+  const tabRegBtn = document.getElementById('tabRegBtn');
+  const btnTambah = document.getElementById('btnTambahTech');
+
+  if (tab === 'reg') {
+    paneTech.style.display = 'none';
+    paneReg.style.display = 'block';
+    tabTechBtn.classList.remove('active');
+    tabRegBtn.classList.add('active');
+    if (btnTambah) btnTambah.style.display = 'none';
+  } else {
+    paneTech.style.display = 'block';
+    paneReg.style.display = 'none';
+    tabTechBtn.classList.add('active');
+    tabRegBtn.classList.remove('active');
+    if (btnTambah) btnTambah.style.display = 'inline-flex';
+  }
+}
+
+// Auto open tab from URL parameter (?tab=registrations)
+window.addEventListener('DOMContentLoaded', () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('tab') === 'registrations') {
+    switchTab('reg');
+  }
+});
+
+function editTech(t) {
+  document.getElementById('editForm').action = '/admin/technicians/' + t.id + '/update';
+  document.getElementById('e-name').value = t.name;
+  document.getElementById('e-username').value = t.username;
+  document.getElementById('e-password').value = t.password;
+  document.getElementById('e-phone').value = t.phone || '';
+  const areaSelect = document.getElementById('e-area');
+  const targetArea = t.area || '';
+  areaSelect.value = targetArea;
+  if (targetArea && areaSelect.value !== targetArea) {
+    const opt = document.createElement('option');
+    opt.value = targetArea;
+    opt.textContent = targetArea + ' (Tersimpan)';
+    opt.selected = true;
+    areaSelect.appendChild(opt);
+  }
+  document.getElementById('e-status').value = t.is_active;
+  openModal('editTechModal');
+}
+
+// === AWAL TAMBAHAN FUNGSI MODAL EDIT & REJECT ===
+function openEditRegModal(reg) {
+  const formattedId = String(reg.id).padStart(3, '0');
+  document.getElementById('editRegModalTitle').innerText = `Edit Pendaftar #${formattedId} (${reg.name})`;
+  document.getElementById('editRegForm').action = `/admin/registrations/${reg.id}/update`;
+  document.getElementById('er_name').value = reg.name || '';
+  document.getElementById('er_phone').value = reg.phone || '';
+  document.getElementById('er_email').value = reg.email || '';
+  document.getElementById('er_address').value = reg.address || '';
+  document.getElementById('er_package_id').value = reg.package_id || '';
+  document.getElementById('er_notes').value = reg.notes || '';
+  openModal('editRegModal');
+}
+
+function openRejectModal(reg) {
+  const formattedId = String(reg.id).padStart(3, '0');
+  document.getElementById('rejectForm').action = `/admin/registrations/${reg.id}/reject`;
+  document.getElementById('rej_cust_name').value = `#${formattedId} - ${reg.name} (${reg.phone})`;
+  document.getElementById('rej_reason').value = 'Kapasitas port ODP di sekitar lokasi Anda saat ini sudah penuh dan di luar jangkauan kabel standar.';
+  openModal('rejectModal');
+}
+// === AKHIR TAMBAHAN FUNGSI MODAL EDIT & REJECT ===
+</script>
+</body>
+</html>
+<!-- === AKHIR FILE === -->

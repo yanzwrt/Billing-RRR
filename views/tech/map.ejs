@@ -1,0 +1,1119 @@
+<!-- views/tech/map.ejs -->
+<%- include('partials/header') %>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<style>
+  /* ========================================================================= */
+  /* [BAGIAN 1: TATA LETAK UTAMA PETA MOBILE TEKNISI]                          */
+  /* ========================================================================= */
+  #map { 
+    height: 60vh; 
+    min-height: 420px; 
+    border-radius: 12px; 
+    margin-top: 10px; 
+    z-index: 1; 
+    background: #0f172a; 
+    border: 1px solid #334155; 
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25); 
+  }
+  
+  /* Kartu Statistik Cepat */
+  .tech-map-stats { 
+    display: grid; 
+    grid-template-columns: repeat(4, 1fr); 
+    gap: 8px; 
+    margin-bottom: 10px; 
+  }
+  .tm-sc { 
+    padding: 8px 6px; 
+    border-radius: 10px; 
+    background: #1e293b; 
+    border: 1px solid #334155; 
+    text-align: center; 
+  }
+  .tm-sc .val { font-size: 16px; font-weight: 800; line-height: 1.2; color: #f8fafc; display: block; }
+  .tm-sc .lbl { font-size: 9.5px; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-top: 2px; display: block; }
+  .tm-sc-w { border-bottom: 3px solid #f59e0b; }
+  .tm-sc-s { border-bottom: 3px solid #10b981; }
+  .tm-sc-d { border-bottom: 3px solid #ef4444; }
+  .tm-sc-p { border-bottom: 3px solid #3b82f6; }
+
+  /* Toolbar Pencarian & Filter Khusus Mobile */
+  .map-toolbar {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: relative;
+    z-index: 20;
+  }
+  .map-search-box {
+    position: relative;
+    width: 100%;
+  }
+  .map-search-input {
+    width: 100%;
+    padding: 9px 36px 9px 36px;
+    border-radius: 8px;
+    border: 1.5px solid #475569;
+    background: #0f172a;
+    font-weight: 600;
+    font-size: 13px;
+    color: #f8fafc;
+    outline: none;
+    box-sizing: border-box;
+  }
+  .map-search-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.25);
+  }
+  .map-search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    font-size: 14px;
+    pointer-events: none;
+  }
+  .map-search-clear {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 16px;
+    cursor: pointer;
+    display: none;
+  }
+  
+  /* Hasil Dropdown Pencarian */
+  .map-search-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: #1e293b;
+    border: 1px solid #475569;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    max-height: 280px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+  }
+  .map-search-dropdown.active { display: block; }
+  .ms-header {
+    padding: 8px 12px;
+    background: #0f172a;
+    border-bottom: 1px solid #334155;
+    font-size: 11px;
+    font-weight: 800;
+    color: #94a3b8;
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+  }
+  .ms-item {
+    padding: 9px 12px;
+    border-bottom: 1px solid #334155;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .ms-item:hover, .ms-item.selected { background: #334155; }
+  .ms-item-name { font-weight: 700; font-size: 12.5px; color: #f8fafc; }
+  .ms-item-name mark { background: #fef08a; color: #0f172a; padding: 0 2px; border-radius: 2px; }
+  .ms-item-meta { font-size: 11px; color: #94a3b8; margin-top: 1px; }
+
+  /* Tombol Filter Pills */
+  .map-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+  .map-pill-btn {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid #475569;
+    background: #0f172a;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #cbd5e1;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+  }
+  .map-pill-btn.active {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: white;
+  }
+
+  /* Animasi Garis Kabel Berjalan */
+  @keyframes flow {
+    from { stroke-dashoffset: 20; }
+    to { stroke-dashoffset: 0; }
+  }
+  .flowing-line { animation: flow 1s linear infinite; }
+
+  /* Marker Pin Pelanggan & ODP */
+  .custom-onu-icon { background: transparent; border: none; }
+  .onu-marker-node, .odp-marker-node {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 26px;
+    height: 26px;
+    cursor: pointer;
+  }
+  .onu-marker-pin {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #ffffff;
+    border: 2px solid #ffffff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+  }
+  .onu-marker-node.is-active .onu-marker-pin { background: linear-gradient(135deg, #10b981, #059669); }
+  .onu-marker-node.is-suspended .onu-marker-pin { background: linear-gradient(135deg, #ef4444, #dc2626); }
+  
+  .odp-marker-pin {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #ffffff;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    border: 2px solid #ffffff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+  }
+
+  /* Label Nama Melayang */
+  .onu-marker-label, .odp-marker-label {
+    position: absolute;
+    top: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .onu-marker-name, .odp-marker-name {
+    font-weight: 800;
+    font-size: 11px;
+    color: #ffffff;
+    text-shadow: -1.5px -1.5px 0 #0f172a, 1.5px -1.5px 0 #0f172a, -1.5px 1.5px 0 #0f172a, 1.5px 1.5px 0 #0f172a;
+  }
+  .odp-marker-name { color: #fde047; }
+  .hide-marker-labels .onu-marker-label, .hide-marker-labels .odp-marker-label { display: none !important; }
+
+  /* Pin Sambungan Splice */
+  .pin-splice {
+    background: #9333ea;
+    border: 2px solid #facc15;
+    border-radius: 4px;
+    box-shadow: 0 0 6px rgba(147, 51, 234, 0.85);
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 8.5px;
+  }
+
+  /* Animasi Titik Putus OTDR */
+  @keyframes otdrPulse {
+    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.9), 0 0 10px #ef4444; }
+    50% { box-shadow: 0 0 0 16px rgba(239, 68, 68, 0), 0 0 20px #ef4444; }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0), 0 0 10px #ef4444; }
+  }
+  .otdr-cut-pin {
+    width: 28px;
+    height: 28px;
+    background: #dc2626;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 14px;
+    animation: otdrPulse 1.2s infinite ease-out;
+  }
+
+  /* Pop-up Bersih & Modern */
+  .cust-popup { width: 310px; max-width: 90vw; font-family: inherit; }
+  .cp-head-card {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 8px;
+    margin-bottom: 8px;
+  }
+  .cp-name-title { font-weight: 800; font-size: 13.5px; color: #0f172a; margin-bottom: 2px; }
+  .cp-info-box { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 10px; margin-bottom: 8px; font-size: 11px; }
+  .cp-info-row { display: flex; justify-content: space-between; padding: 2px 0; color: #475569; }
+  .cp-optics-panel { background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 8px; overflow: hidden; margin-bottom: 8px; }
+  .cp-optics-header { display: flex; justify-content: space-between; background: #f8fafc; padding: 6px 10px; border-bottom: 1px solid #e2e8f0; font-size: 11px; font-weight: 800; color: #0f172a; }
+  .cp-optics-body { padding: 6px 10px; font-size: 11px; }
+  
+  /* Tombol Aksi Lapangan */
+  .cp-actions-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .cp-btn {
+    padding: 6px 0;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    text-decoration: none !important;
+    border: none;
+    cursor: pointer;
+  }
+  .cp-btn-wa { background: #16a34a; color: #fff !important; }
+  .cp-btn-route { background: #2563eb; color: #fff !important; }
+  .cp-btn-otdr { background: #dc2626; color: #fff !important; }
+
+  /* Popup ODP */
+  .odp-pro-popup { width: 280px; max-width: 90vw; font-family: inherit; }
+  .odp-mini-ports-container {
+    max-height: 120px;
+    overflow-y: auto;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 6px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .odp-mini-port {
+    background: #f0f9ff;
+    border: 1.5px solid #0284c7;
+    border-radius: 5px;
+    padding: 3px;
+    text-align: center;
+    font-size: 9px;
+  }
+  .odp-mini-port.is-empty { background: #f8fafc; border-color: #cbd5e1; color: #94a3b8; }
+</style>
+
+<!-- Kartu Statistik Singkat di Lapangan -->
+<div class="tech-map-stats">
+  <div class="tm-sc tm-sc-w">
+    <span class="val"><%= odps.length %></span>
+    <span class="lbl">Total ODP</span>
+  </div>
+  <div class="tm-sc tm-sc-s">
+    <span class="val"><%= customers.filter(c => c.status === 'active' && c.lat && c.lng).length %></span>
+    <span class="lbl">Aktif</span>
+  </div>
+  <div class="tm-sc tm-sc-d">
+    <span class="val"><%= customers.filter(c => c.status !== 'active' && c.lat && c.lng).length %></span>
+    <span class="lbl">Isolir</span>
+  </div>
+  <div class="tm-sc tm-sc-p">
+    <span class="val"><%= customers.filter(c => !c.lat || !c.lng).length %></span>
+    <span class="lbl">No GPS</span>
+  </div>
+</div>
+
+<!-- Toolbar Pencarian & Filter Cepat Mobile -->
+<div class="map-toolbar">
+  <div class="map-search-box">
+    <i class="bi bi-search map-search-icon"></i>
+    <input 
+      id="mapGlobalSearch" 
+      class="map-search-input" 
+      type="text" 
+      placeholder="Cari nama, PPPoE, No HP, ODP..."
+      autocomplete="off"
+    >
+    <button id="mapSearchClearBtn" class="map-search-clear" onclick="clearMapSearch()">&times;</button>
+    
+    <div id="mapSearchDropdown" class="map-search-dropdown">
+      <div class="ms-header">
+        <span id="msHeaderCount">Hasil Pencarian</span>
+        <span onclick="clearMapSearch()" style="cursor:pointer">Tutup</span>
+      </div>
+      <div id="msResultsList"></div>
+    </div>
+  </div>
+
+  <div class="map-filter-group">
+    <button type="button" class="map-pill-btn active" id="pillAll" onclick="applyStatusFilter('all')">
+      <i class="bi bi-grid-fill"></i> Semua
+    </button>
+    <button type="button" class="map-pill-btn" id="pillActive" onclick="applyStatusFilter('active')">
+      <i class="bi bi-check-circle-fill text-success"></i> Aktif
+    </button>
+    <button type="button" class="map-pill-btn" id="pillSuspended" onclick="applyStatusFilter('suspended')">
+      <i class="bi bi-x-circle-fill text-danger"></i> Isolir
+    </button>
+    <button type="button" class="map-pill-btn" onclick="focusMyGpsPosition()">
+      <i class="bi bi-crosshair2 text-info"></i> Posisi Saya
+    </button>
+    <button type="button" class="map-pill-btn" onclick="fitAllMarkers()">
+      <i class="bi bi-arrows-fullscreen"></i> Fit Peta
+    </button>
+  </div>
+</div>
+
+<!-- Wadah Peta Leaflet -->
+<div id="map"></div>
+
+<!-- ========================================================================= -->
+<!-- [MODAL PELACAK TITIK PUTUS KABEL (OTDR FAULT LOCATOR) - FIX VISIBLE]      -->
+<!-- ========================================================================= -->
+<div id="otdrModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 99999; align-items: center; justify-content: center; padding: 16px;">
+  <div style="background: #1e293b; color: #fff; border: 1.5px solid #475569; border-radius: 14px; width: 100%; max-width: 420px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); overflow: hidden; animation: otdrPopIn 0.2s ease-out;">
+    
+    <!-- Header Modal -->
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #334155; background: #0f172a;">
+      <span style="font-weight: 800; font-size: 13.5px; color: #ef4444; display: flex; align-items: center; gap: 6px;">
+        <i class="bi bi-broadcast-pin"></i> Pelacak Putus Kabel (OTDR)
+      </span>
+      <button type="button" onclick="closeOtdrModal()" style="background: transparent; border: none; color: #94a3b8; font-size: 20px; line-height: 1; cursor: pointer;">&times;</button>
+    </div>
+
+    <!-- Body Modal -->
+    <div style="padding: 16px; max-height: 75vh; overflow-y: auto;">
+      <!-- Info Rute Jalur -->
+      <div style="background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 10px; margin-bottom: 12px;">
+        <div style="font-size: 12px; font-weight: 800; color: #60a5fa; margin-bottom: 2px;" id="otdr_route_title">
+          ODP ➜ Pelanggan
+        </div>
+        <div style="font-size: 11px; color: #94a3b8;" id="otdr_route_meta">
+          Panjang Kabel: 0 Meter
+        </div>
+      </div>
+
+      <!-- 1. Arah Tembakan Laser -->
+      <div style="margin-bottom: 12px;">
+        <label style="font-size: 11px; font-weight: 800; color: #cbd5e1; display: block; margin-bottom: 4px;">
+          1. ARAH TEMBAKAN OTDR:
+        </label>
+        <div style="background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 8px 10px; font-size: 12px; display: flex; flex-direction: column; gap: 6px;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+            <input type="radio" name="otdr_direction" value="forward" checked onchange="updateOtdrDirectionHint()">
+            <span id="otdr_dir_forward_text">Dari ODP menuju Pelanggan</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+            <input type="radio" name="otdr_direction" value="backward" onchange="updateOtdrDirectionHint()">
+            <span id="otdr_dir_backward_text">Tembak Balik dari Pelanggan</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- 2. Hasil Meteran OTDR -->
+      <div style="margin-bottom: 12px;">
+        <label style="font-size: 11px; font-weight: 800; color: #cbd5e1; display: block; margin-bottom: 4px;">
+          2. HASIL PEMBACAAN OTDR (METER):
+        </label>
+        <div style="position: relative;">
+          <input type="number" id="otdr_meter_input" placeholder="Contoh: 185" style="width: 100%; background: #0f172a; border: 1.5px solid #475569; border-radius: 8px; color: #fff; font-weight: 800; font-size: 16px; padding: 8px 55px 8px 12px; font-family: monospace; outline: none; box-sizing: border-box;">
+          <span style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 12px; font-weight: 700;">Meter</span>
+        </div>
+        <small id="otdr_distance_hint" style="color: #94a3b8; font-size: 10.5px; display: block; margin-top: 3px;">
+          *Masukkan jarak event putus / reflection dari alat OTDR.
+        </small>
+      </div>
+
+      <!-- 3. Gulungan Tiang (Slack) -->
+      <div style="margin-bottom: 6px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <label style="font-size: 11px; font-weight: 800; color: #cbd5e1; margin: 0;">
+            3. ESTIMASI GULUNGAN TIANG:
+          </label>
+          <span id="otdr_slack_label" style="font-size: 11px; font-weight: 800; color: #38bdf8;">0%</span>
+        </div>
+        <input type="range" id="otdr_slack_range" min="0" max="15" value="0" style="width: 100%;" oninput="document.getElementById('otdr_slack_label').textContent = this.value + '%'">
+      </div>
+    </div>
+
+    <!-- Footer Modal -->
+    <div style="display: flex; justify-content: flex-end; gap: 8px; padding: 10px 16px; border-top: 1px solid #334155; background: #0f172a;">
+      <button type="button" onclick="closeOtdrModal()" style="padding: 7px 14px; border-radius: 8px; background: #334155; color: #fff; border: none; font-size: 12px; font-weight: 700; cursor: pointer;">
+        Batal
+      </button>
+      <button type="button" onclick="executeOtdrFaultLocator()" style="padding: 7px 16px; border-radius: 8px; background: #dc2626; color: #fff; border: none; font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+        <i class="bi bi-crosshair"></i> Tancapkan Titik Putus
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+  @keyframes otdrPopIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+</style>
+
+<!-- Data JSON dari Server -->
+<script id="settings-data" type="application/json"><%- JSON.stringify(settings) %></script>
+<script id="customers-data" type="application/json"><%- JSON.stringify(customers).replace(/<\/script/g, '<\\/script').replace(/<!--/g, '<\\!--') %></script>
+<script id="odps-data" type="application/json"><%- JSON.stringify(odps).replace(/<\/script/g, '<\\/script').replace(/<!--/g, '<\\!--') %></script>
+
+<script>
+  // =========================================================================
+  // [BAGIAN 2: INISIALISASI PETA & DATA]                                      
+  // =========================================================================
+  const appSettings = JSON.parse(document.getElementById('settings-data').textContent || '{}');
+  const officeCoords = {
+    lat: parseFloat(appSettings.office_lat) || -6.200000,
+    lng: parseFloat(appSettings.office_lng) || 106.816666
+  };
+
+  const map = L.map('map').setView([officeCoords.lat, officeCoords.lng], 14);
+
+  const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OSM' });
+  const googleHybrid = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+    maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3'], attribution: '© Google Satellite'
+  });
+
+  osm.addTo(map);
+  googleHybrid.addTo(map);
+
+  L.control.layers({ "Satelit (Hybrid)": googleHybrid, "Jalan (OSM)": osm }).addTo(map);
+
+  let customers = [];
+  let odps = [];
+  try {
+    customers = JSON.parse(document.getElementById('customers-data').textContent || '[]');
+    odps = JSON.parse(document.getElementById('odps-data').textContent || '[]');
+  } catch (e) {
+    console.error("Data parse error:", e);
+  }
+
+  const odpMap = {};
+  const customerMap = {};
+
+  // =========================================================================
+  // [BAGIAN 3: KALKULASI REDAMAN & PANJANG KABEL FO]                          
+  // =========================================================================
+  const connectorLossMap = { PIGTAIL: 0.30, FASTCON: 1.00 };
+  const splitterLossMap = {
+    PLC: { '1:2': 3.7, '1:4': 7.4, '1:8': 10.5, '1:16': 13.8, '1:32': 17.5 },
+    FBT: { '1:99': [20.0, 0.1], '5:95': [14.0, 0.4], '10:90': [10.5, 0.5], '20:80': [7.2, 0.9], '50:50': [3.5, 3.5] }
+  };
+
+  function calculatePolylineLengthMeters(coords) {
+    if (!Array.isArray(coords) || coords.length < 2) return 0;
+    let total = 0;
+    for (let i = 0; i < coords.length - 1; i++) {
+      total += L.latLng(coords[i][0], coords[i][1]).distanceTo(L.latLng(coords[i+1][0], coords[i+1][1]));
+    }
+    return Math.round(total);
+  }
+
+  function calculateUniversalPortPower(odpObj, sIdx, pNum) {
+    if (!odpObj) return -9.0;
+    const baseBoxInput = parseFloat(odpObj.input_power_dbm || 9.0);
+    const splitters = odpObj.splitters || [];
+    const targetSplitter = splitters[sIdx] || { splitter_type: 'PLC', splitter_ratio: '1:8' };
+    const sType = targetSplitter.splitter_type || 'PLC';
+    const sRatio = targetSplitter.splitter_ratio || '1:8';
+
+    let ratioLoss = 10.5;
+    if (sType === 'FBT') {
+      const losses = (splitterLossMap.FBT && splitterLossMap.FBT[sRatio]) ? splitterLossMap.FBT[sRatio] : [14.0, 0.4];
+      ratioLoss = (pNum === 1) ? losses[0] : losses[1];
+    } else {
+      ratioLoss = (splitterLossMap.PLC && splitterLossMap.PLC[sRatio]) || 10.5;
+    }
+    return parseFloat((baseBoxInput - ratioLoss - 0.30).toFixed(2));
+  }
+
+  // =========================================================================
+  // [BAGIAN 4: RENDER JALUR KABEL TRUNK & ODP]                                
+  // =========================================================================
+  odps.forEach(odp => {
+    if (odp.lat && odp.lng) {
+      odpMap[odp.id] = { coord: [parseFloat(odp.lat), parseFloat(odp.lng)], data: odp };
+    }
+  });
+
+  // Gambar Kabel Trunk Antar-ODP
+  odps.forEach(odp => {
+    if (odp.lat && odp.lng && odp.parent_odp_id && odpMap[odp.parent_odp_id]) {
+      const parentCoord = odpMap[odp.parent_odp_id].coord;
+      const childCoord = [parseFloat(odp.lat), parseFloat(odp.lng)];
+      let pathCoords = [parentCoord, childCoord];
+      let rawPointsData = [];
+      let cableColor = '#f59e0b';
+
+      if (odp.cable_path) {
+        try {
+          const parsed = JSON.parse(odp.cable_path);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Array.isArray(parsed.points)) {
+            cableColor = parsed.color || '#f59e0b';
+            rawPointsData = parsed.points;
+            pathCoords = parsed.points.map(pt => [(typeof pt.lat === 'number') ? pt.lat : pt[0], (typeof pt.lng === 'number') ? pt.lng : pt[1]]);
+          } else if (Array.isArray(parsed) && parsed.length >= 2) {
+            rawPointsData = parsed;
+            pathCoords = parsed.map(pt => [(typeof pt.lat === 'number') ? pt.lat : pt[0], (typeof pt.lng === 'number') ? pt.lng : pt[1]]);
+          }
+        } catch(e) {}
+      }
+
+      L.polyline(pathCoords, { color: cableColor, weight: 4, opacity: 0.9, dashArray: '6, 6', className: 'flowing-line' }).addTo(map);
+
+      // Titik sambungan splice di kabel trunk
+      if (rawPointsData && rawPointsData.length > 2) {
+        rawPointsData.forEach((pt, sIdx) => {
+          if (sIdx > 0 && sIdx < rawPointsData.length - 1 && pt.isSplice) {
+            const pLat = (typeof pt.lat === 'number') ? pt.lat : pt[0];
+            const pLng = (typeof pt.lng === 'number') ? pt.lng : pt[1];
+            L.marker([pLat, pLng], {
+              icon: L.divIcon({ html: `<div class="pin-splice"><i class="bi bi-tools"></i></div>`, className: 'custom-div-icon', iconSize: [16, 16], iconAnchor: [8, 8] }),
+              zIndexOffset: 2000
+            }).addTo(map).bindPopup(`<div style="font-size:11px;color:#1e293b;"><b>Sambungan Splice Trunk</b><br>Redaman: -0.20 dB</div>`);
+          }
+        });
+      }
+    }
+  });
+
+  // Render Marker ODP Box
+  odps.forEach(odp => {
+    if (odp.lat && odp.lng) {
+      const lat = parseFloat(odp.lat);
+      const lng = parseFloat(odp.lng);
+
+      const marker = L.marker([lat, lng], {
+        icon: L.divIcon({
+          className: 'custom-onu-icon',
+          html: `<div class="odp-marker-node" id="odp-node-${odp.id}">
+                  <div class="odp-marker-pin"><i class="bi bi-box-seam-fill"></i></div>
+                  <div class="odp-marker-label"><span class="odp-marker-name">${odp.name}</span></div>
+                 </div>`,
+          iconSize: [26, 26], iconAnchor: [13, 13]
+        })
+      }).addTo(map);
+
+      // Mini port box
+      let portsHtml = '';
+      if (odp.ports && odp.ports.length > 0) {
+        odp.ports.forEach(p => {
+          const isUsed = p.target_type && p.target_type !== 'EMPTY';
+          const targetName = p.target_type === 'CUSTOMER' ? (p.customer_name || 'Pelanggan') : (p.target_type === 'CHILD_ODP' ? (p.child_odp_name || 'ODP Anak') : 'Kosong');
+          portsHtml += `<div class="odp-mini-port ${!isUsed ? 'is-empty' : ''}">
+            <b>P-${p.port_number}</b><br><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;">${targetName}</span>
+          </div>`;
+        });
+      }
+
+      marker.bindPopup(`
+        <div class="odp-pro-popup">
+          <div style="font-weight:800; font-size:13px; color:#0f172a; margin-bottom:4px;">
+            <i class="bi bi-box-seam-fill text-warning me-1"></i> ${odp.name}
+          </div>
+          <div style="font-size:11px; color:#64748b; margin-bottom:6px;">Input Power: <strong>${odp.input_power_dbm || 9.0} dBm</strong></div>
+          
+          <div style="font-size:10px; font-weight:700; color:#0284c7; margin-bottom:4px;">STATUS PORT SPLITTER:</div>
+          <div class="odp-mini-ports-container">${portsHtml || '<div style="font-size:10px;color:#94a3b8">Belum ada alokasi port.</div>'}</div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:8px;">
+            <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" class="cp-btn cp-btn-route">
+              <i class="bi bi-signpost-2"></i> Petunjuk Arah
+            </a>
+            ${odp.parent_odp_id ? `
+              <button type="button" class="cp-btn cp-btn-otdr" onclick="openOtdrModal('odp', ${odp.id})">
+                <i class="bi bi-broadcast-pin"></i> Lacak OTDR
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `);
+
+      odpMap[odp.id] = { marker, data: odp, coord: [lat, lng] };
+    }
+  });
+
+  // =========================================================================
+  // [BAGIAN 5: RENDER MARKER PELANGGAN & DROP CORE DENGAN REDAMAN DBm]       
+  // =========================================================================
+  customers.forEach(cust => {
+    if (cust.lat && cust.lng) {
+      const lat = parseFloat(cust.lat);
+      const lng = parseFloat(cust.lng);
+      const isActive = cust.status === 'active';
+
+      let polyline = null;
+      let rawCustPoints = [];
+      let distanceMeters = 0;
+
+      if (cust.odp_id && odpMap[cust.odp_id]) {
+        let pathCoords = [[lat, lng], odpMap[cust.odp_id].coord];
+
+        if (cust.cable_path) {
+          try {
+            const parsed = JSON.parse(cust.cable_path);
+            const pts = (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Array.isArray(parsed.points)) ? parsed.points : (Array.isArray(parsed) ? parsed : []);
+            if (pts.length >= 2) {
+              rawCustPoints = pts;
+              pathCoords = pts.map(pt => [(typeof pt.lat === 'number') ? pt.lat : pt[0], (typeof pt.lng === 'number') ? pt.lng : pt[1]]);
+            }
+          } catch(e) {}
+        }
+
+        distanceMeters = calculatePolylineLengthMeters(pathCoords);
+
+        polyline = L.polyline(pathCoords, {
+          color: isActive ? '#3b82f6' : '#ef4444',
+          weight: 3, opacity: 0.85, dashArray: '8, 8', className: 'flowing-line'
+        }).addTo(map);
+
+        // Titik sambungan kabel pelanggan
+        if (rawCustPoints && rawCustPoints.length > 2) {
+          rawCustPoints.forEach((pt, sIdx) => {
+            if (sIdx > 0 && sIdx < rawCustPoints.length - 1 && pt.isSplice) {
+              const pLat = (typeof pt.lat === 'number') ? pt.lat : pt[0];
+              const pLng = (typeof pt.lng === 'number') ? pt.lng : pt[1];
+              L.marker([pLat, pLng], {
+                icon: L.divIcon({ html: `<div class="pin-splice"><i class="bi bi-tools"></i></div>`, className: 'custom-div-icon', iconSize: [16, 16], iconAnchor: [8, 8] }),
+                zIndexOffset: 2000
+              }).addTo(map).bindPopup(`<div style="font-size:11px;color:#1e293b;"><b>Sambungan Drop Core</b><br>Redaman: -0.20 dB</div>`);
+            }
+          });
+        }
+      }
+
+      // Hitung Estimasi Rx Modem
+      const fiberLoss = parseFloat(((distanceMeters / 1000) * 0.40).toFixed(2));
+      const spliceCount = rawCustPoints.filter((p, idx) => idx > 0 && idx < rawCustPoints.length - 1 && p.isSplice).length;
+      const spliceLoss = parseFloat((spliceCount * 0.20).toFixed(2));
+      const totalDropLoss = parseFloat((fiberLoss + spliceLoss + 1.30).toFixed(2)); // Pigtail 0.3 + Fastcon 1.0
+
+      const parentOdp = cust.odp_id ? odpMap[cust.odp_id]?.data : null;
+      const portOutPower = parentOdp ? calculateUniversalPortPower(parentOdp, 0, 1) : -9.0;
+      const finalRx = parseFloat((portOutPower - totalDropLoss).toFixed(2));
+
+      let rxBg = '#dcfce7'; let rxColor = '#15803d';
+      if (finalRx < -21.0) { rxBg = '#fef3c7'; rxColor = '#b45309'; }
+      if (finalRx < -25.0) { rxBg = '#fee2e2'; rxColor = '#b91c1c'; }
+
+      const marker = L.marker([lat, lng], {
+        icon: L.divIcon({
+          className: 'custom-onu-icon',
+          html: `<div class="onu-marker-node ${isActive ? 'is-active' : 'is-suspended'}" id="onu-node-${cust.id}">
+                  <div class="onu-marker-pin"><i class="bi bi-router-fill"></i></div>
+                  <div class="onu-marker-label"><span class="onu-marker-name">${cust.name}</span></div>
+                 </div>`,
+          iconSize: [26, 26], iconAnchor: [13, 13]
+        })
+      }).addTo(map);
+
+      // Pop-up Lengkap View-Only
+      marker.bindPopup(`
+        <div class="cust-popup">
+          <div class="cp-head-card">
+            <div style="flex:1">
+              <div class="cp-name-title">${cust.name}</div>
+              <span class="badge ${isActive ? 'bg-success' : 'bg-danger'}" style="font-size:9.5px">${isActive ? 'Aktif' : 'Isolir'}</span>
+              <span class="badge bg-secondary" style="font-size:9.5px">${cust.package_name || 'Reguler'}</span>
+            </div>
+          </div>
+
+          <div class="cp-info-box">
+            <div class="cp-info-row"><span>PPPoE:</span><strong style="color:#2563eb">${cust.pppoe_username || '-'}</strong></div>
+            <div class="cp-info-row"><span>ODP:</span><strong>${cust.odp_name || 'Tanpa ODP'}</strong></div>
+            <div class="cp-info-row"><span>HP:</span><strong>${cust.phone || '-'}</strong></div>
+            <div class="cp-info-row"><span>Alamat:</span><span>${cust.address || '-'}</span></div>
+          </div>
+
+          ${cust.odp_id ? `
+            <div class="cp-optics-panel">
+              <div class="cp-optics-header">
+                <span><i class="bi bi-broadcast-pin text-primary me-1"></i>Estimasi Rx Modem</span>
+                <span style="background:${rxBg}; color:${rxColor}; padding:1px 6px; border-radius:4px; font-weight:800;">
+                  ${finalRx} dBm
+                </span>
+              </div>
+              <div class="cp-optics-body">
+                <div class="cp-info-row"><span>Panjang Drop Core:</span><strong>${distanceMeters} meter</strong></div>
+                <div class="cp-info-row"><span>Susut Kabel & Konektor:</span><strong style="color:#dc2626">-${totalDropLoss} dB</strong></div>
+                ${spliceCount > 0 ? `<div class="cp-info-row" style="color:#9333ea"><span>Sambungan Splice:</span><strong>${spliceCount} titik</strong></div>` : ''}
+              </div>
+            </div>
+          ` : ''}
+
+          <div class="cp-actions-grid">
+            ${cust.phone ? `
+              <a href="https://wa.me/${String(cust.phone).replace(/\D/g, '').replace(/^0/, '62')}" target="_blank" class="cp-btn cp-btn-wa">
+                <i class="bi bi-whatsapp"></i> WA
+              </a>
+            ` : '<span class="cp-btn" style="background:#cbd5e1;color:#64748b">No WA</span>'}
+            <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" class="cp-btn cp-btn-route">
+              <i class="bi bi-geo-alt"></i> Rute
+            </a>
+            ${cust.odp_id ? `
+              <button type="button" class="cp-btn cp-btn-otdr" onclick="openOtdrModal('customer', ${cust.id})">
+                <i class="bi bi-broadcast-pin"></i> OTDR
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `);
+
+      customerMap[cust.id] = { marker, data: cust, polyline };
+    }
+  });
+
+  // =========================================================================
+  // [BAGIAN 6: PENCARIAN CEPAT & FILTER]                                      
+  // =========================================================================
+  const searchInput = document.getElementById('mapGlobalSearch');
+  const searchDropdown = document.getElementById('mapSearchDropdown');
+  const resultsList = document.getElementById('msResultsList');
+  const clearBtn = document.getElementById('mapSearchClearBtn');
+
+  function doMapSearch(query) {
+    const q = (query || '').trim().toLowerCase();
+    if (!q) {
+      searchDropdown.classList.remove('active');
+      clearBtn.style.display = 'none';
+      return;
+    }
+    clearBtn.style.display = 'block';
+
+    const matchedCust = customers.filter(c => (c.name || '').toLowerCase().includes(q) || (c.pppoe_username || '').toLowerCase().includes(q) || (c.phone || '').includes(q));
+    const matchedOdp = odps.filter(o => (o.name || '').toLowerCase().includes(q));
+
+    const total = matchedCust.length + matchedOdp.length;
+    document.getElementById('msHeaderCount').textContent = `${total} Ditemukan`;
+
+    if (total === 0) {
+      resultsList.innerHTML = '<div style="padding:12px;text-align:center;color:#94a3b8;font-size:12px">Tidak ditemukan</div>';
+    } else {
+      let html = '';
+      matchedCust.slice(0, 15).forEach(c => {
+        html += `
+          <div class="ms-item" onclick="focusCustomer(${c.id})">
+            <div>
+              <div class="ms-item-name">${c.name}</div>
+              <div class="ms-item-meta">${c.pppoe_username || ''} • ${c.phone || ''}</div>
+            </div>
+          </div>
+        `;
+      });
+      matchedOdp.slice(0, 10).forEach(o => {
+        html += `
+          <div class="ms-item" onclick="focusOdp(${o.id})">
+            <div>
+              <div class="ms-item-name" style="color:#f59e0b"><i class="bi bi-box-seam me-1"></i>${o.name}</div>
+              <div class="ms-item-meta">ODP Box Distribusi</div>
+            </div>
+          </div>
+        `;
+      });
+      resultsList.innerHTML = html;
+    }
+    searchDropdown.classList.add('active');
+  }
+
+  function clearMapSearch() {
+    searchInput.value = '';
+    searchDropdown.classList.remove('active');
+    clearBtn.style.display = 'none';
+  }
+
+  searchInput.addEventListener('input', (e) => doMapSearch(e.target.value));
+
+  function focusCustomer(id) {
+    clearMapSearch();
+    const entry = customerMap[id];
+    if (entry && entry.data.lat && entry.data.lng) {
+      map.flyTo([parseFloat(entry.data.lat), parseFloat(entry.data.lng)], 18);
+      setTimeout(() => entry.marker.openPopup(), 600);
+    }
+  }
+
+  function focusOdp(id) {
+    clearMapSearch();
+    const entry = odpMap[id];
+    if (entry) {
+      map.flyTo(entry.coord, 18);
+      setTimeout(() => entry.marker.openPopup(), 600);
+    }
+  }
+
+  function applyStatusFilter(status) {
+    document.querySelectorAll('.map-filter-group .map-pill-btn').forEach(b => b.classList.remove('active'));
+    if (status === 'all') document.getElementById('pillAll').classList.add('active');
+    if (status === 'active') document.getElementById('pillActive').classList.add('active');
+    if (status === 'suspended') document.getElementById('pillSuspended').classList.add('active');
+
+    Object.keys(customerMap).forEach(id => {
+      const { marker, data, polyline } = customerMap[id];
+      const isActive = data.status === 'active';
+      const show = (status === 'all') || (status === 'active' && isActive) || (status === 'suspended' && !isActive);
+
+      if (show) {
+        if (!map.hasLayer(marker)) map.addLayer(marker);
+        if (polyline && !map.hasLayer(polyline)) map.addLayer(polyline);
+      } else {
+        if (map.hasLayer(marker)) map.removeLayer(marker);
+        if (polyline && map.hasLayer(polyline)) map.removeLayer(polyline);
+      }
+    });
+  }
+
+  function fitAllMarkers() {
+    const all = [];
+    Object.values(customerMap).forEach(e => { if (map.hasLayer(e.marker)) all.push(e.marker); });
+    Object.values(odpMap).forEach(e => { if (map.hasLayer(e.marker)) all.push(e.marker); });
+    if (all.length > 0) map.fitBounds(L.featureGroup(all).getBounds().pad(0.1));
+  }
+
+  // =========================================================================
+  // [BAGIAN 7: GEOLOCATION GPS LIVE TEKNISI (POSISI SAYA)]                    
+  // =========================================================================
+  let myGpsMarker = null;
+
+  function focusMyGpsPosition() {
+    if (!navigator.geolocation) return alert('GPS tidak didukung browser ini.');
+
+    navigator.geolocation.getCurrentPosition(pos => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+
+      if (!myGpsMarker) {
+        myGpsMarker = L.marker([lat, lng], {
+          icon: L.divIcon({
+            html: '<i class="bi bi-person-circle text-primary" style="font-size:26px; text-shadow:0 0 10px #fff;"></i>',
+            className: 'custom-div-icon',
+            iconSize: [26, 26], iconAnchor: [13, 13]
+          }),
+          zIndexOffset: 9999
+        }).addTo(map).bindPopup('<div style="font-size:11px;font-weight:800;color:#0f172a">Posisi Anda Saat Ini</div>');
+      } else {
+        myGpsMarker.setLatLng([lat, lng]);
+      }
+
+      map.flyTo([lat, lng], 18);
+      setTimeout(() => myGpsMarker.openPopup(), 600);
+    }, err => {
+      alert('Gagal mengambil koordinat GPS: ' + err.message);
+    }, { enableHighAccuracy: true });
+  }
+
+  // =========================================================================
+  // [BAGIAN 8: LOGIKA PELACAK PUTUS KABEL (OTDR FAULT LOCATOR) - FIX ACCURATE] 
+  // =========================================================================
+  let currentOtdrContext = null;
+  let otdrCutMarker = null;
+  let otdrHighlightLines = [];
+
+  function openOtdrModal(type, targetId) {
+    let routeTitle = '';
+    let startName = '';
+    let endName = '';
+    let pathCoords = [];
+
+    if (type === 'odp') {
+      const childOdp = odps.find(o => Number(o.id) === Number(targetId));
+      if (!childOdp) return alert('Data ODP tidak ditemukan.');
+      if (!childOdp.parent_odp_id) return alert(`ODP "${childOdp.name}" tidak memiliki ODP Induk (Server Pusat).`);
+      
+      const parentOdp = odpMap[childOdp.parent_odp_id];
+      if (!parentOdp) return alert('Data ODP Induk tidak ditemukan di peta.');
+
+      startName = parentOdp.data?.name || 'ODP Induk';
+      endName = childOdp.name;
+      routeTitle = `${startName} ➜ ${endName} (Kabel Trunk)`;
+
+      if (childOdp.cable_path) {
+        try {
+          const parsed = JSON.parse(childOdp.cable_path);
+          const pts = (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Array.isArray(parsed.points)) ? parsed.points : (Array.isArray(parsed) ? parsed : []);
+          if (pts.length >= 2) {
+            pathCoords = pts.map(p => [(typeof p.lat === 'number' ? p.lat : parseFloat(p[0])), (typeof p.lng === 'number' ? p.lng : parseFloat(p[1]))]);
+          }
+        } catch(e) {}
+      }
+      // Fallback garis lurus jika belum digambar
+      if (pathCoords.length < 2) {
+        pathCoords = [parentOdp.coord, [parseFloat(childOdp.lat), parseFloat(childOdp.lng)]];
+      }
+
+    } else if (type === 'customer') {
+      const cust = customers.find(c => Number(c.id) === Number(targetId));
+      if (!cust) return alert('Data pelanggan tidak ditemukan.');
+      if (!cust.odp_id) return alert(`Pelanggan "${cust.name}" belum dihubungkan ke ODP manapun.`);
+      
+      const parentOdp = odpMap[cust.odp_id];
+      if (!parentOdp) return alert('Data ODP tempat pelanggan terhubung belum ada di peta.');
+
+      startName = parentOdp.data?.name || 'ODP';
+      endName = cust.name;
+      routeTitle = `${startName} ➜ ${endName} (Drop Core)`;
+
+      if (cust.cable_path) {
+        try {
+          const parsed = JSON.parse(cust.cable_path);
+          const pts = (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Array.isArray(parsed.points)) ? parsed.points : (Array.isArray(parsed) ? parsed : []);
+          if (pts.length >= 2) {
+            pathCoords = pts.map(p => [(typeof p.lat === 'number' ? p.lat : parseFloat(p[0])), (typeof p.lng === 'number' ? p.lng : parseFloat(p[1]))]);
+          }
+        } catch(e) {}
+      }
+      // Fallback garis lurus jika belum digambar
+      if (pathCoords.length < 2) {
+        pathCoords = [parentOdp.coord, [parseFloat(cust.lat), parseFloat(cust.lng)]];
+      }
+    }
+
+    const totalMeters = calculatePolylineLengthMeters(pathCoords);
+
+    currentOtdrContext = { type, targetId, startName, endName, pathCoords, totalMeters };
+
+    document.getElementById('otdr_route_title').textContent = routeTitle;
+    document.getElementById('otdr_route_meta').innerHTML = `Panjang Jalur Kabel: <strong>${totalMeters} Meter</strong> (${(totalMeters/1000).toFixed(2)} km)`;
+    document.getElementById('otdr_dir_forward_text').textContent = `Dari (${startName}) menuju (${endName})`;
+    document.getElementById('otdr_dir_backward_text').textContent = `Tembak Balik dari (${endName}) menuju (${startName})`;
+    document.getElementById('otdr_meter_input').value = '';
+    document.getElementById('otdr_slack_range').value = 0;
+    document.getElementById('otdr_slack_label').textContent = '0%';
+    updateOtdrDirectionHint();
+
+    // Buka Modal (display flex agar rata tengah)
+    const modalEl = document.getElementById('otdrModal');
+    modalEl.style.display = 'flex';
+    setTimeout(() => document.getElementById('otdr_meter_input').focus(), 150);
+  }
+
+  function closeOtdrModal() {
+    document.getElementById('otdrModal').style.display = 'none';
+  }
+
+  function updateOtdrDirectionHint() {
+    const dir = document.querySelector('input[name="otdr_direction"]:checked')?.value || 'forward';
+    const ctx = currentOtdrContext;
+    if (!ctx) return;
+    const startPoint = (dir === 'forward') ? ctx.startName : ctx.endName;
+    document.getElementById('otdr_distance_hint').textContent = `*Jarak dihitung dari titik tembak: ${startPoint}.`;
+  }
+
+  function executeOtdrFaultLocator() {
+    if (!currentOtdrContext) return;
+    const rawMeter = parseFloat(document.getElementById('otdr_meter_input').value);
+    if (!rawMeter || rawMeter <= 0) return alert('Harap masukkan angka meter hasil pembacaan OTDR!');
+
+    const slack = parseFloat(document.getElementById('otdr_slack_range').value || 0);
+    // Kompensasi jika ada gulungan kabel di tiang
+    const effectiveMeter = rawMeter / (1 + (slack / 100));
+
+    const dir = document.querySelector('input[name="otdr_direction"]:checked')?.value || 'forward';
+    let points = [...currentOtdrContext.pathCoords];
+    if (dir === 'backward') points.reverse();
+
+    let accDist = 0;
+    let targetPoint = null;
+    let splitIndex = 0;
+
+    for (let i = 0; i < points.length - 1; i++) {
+      const p1 = L.latLng(points[i][0], points[i][1]);
+      const p2 = L.latLng(points[i+1][0], points[i+1][1]);
+      const segDist = p1.distanceTo(p2);
+
+      if (accDist + segDist >= effectiveMeter) {
+        const ratio = (effectiveMeter - accDist) / (segDist || 1);
+        targetPoint = [p1.lat + (p2.lat - p1.lat) * ratio, p1.lng + (p2.lng - p1.lng) * ratio];
+        splitIndex = i;
+        break;
+      }
+      accDist += segDist;
+    }
+
+    if (!targetPoint) {
+      targetPoint = points[points.length - 1];
+      splitIndex = points.length - 2;
+    }
+
+    closeOtdrModal();
+
+    // Hapus marker putus dan highlight lama
+    if (otdrCutMarker) map.removeLayer(otdrCutMarker);
+    otdrHighlightLines.forEach(l => map.removeLayer(l));
+    otdrHighlightLines = [];
+
+    // Tandai kabel OK (Hijau) dan kabel putus (Merah putus-putus)
+    const okLine = L.polyline([...points.slice(0, splitIndex + 1), targetPoint], { color: '#22c55e', weight: 6, opacity: 0.95 }).addTo(map);
+    const cutLine = L.polyline([targetPoint, ...points.slice(splitIndex + 1)], { color: '#ef4444', weight: 6, opacity: 0.95, dashArray: '8, 8' }).addTo(map);
+    otdrHighlightLines = [okLine, cutLine];
+
+    // Marker Pin Gunting Merah Berkedip
+    otdrCutMarker = L.marker(targetPoint, {
+      icon: L.divIcon({
+        html: '<div class="otdr-cut-pin" title="Perkiraan Titik Putus"><i class="bi bi-scissors"></i></div>',
+        className: 'custom-onu-icon',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      }),
+      zIndexOffset: 9999
+    }).addTo(map);
+
+    const startLocName = (dir === 'forward') ? currentOtdrContext.startName : currentOtdrContext.endName;
+    const endLocName = (dir === 'forward') ? currentOtdrContext.endName : currentOtdrContext.startName;
+    const remainingDist = Math.max(0, Math.round(currentOtdrContext.totalMeters - rawMeter));
+    const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${targetPoint[0]},${targetPoint[1]}`;
+
+    otdrCutMarker.bindPopup(`
+      <div style="font-size: 12px; width: 220px;">
+        <div style="font-weight: 800; font-size: 13px; color: #dc2626; border-bottom: 1.5px solid #fee2e2; padding-bottom: 4px; margin-bottom: 6px;">
+          <i class="bi bi-exclamation-octagon-fill me-1"></i> Perkiraan Titik Putus
+        </div>
+        <div style="margin-bottom: 3px;">Jarak OTDR: <strong style="color: #dc2626; font-size: 13.5px;">${rawMeter} Meter</strong></div>
+        <div style="font-size: 11px; color: #475569; margin-bottom: 2px;">Titik Tembak: <strong>${startLocName}</strong></div>
+        <div style="font-size: 11px; color: #475569; margin-bottom: 4px;">Sisa ke ${endLocName}: <strong>${remainingDist} m</strong></div>
+        <div style="font-size: 10px; font-family: monospace; color: #64748b; margin-bottom: 8px;">GPS: ${targetPoint[0].toFixed(6)}, ${targetPoint[1].toFixed(6)}</div>
+        <a href="${gmapsUrl}" target="_blank" class="cp-btn cp-btn-route" style="width: 100%; text-align: center; padding: 6px 0;">
+          <i class="bi bi-google"></i> Buka Rute Google Maps
+        </a>
+      </div>
+    `);
+
+    // Peta otomatis meluncur dan memfokuskan titik putus
+    map.flyTo(targetPoint, 18, { duration: 1.2 });
+    setTimeout(() => otdrCutMarker.openPopup(), 1300);
+  }
+
+  // Auto focus peta awal
+  setTimeout(() => {
+    fitAllMarkers();
+    map.invalidateSize();
+  }, 400);
+</script>
+
+<%- include('partials/bottom_nav') %>

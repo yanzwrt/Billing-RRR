@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title><%= title %> | <%= company %></title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+<%- include('partials/sidebar', { activePage: 'staff', company }) %>
+<div class="mw">
+  <div class="topbar">
+    <div class="tb-title"><i class="bi bi-person-badge-fill"></i> <%= title %></div>
+    <div class="tb-right">
+      <span class="adm-badge"><i class="bi bi-shield-lock-fill"></i> Admin Utama</span>
+      <a href="/admin/logout" class="btn btn-g btn-sm"><i class="bi bi-box-arrow-left"></i></a>
+    </div>
+  </div>
+  <div class="page">
+
+    <% if (msg) { %>
+    <div class="alert alert-<%= msg.type === 'success' ? 's' : 'd' %>">
+      <i class="bi bi-<%= msg.type === 'success' ? 'check-circle' : 'exclamation-circle' %>"></i> <%= msg.text %>
+    </div>
+    <% } %>
+
+    <div class="card">
+      <div class="card-hd">
+        <h6 style="margin:0;"><i class="bi bi-people"></i> Daftar Akun Admin Mitra / Staf</h6>
+        <button class="btn btn-p btn-sm" onclick="openModal('addStaffModal')"><i class="bi bi-plus-lg"></i> Tambah Akun</button>
+      </div>
+      <div class="tbl-wrap">
+        <table class="dtbl">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nama Mitra / Staf</th>
+              <th>Username</th>
+              <th>Akses Site</th>
+              <th>Izin Pelanggan</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (!staffList || staffList.length === 0) { %>
+            <tr><td colspan="6" class="text-center text-muted" style="padding:28px">Belum ada akun admin mitra atau staf</td></tr>
+            <% } %>
+            <% (staffList || []).forEach((s, idx) => { %>
+            <tr>
+              <td><%= idx + 1 %></td>
+              <td class="fw6"><%= s.name %></td>
+              <td><code><%= s.username %></code></td>
+              <td>
+                <span class="badge" style="font-weight:700;<%= s.site === 'site-2' ? 'background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3);' : (s.site === 'site-3' ? 'background:rgba(168,85,247,0.15);color:#a855f7;border:1px solid rgba(168,85,247,0.3);' : 'background:rgba(59,130,246,0.15);color:#3b82f6;border:1px solid rgba(59,130,246,0.3);') %>">
+                  <%= s.site === 'all' ? '🌐 Semua Site' : (s.site === 'site-2' ? 'Site 2' : (s.site === 'site-3' ? 'Site 3' : 'Site 1')) %>
+                </span>
+              </td>
+              <td style="font-size:12px;">
+                <span class="badge <%= s.can_add_customer ? 'bs' : 'bd' %>" style="padding:2px 6px;">Tambah: <%= s.can_add_customer ? 'Ya' : 'Tidak' %></span>
+                <span class="badge <%= s.can_edit_customer ? 'bs' : 'bd' %>" style="padding:2px 6px;">Edit: <%= s.can_edit_customer ? 'Ya' : 'Tidak' %></span>
+                <span class="badge <%= s.can_delete_customer ? 'bs' : 'bd' %>" style="padding:2px 6px;">Hapus: <%= s.can_delete_customer ? 'Ya' : 'Tidak' %></span>
+              </td>
+              <td>
+                <button class="btn btn-g btn-sm btn-icon" onclick='editStaff(<%- JSON.stringify(s) %>)' title="Edit Hak Akses"><i class="bi bi-pencil"></i></button>
+                <form method="POST" action="/admin/staff/<%= s.id %>/delete" style="display:inline" onsubmit="return confirm('Hapus akun staf ini?')">
+                  <button class="btn btn-d btn-sm btn-icon" title="Hapus"><i class="bi bi-trash"></i></button>
+                </form>
+              </td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Tambah Staf -->
+<div class="mo" id="addStaffModal">
+  <div class="mb" style="max-width:480px">
+    <div class="mh"><span class="mt"><i class="bi bi-person-plus"></i> Tambah Akun Mitra / Staf</span><button class="mc" onclick="closeModal('addStaffModal')">&times;</button></div>
+    <form method="POST" action="/admin/staff">
+      <div class="mbody">
+        <div class="fg">
+          <label class="fl">Nama Lengkap</label>
+          <input class="fc" name="name" required placeholder="Contoh: Teman Site 2">
+        </div>
+        <div class="fg">
+          <label class="fl">Username</label>
+          <input class="fc" name="username" required placeholder="Contoh: mitrasite2">
+        </div>
+        <div class="fg">
+          <label class="fl">Password</label>
+          <input class="fc" name="password" required type="password" placeholder="Password login">
+        </div>
+        <div class="fg">
+          <label class="fl">Kunci Akses Site</label>
+          <select class="fs" name="site" required>
+            <option value="site-1">Site 1 (Rakha)</option>
+            <option value="site-2" selected>Site 2 (Ikdmp)</option>
+            <option value="site-3">Site 3 (Rayna)</option>
+            <option value="all">🌐 Semua Site (Bebas)</option>
+          </select>
+        </div>
+        <div class="fg" style="margin-top:14px;background:rgba(255,255,255,0.02);border:1px solid var(--border);padding:10px 12px;border-radius:8px;">
+          <label class="fl" style="font-weight:700;margin-bottom:8px;">Izin Pengelolaan Pelanggan</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;margin-bottom:6px;">
+            <input type="checkbox" name="can_add_customer" value="1"> Boleh Tambah Pelanggan
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;margin-bottom:6px;">
+            <input type="checkbox" name="can_edit_customer" value="1"> Boleh Edit Pelanggan
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+            <input type="checkbox" name="can_delete_customer" value="1"> Boleh Hapus Pelanggan
+          </label>
+        </div>
+      </div>
+      <div class="mf">
+        <button type="button" class="btn btn-g" onclick="closeModal('addStaffModal')">Batal</button>
+        <button type="submit" class="btn btn-p"><i class="bi bi-check-lg"></i> Simpan Akun</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Edit Staf -->
+<div class="mo" id="editStaffModal">
+  <div class="mb" style="max-width:480px">
+    <div class="mh"><span class="mt"><i class="bi bi-pencil"></i> Edit Akun Mitra / Staf</span><button class="mc" onclick="closeModal('editStaffModal')">&times;</button></div>
+    <form method="POST" id="editStaffForm">
+      <div class="mbody">
+        <div class="fg">
+          <label class="fl">Nama Lengkap</label>
+          <input class="fc" name="name" id="e_name" required>
+        </div>
+        <div class="fg">
+          <label class="fl">Password (Kosongkan jika tidak diubah)</label>
+          <input class="fc" name="password" id="e_password" type="password" placeholder="Biarkan kosong jika tetap">
+        </div>
+        <div class="fg">
+          <label class="fl">Kunci Akses Site</label>
+          <select class="fs" name="site" id="e_site" required>
+            <option value="site-1">Site 1 (Rakha)</option>
+            <option value="site-2">Site 2 (Ikdmp)</option>
+            <option value="site-3">Site 3 (Rayna)</option>
+            <option value="all">🌐 Semua Site (Bebas)</option>
+          </select>
+        </div>
+        <div class="fg" style="margin-top:14px;background:rgba(255,255,255,0.02);border:1px solid var(--border);padding:10px 12px;border-radius:8px;">
+          <label class="fl" style="font-weight:700;margin-bottom:8px;">Izin Pengelolaan Pelanggan</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;margin-bottom:6px;">
+            <input type="checkbox" name="can_add_customer" id="e_can_add" value="1"> Boleh Tambah Pelanggan
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;margin-bottom:6px;">
+            <input type="checkbox" name="can_edit_customer" id="e_can_edit" value="1"> Boleh Edit Pelanggan
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">
+            <input type="checkbox" name="can_delete_customer" id="e_can_delete" value="1"> Boleh Hapus Pelanggan
+          </label>
+        </div>
+      </div>
+      <div class="mf">
+        <button type="button" class="btn btn-g" onclick="closeModal('editStaffModal')">Batal</button>
+        <button type="submit" class="btn btn-p"><i class="bi bi-check-lg"></i> Perbarui</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openModal(id){ const el = document.getElementById(id); if (el) el.classList.add('show'); }
+function closeModal(id){ const el = document.getElementById(id); if (el) el.classList.remove('show'); }
+function editStaff(s){
+  document.getElementById('editStaffForm').action = '/admin/staff/' + s.id + '/update';
+  document.getElementById('e_name').value = s.name || '';
+  document.getElementById('e_password').value = '';
+  document.getElementById('e_site').value = s.site || 'site-1';
+  document.getElementById('e_can_add').checked = s.can_add_customer === 1;
+  document.getElementById('e_can_edit').checked = s.can_edit_customer === 1;
+  document.getElementById('e_can_delete').checked = s.can_delete_customer === 1;
+  openModal('editStaffModal');
+}
+</script>
+</body>
+</html>

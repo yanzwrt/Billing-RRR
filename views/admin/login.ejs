@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="<%= lang || 'id' %>">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title><%= t('common.login', 'Login') %> Admin | <%= company %>
+  </title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  
+  <!-- ================================================================= -->
+  <!-- [TAMBAHAN 1: ASET PWA, META STATUS BAR & STYLE TOMBOL/MODAL]      -->
+  <!-- Fungsi: Menghubungkan manifest PWA dan mengatur style tombol & modal panduan -->
+  <!-- ================================================================= -->
+  <link rel="manifest" href="/manifest-admin.webmanifest">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="/img/logo.png">
+  <link rel="icon" href="/img/logo.png">
+
+  <style>
+    /* Styling Tombol Install Aplikasi Admin */
+    .btn-pwa-install {
+      background: rgba(245, 158, 11, 0.12);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      border-radius: 12px;
+      padding: 11px;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: all 0.25s ease;
+      text-decoration: none;
+    }
+    .btn-pwa-install:hover {
+      background: #f59e0b;
+      color: #0d1117;
+      border-color: #f59e0b;
+      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.35);
+      transform: translateY(-1px);
+    }
+
+    /* Modal Panduan Instalasi (Pure Vanilla CSS, tanpa perlu Bootstrap JS) */
+    .pwa-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+      padding: 20px;
+    }
+    .pwa-modal-overlay.active {
+      display: flex;
+    }
+    .pwa-modal-card {
+      background: #161b22;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 18px;
+      max-width: 420px;
+      width: 100%;
+      padding: 24px;
+      color: #f0f6fc;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+      animation: modalFadeIn 0.25s ease-out;
+    }
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .pwa-modal-card h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fbbf24;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 12px 0;
+    }
+    .pwa-step-box {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 12px;
+      line-height: 1.6;
+      margin-bottom: 10px;
+      color: #c9d1d9;
+    }
+    .pwa-step-box strong { color: #58a6ff; }
+  </style>
+  <!-- ================================================================= -->
+  <!-- [AKHIR TAMBAHAN 1]                                                -->
+  <!-- ================================================================= -->
+  
+  <style>
+    body {
+      background: radial-gradient(circle at top right, #1e1b4b, #0d1117);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 400px;
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    .login-card {
+      background: rgba(22, 27, 34, 0.8);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 40px 32px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    .login-head {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .login-icon {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, var(--primary), #818cf8);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin: 0 auto 20px;
+      box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+    }
+
+    .login-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .login-sub {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .alert-d {
+      background: rgba(248, 81, 73, 0.1);
+      color: #ff7b72;
+      border: 1px solid rgba(248, 81, 73, 0.2);
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .back-btn {
+      display: block;
+      text-align: center;
+      margin-top: 24px;
+      font-size: 12px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .back-btn:hover {
+      color: var(--primary);
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="login-box">
+    <div class="login-card">
+      <div class="login-head">
+        <div class="login-icon">
+          <i class="bi bi-shield-lock-fill"></i>
+        </div>
+        <h1 class="login-title">
+          <%= company %>
+        </h1>
+        <p class="login-sub"><%= t('admin.login.subtitle', 'Administrator Portal') %></p>
+      </div>
+
+      <% if (typeof error !=='undefined' && error) { %>
+        <div class="alert-d">
+          <i class="bi bi-exclamation-circle"></i>
+          <%= error %>
+        </div>
+        <% } %>
+
+          <form method="POST" action="/admin/login">
+            <div class="fg">
+              <label class="fl"><%= t('admin.login.username', 'Username') %></label>
+              <div style="position:relative">
+                <i class="bi bi-person" style="position:absolute;left:13px;top:10px;color:var(--muted)"></i>
+                <input class="fc" name="username" placeholder="admin" required style="padding-left:40px">
+              </div>
+            </div>
+
+            <div class="fg" style="margin-bottom:24px">
+              <label class="fl"><%= t('admin.login.password', 'Password') %></label>
+              <div style="position:relative">
+                <i class="bi bi-key" style="position:absolute;left:13px;top:10px;color:var(--muted)"></i>
+                <input class="fc" type="password" name="password" placeholder="••••••••" required
+                  style="padding-left:40px">
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-p w-100" style="padding:12px;justify-content:center">
+              <i class="bi bi-box-arrow-in-right"></i> <%= t('admin.login.sign_in', 'Masuk Sekarang') %>
+            </button>
+          </form>
+		  
+		  <!-- ================================================================= -->
+          <!-- [TAMBAHAN 2: TOMBOL INSTALL APLIKASI ADMIN]                       -->
+          <!-- Fungsi: Tombol aksi untuk memicu pop-up instalasi aplikasi di HP  -->
+          <!-- ================================================================= -->
+          <button type="button" id="btn-admin-install" class="btn-pwa-install w-100" onclick="triggerAdminPwaInstall()">
+            <i class="bi bi-download"></i> <%= t('admin.login.install_app', 'Install Aplikasi Admin') %>
+          </button>
+          <!-- ================================================================= -->
+          <!-- [AKHIR TAMBAHAN 2]                                                -->
+          <!-- ================================================================= -->
+
+          <a href="/customer/login" class="back-btn">
+            <i class="bi bi-arrow-left"></i> <%= t('admin.login.back_customer', 'Kembali ke Portal Pelanggan') %>
+          </a>
+    </div>
+  </div>
+
+  <style>
+    .w-100 {
+      width: 100%;
+    }
+  </style>
+  
+  <!-- ================================================================= -->
+  <!-- [TAMBAHAN 3: POPUP PANDUAN MODAL & SCRIPT LOGIKA PWA ADMIN]      -->
+  <!-- ================================================================= -->
+
+  <!-- Modal Pop-up Panduan Manual (Jika browser butuh panduan/di iOS) -->
+  <div class="pwa-modal-overlay" id="pwaAdminModal">
+    <div class="pwa-modal-card">
+      <h3><i class="bi bi-phone-vibrate"></i> Pasang Aplikasi Admin</h3>
+      <p style="font-size:12px;color:#8b949e;margin-bottom:14px">
+        Jalankan portal admin layaknya aplikasi Android asli langsung dari layar beranda HP Anda tanpa repot buka browser.
+      </p>
+
+      <div class="pwa-step-box">
+        <strong><i class="bi bi-android2"></i> Android (Google Chrome):</strong><br>
+        1. Ketuk icon titik tiga <strong>(⋮)</strong> di pojok kanan atas browser.<br>
+        2. Pilih <strong>"Install Aplikasi"</strong> atau <strong>"Tambahkan ke Layar Utama"</strong>.<br>
+        3. Konfirmasi dengan menekan tombol <strong>Install</strong>.
+      </div>
+
+      <div class="pwa-step-box">
+        <strong><i class="bi bi-apple"></i> iPhone / iPad (Safari):</strong><br>
+        1. Ketuk tombol <strong>Bagikan / Share</strong> (<i class="bi bi-share"></i>).<br>
+        2. Gulir ke bawah dan pilih <strong>"Add to Home Screen"</strong>.<br>
+        3. Ketuk <strong>Add</strong> di pojok kanan atas.
+      </div>
+
+      <button type="button" class="btn btn-p w-100" style="padding:10px;margin-top:14px;justify-content:center" onclick="closeAdminPwaModal()">
+        Mengerti, Tutup
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // [FUNGSI 1: PENANGKAP EVENT INSTALL NATIVE BROWSER ANDROID]
+    // Fungsi: Menangkap sinyal instalasi otomatis dari browser HP Android
+    let deferredAdminPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredAdminPrompt = e;
+      const installBtn = document.getElementById('btn-admin-install');
+      if (installBtn) {
+        installBtn.style.boxShadow = '0 0 14px rgba(245, 158, 11, 0.45)';
+      }
+    });
+
+    // [FUNGSI 2: PEMICU POPUP INSTALASI SAAT TOMBOL DIKLIK]
+    // Fungsi: Menampilkan prompt resmi Android atau membuka modal instruksi jika belum siap
+    function triggerAdminPwaInstall() {
+      if (deferredAdminPrompt) {
+        deferredAdminPrompt.prompt();
+        deferredAdminPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('Admin PWA berhasil dipasang');
+          }
+          deferredAdminPrompt = null;
+        });
+      } else {
+        // Tampilkan modal panduan jika prompt native belum terpancing
+        document.getElementById('pwaAdminModal').classList.add('active');
+      }
+    }
+
+    // [FUNGSI 3: PENUTUP MODAL PANDUAN]
+    // Fungsi: Menutup pop-up instruksi
+    function closeAdminPwaModal() {
+      document.getElementById('pwaAdminModal').classList.remove('active');
+    }
+
+    // [FUNGSI 4: PENDAFTARAN SERVICE WORKER SCOPE ADMIN]
+    // Fungsi: Mendaftarkan service worker agar PWA aktif pada ruang lingkup /admin/
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js', { scope: '/admin/' }).catch(() => {
+          // Fallback tanpa scope khusus jika terjadi batasan path
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      });
+    }
+
+    // [FUNGSI 5: DETEKSI APLIKASI SUDAH TERPASANG]
+    // Fungsi: Menghilangkan tombol jika admin sudah membuka lewat aplikasi PWA yang terinstall
+    window.addEventListener('appinstalled', () => {
+      deferredAdminPrompt = null;
+      const installBtn = document.getElementById('btn-admin-install');
+      if (installBtn) installBtn.style.display = 'none';
+    });
+  </script>
+  <!-- ================================================================= -->
+  <!-- [AKHIR TAMBAHAN 3]                                                -->
+  <!-- ================================================================= -->
+
+</body>
+
+</html>

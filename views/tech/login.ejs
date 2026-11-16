@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="<%= lang || 'id' %>">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title><%= t('tech.login_title', 'Login Teknisi') %> - <%= company %></title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
+  <!-- ================================================================= -->
+  <!-- [TAMBAHAN 1: ASET PWA, META STATUS BAR & STYLE TOMBOL TEKNISI]    -->
+  <!-- ================================================================= -->
+  <link rel="manifest" href="/manifest-tech.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="/img/logo.png">
+  <link rel="icon" href="/img/logo.png">
+
+  <style>
+    body {
+      background-color: #0f172a;
+      color: #f8fafc;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    .login-card {
+      background: #1e293b;
+      border-radius: 20px;
+      padding: 30px;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    .form-control {
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: white;
+      padding: 12px;
+      border-radius: 12px;
+    }
+
+    .form-control:focus {
+      background: #0f172a;
+      color: white;
+      border-color: #3b82f6;
+      box-shadow: none;
+    }
+
+    .btn-login {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 12px;
+      width: 100%;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+
+    .brand-icon {
+      font-size: 40px;
+      color: #3b82f6;
+      margin-bottom: 10px;
+    }
+
+    /* Styling Tombol Install Aplikasi Teknisi */
+    .btn-pwa-tech {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 12px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+    .btn-pwa-tech:hover {
+      background: #f59e0b;
+      color: #0f172a;
+      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+      transform: translateY(-1px);
+    }
+
+    /* Modal Panduan Instalasi */
+    .pwa-tech-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+      padding: 20px;
+    }
+    .pwa-tech-modal.active {
+      display: flex;
+    }
+    .pwa-tech-card {
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 18px;
+      max-width: 400px;
+      width: 100%;
+      padding: 24px;
+      color: #f8fafc;
+      text-align: left;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+      animation: modalFadeIn 0.25s ease-out;
+    }
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .pwa-step-item {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 12px;
+      line-height: 1.6;
+      margin-bottom: 10px;
+      color: #cbd5e1;
+    }
+    .pwa-step-item strong { color: #38bdf8; }
+  </style>
+</head>
+
+<body>
+  <div class="login-card text-center">
+    <div class="brand-icon"><i class="bi bi-tools"></i></div>
+    <h3 class="mb-1 fw-bold"><%= t('tech.portal_title', 'Portal Teknisi') %></h3>
+    <p class="text-secondary mb-4 small"><%= company %></p>
+
+    <% if (error) { %>
+      <div class="alert alert-danger py-2 small rounded-3">
+        <%= error %>
+      </div>
+    <% } %>
+
+    <form method="POST" action="/tech/login">
+      <div class="mb-3 text-start">
+        <label class="form-label text-secondary small mb-1">Username Teknisi</label>
+        <input type="text" name="username" class="form-control" required placeholder="Masukkan username">
+      </div>
+      <div class="mb-4 text-start">
+        <label class="form-label text-secondary small mb-1">Password</label>
+        <input type="password" name="password" class="form-control" required placeholder="Masukkan password">
+      </div>
+      <button type="submit" class="btn btn-login"><i class="bi bi-box-arrow-in-right me-2"></i> Masuk</button>
+    </form>
+
+    <!-- ================================================================= -->
+    <!-- [TAMBAHAN 2: TOMBOL INSTALL APLIKASI TEKNISI]                     -->
+    <!-- ================================================================= -->
+    <button type="button" id="btn-tech-install" class="btn-pwa-tech" onclick="triggerTechPwaInstall()">
+      <i class="bi bi-download"></i> Install Aplikasi Teknisi
+    </button>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- [TAMBAHAN 3: MODAL PANDUAN & SCRIPT LOGIKA PWA TEKNISI]           -->
+  <!-- ================================================================= -->
+  <div class="pwa-tech-modal" id="pwaTechModal">
+    <div class="pwa-tech-card">
+      <h5 class="fw-bold text-warning mb-2 d-flex align-items-center gap-2">
+        <i class="bi bi-tools"></i> Pasang Aplikasi Teknisi
+      </h5>
+      <p style="font-size:12px;color:#94a3b8;margin-bottom:14px">
+        Akses cepat portal teknisi langsung dari layar utama HP tanpa repot membuka browser setiap kali ke lapangan.
+      </p>
+
+      <div class="pwa-step-item">
+        <strong><i class="bi bi-android2"></i> Android (Google Chrome):</strong><br>
+        1. Ketuk icon titik tiga <strong>(⋮)</strong> di pojok kanan atas browser.<br>
+        2. Pilih <strong>"Install Aplikasi"</strong> atau <strong>"Tambahkan ke Layar Utama"</strong>.<br>
+        3. Konfirmasi dengan menekan tombol <strong>Install</strong>.
+      </div>
+
+      <div class="pwa-step-item">
+        <strong><i class="bi bi-apple"></i> iPhone / iPad (Safari):</strong><br>
+        1. Ketuk tombol <strong>Bagikan / Share</strong> (<i class="bi bi-share"></i>).<br>
+        2. Gulir ke bawah dan pilih <strong>"Add to Home Screen"</strong>.<br>
+        3. Ketuk <strong>Add</strong> di pojok kanan atas.
+      </div>
+
+      <button type="button" class="btn btn-login w-100 mt-2" onclick="closeTechPwaModal()">
+        Mengerti, Tutup
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // [FUNGSI 1: PENANGKAP EVENT INSTALL BROWSER ANDROID]
+    let deferredTechPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredTechPrompt = e;
+      const installBtn = document.getElementById('btn-tech-install');
+      if (installBtn) {
+        installBtn.style.boxShadow = '0 0 14px rgba(245, 158, 11, 0.45)';
+      }
+    });
+
+    // [FUNGSI 2: PEMICU POPUP INSTALASI SAAT TOMBOL DIKLIK]
+    function triggerTechPwaInstall() {
+      if (deferredTechPrompt) {
+        deferredTechPrompt.prompt();
+        deferredTechPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('PWA Teknisi berhasil dipasang');
+          }
+          deferredTechPrompt = null;
+        });
+      } else {
+        document.getElementById('pwaTechModal').classList.add('active');
+      }
+    }
+
+    // [FUNGSI 3: PENUTUP MODAL PANDUAN]
+    function closeTechPwaModal() {
+      document.getElementById('pwaTechModal').classList.remove('active');
+    }
+
+    // [FUNGSI 4: PENDAFTARAN SERVICE WORKER SCOPE TEKNISI]
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js', { scope: '/tech/' }).catch(() => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      });
+    }
+
+    // [FUNGSI 5: DETEKSI APLIKASI TELAH TERPASANG]
+    window.addEventListener('appinstalled', () => {
+      deferredTechPrompt = null;
+      const installBtn = document.getElementById('btn-tech-install');
+      if (installBtn) installBtn.style.display = 'none';
+    });
+  </script>
+</body>
+
+</html>
