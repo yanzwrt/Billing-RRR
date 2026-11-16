@@ -4,8 +4,8 @@
 
 Sistem manajemen ISP yang mengintegrasikan **penagihan**, **GenieACS**, **OLT (SNMP)**, **MikroTik** (PPPoE/hotspot/voucher), **peta jaringan (GIS)**, **inventaris**, **WhatsApp/Telegram**, dan **multi-portal** (admin, teknisi, pelanggan, agen) dalam satu platform.
 
-[![GitHub license](https://img.shields.io/github/license/alijayanet/billing-rtrw)](https://github.com/alijayanet/billing-rtrw/blob/main/LICENSE)
-[![GitHub stars](https://img.shields.io/github/stars/alijayanet/billing-rtrw)](https://github.com/alijayanet/billing-rtrw/stargazers)
+[![GitHub license](https://img.shields.io/github/license/yanzwrt/Billing-RRR)](https://github.com/yanzwrt/Billing-RRR/blob/main/LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/yanzwrt/Billing-RRR)](https://github.com/yanzwrt/Billing-RRR/stargazers)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen)](https://nodejs.org/)
 
 ---
@@ -112,7 +112,7 @@ Sistem manajemen ISP yang mengintegrasikan **penagihan**, **GenieACS**, **OLT (S
 
 ### Otomatisasi terjadwal (cron)
 - Tanggal **1 jam 00:01**: generate **tagihan bulanan**.
-- Setiap hari **jam 02:00**: **isolir otomatis** pelanggan aktif yang lewat jatuh tempo/isolir (sesuai hari & flag per pelanggan).
+- Setiap hari **jam 23:59**: **isolir otomatis** pelanggan aktif yang lewat jatuh tempo/isolir (sesuai hari & flag per pelanggan).
 - **Jam 09:00**: pengingat tagihan via **WhatsApp** (H-1 dari hari isolir, jika fitur diaktifkan).
 - **00:00 & 06:00**: **jam kalong** — ganti profil PPPoE malam/siang untuk paket yang mengaktifkannya.
 - Setiap **10 menit**: **sinkron pemakaian data** dari sesi **PPPoE aktif** di MikroTik (jika tracking diaktifkan).
@@ -147,8 +147,8 @@ Sistem manajemen ISP yang mengintegrasikan **penagihan**, **GenieACS**, **OLT (S
 ### Langkah
 
 ```bash
-git clone https://github.com/alijayanet/billing-rtrw.git
-cd billing-rtrw
+git clone https://github.com/yanzwrt/Billing-RRR.git
+cd Billing-RRR
 cp env-example.txt .env
 npm install
 ```
@@ -177,7 +177,7 @@ Entry point aplikasi adalah **`app-customer.js`** (bukan `app.js`).
 
 ```bash
 npm install pm2 -g
-pm2 start app-customer.js --name billing-rtrw
+pm2 start app-customer.js --name Billing-RRR
 ```
 
 ---
@@ -238,7 +238,7 @@ Aplikasi Android resmi **Alijaya** adalah aplikasi native multifungsi untuk semu
 1. **Langsung dari Web Server**:
    Akses link berikut melalui browser di smartphone Anda:
    ```text
-   https://app.alijaya.com/downloads/billing-rtrw.apk
+   -
    ```
    *(Ganti `[IP-SERVER]` dan `3001` sesuai IP/Domain dan Port server billing Anda)*.
 2. **File Lokal di Repository**:
@@ -251,7 +251,7 @@ Aplikasi Android resmi **Alijaya** adalah aplikasi native multifungsi untuk semu
 Agar aplikasi Android dapat terhubung ke server billing Anda (lokal IP, VPN, atau domain publik):
 
 #### Cara 1: Melalui Halaman Login (Sebelum Masuk)
-1. Buka aplikasi **Alijaya** di smartphone Android.
+1. Buka aplikasi **IKDMP-CINTA** di smartphone Android.
 2. Pada layar login awal, tap tombol **⚙️ Icon Pengaturan / Server** di pojok kanan atas (atau tombol **Ganti Server**).
 3. Masukkan URL server billing Anda:
    - **Format**: `http://IP-SERVER:PORT` atau `https://DOMAIN-ANDA.COM`
@@ -288,7 +288,7 @@ Jika Anda mendapat error ini di server produksi, artinya database belum memiliki
 **Opsi 1: Jalankan Script Fix (Recommended)**
 
 ```bash
-cd /path/to/billing-rtrw
+cd /path/to/Billing-RRR
 bash scripts/fix-database.sh
 ```
 
@@ -310,7 +310,7 @@ npm restart
 **Opsi 3: Manual Verification**
 
 ```bash
-cd /path/to/billing-rtrw
+cd /path/to/Billing-RRR
 node scripts/verify-database.js
 ```
 
@@ -351,8 +351,8 @@ Fork, buat branch fitur, lalu kirim Pull Request.
 **ISC** — lihat berkas `LICENSE`.
 
 Dibuat untuk operasional ISP lokal & RTRW-Net.  
-Managed by [Ali Jaya Net](https://github.com/alijayanet)
+Managed by [Rakha Putra Andrian](https://github.com/yanzwrt)
 
 ## Info & donasi
 
-081947215703 — https://wa.me/6281947215703
+082130077713 — https://wa.me/6282130077713

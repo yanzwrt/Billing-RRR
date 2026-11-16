@@ -88,7 +88,7 @@ app.use(express.text({
   }
 }));
 
-// === AWAL PERUBAHAN: MENYATUKAN SESSION KE DATABASE UTAMA ===
+// === MENYATUKAN SESSION KE DATABASE UTAMA ===
 app.use(session({
   store: new SQLiteStore({
     client: db, // Menggunakan koneksi database utama project Anda (billing.db)
@@ -110,7 +110,7 @@ app.use(session({
   },
   name: 'billing.sid'
 }));
-// === AKHIR PERUBAHAN ===
+// ======
 
 // Middleware Proteksi CSRF berbasis Referer/Origin (Aman untuk production tanpa merubah EJS)
 app.use((req, res, next) => {

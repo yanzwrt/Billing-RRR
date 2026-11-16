@@ -66,8 +66,8 @@ Anda **tidak perlu** menambah router di `/admin/routers` jika sudah ada di `sett
 ```json
 {
   "mikrotik_host": "192.168.8.1",
-  "mikrotik_user": "ali",
-  "mikrotik_password": "060111",
+  "mikrotik_user": "rakhaputra",
+  "mikrotik_password": "2130",
   "mikrotik_port": 8700
 }
 ```
@@ -86,8 +86,8 @@ Anda **tidak perlu** menambah router di `/admin/routers` jika sudah ada di `sett
 ```json
 {
   "mikrotik_host": "192.168.8.1",
-  "mikrotik_user": "ali",
-  "mikrotik_password": "060111"
+  "mikrotik_user": "rakhaputra",
+  "mikrotik_password": "2130"
 }
 ```
 
@@ -95,8 +95,8 @@ Anda **tidak perlu** menambah router di `/admin/routers` jika sudah ada di `sett
 ```
 ID | name            | host         | user  | is_active
 ---|-----------------|--------------|-------|----------
-1  | Main Router     | 192.168.8.1  | ali   | 1
-2  | Backup Router   | 192.168.9.1  | admin | 1
+1  | Main Router     | 192.168.8.1  | RakhaPutra   | 1
+2  | Backup Router   | 192.168.9.1  | BackupRakhaP | 1
 ```
 
 **Apa yang terjadi:**
