@@ -351,8 +351,8 @@ Fork, buat branch fitur, lalu kirim Pull Request.
 **ISC** — lihat berkas `LICENSE`.
 
 Dibuat untuk operasional ISP lokal & RTRW-Net.  
-Managed by [Ali Jaya Net](https://github.com/alijayanet)
+Managed by [Rakha Putra Andrian](https://github.com/yanzwrt)
 
 ## Info & donasi
 
-081947215703 — https://wa.me/6281947215703
+082130077713 — https://wa.me/6282130077713
