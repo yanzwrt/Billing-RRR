@@ -300,12 +300,12 @@ Original README:
    README.md (Original aplikasi documentation)
 
 GitHub:
-   https://github.com/alijayanet/billing-rtrw
+   https://github.com/yanzwrt/Billing-RRR
 
 Contact:
-   Ali Jaya Net
-   Phone: 081947215703
-   Email: alijayanet@gmail.com
+   Rakha Putra Andrian
+   Phone: 082130077713
+   Email: rakhaputraandrian@gmail.com
 
 ================================================================================
 DOKUMEN STATUS
