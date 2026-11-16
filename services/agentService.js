@@ -1,6 +1,4 @@
-/* ========================================================================= */
 /* [AWAL GANTI: IMPORT LOGGER AGAR TIDAK ERROR LOGGER IS NOT DEFINED]        */
-/* ========================================================================= */
 const db = require('../config/database');
 const { logger } = require('../config/logger');
 const billingSvc = require('./billingService');
@@ -8,8 +6,7 @@ const customerSvc = require('./customerService');
 const mikrotikSvc = require('./mikrotikService');
 const axios = require('axios');
 /* ========================================================================= */
-/* [AKHIR GANTI: IMPORT LOGGER]                                              */
-/* ========================================================================= */
+
 const crypto = require('crypto');
 const { getSetting } = require('../config/settingsManager');
 const { parseMikhmonOnLogin } = require('../utils/mikhmonParser');
@@ -555,12 +552,7 @@ async function payInvoiceAsAgent(agentId, invoiceId, note = '') {
   return { invoice: inv, agent: getAgentById(agentId), tx };
 }
 
-
-/* ========================================================================= */
 /* [AWAL GANTI TITIK 1: FUNGSI PEMBUAT KODE VOUCHER HURUF BESAR & ANGKA]     */
-/* Fungsi: Membuat kode acak 4 karakter kombinasi Huruf Besar dan Angka      */
-/* tanpa karakter rancu (menghilangkan O, 0, I, 1 agar mudah diketik).        */
-/* ========================================================================= */
 function genCode(len, charset) {
   // Kunci panjang kode menjadi 4 karakter
   const n = Math.max(4, Math.min(16, Number(len) || 4));
@@ -579,8 +571,6 @@ function genCode(len, charset) {
   if (charset === 'numbers' && out[0] === '0') out = '1' + out.slice(1);
   return out;
 }
-/* ========================================================================= */
-/* [AKHIR GANTI TITIK 1: FUNGSI PEMBUAT KODE VOUCHER]                        */
 /* ========================================================================= */
 
 async function sellVoucherAsAgent(agentId, priceId, opts = {}) {
@@ -657,17 +647,11 @@ async function sellVoucherAsAgent(agentId, priceId, opts = {}) {
     if (profileMeta?.validity) validity = profileMeta.validity;
   } catch (e) {}
 
-  /* ========================================================================= */
   /* [AWAL GANTI TITIK 2: SETTING DEFAULT VOUCHER AGEN KE 4 KARAKTER & UPPER]  */
-  /* Fungsi: Menetapkan panjang voucher agen menjadi 4 karakter dan memilih     */
-  /* charset mixed (huruf kapital + angka).                                    */
-  /* ========================================================================= */
   const prefix = opts.prefix || price.prefix || pkgMeta?.prefix || '';
   const charset = opts.charset || price.charset || pkgMeta?.charset || 'mixed';
   // Panjang default diatur menjadi 4 karakter
   const length = Math.max(4, Math.min(16, Number(opts.code_length || price.code_length || pkgMeta?.code_length) || 4));
-  /* ========================================================================= */
-  /* [AKHIR GANTI TITIK 2: SETTING DEFAULT VOUCHER AGEN]                       */
   /* ========================================================================= */
 
   let created = null;
@@ -706,11 +690,7 @@ async function sellVoucherAsAgent(agentId, priceId, opts = {}) {
     const after = before - buyPrice;
     db.prepare('UPDATE agents SET balance = ? WHERE id = ?').run(after, agentId);
 
-    /* ========================================================================= */
     /* [AWAL GANTI: PENYIMPANAN TRANSAKSI VOUCHER DENGAN LABEL CHANNEL WEB / WA] */
-    /* Fungsi: Menyimpan label sumber pembuatan voucher (Web Agent / WhatsApp)   */
-    /* ke dalam catatan riwayat transaksi agen.                                  */
-    /* ========================================================================= */
     const isFromWeb = (opts && opts.via === 'web');
     const channelLabel = isFromWeb ? '[Web Agent]' : '[WhatsApp]';
     const buyerInfo = opts && opts.buyer_name ? ` - Pembeli: ${opts.buyer_name}` : '';
@@ -739,8 +719,6 @@ async function sellVoucherAsAgent(agentId, priceId, opts = {}) {
       after,
       noteText
     );
-    /* ========================================================================= */
-    /* [AKHIR GANTI: PENYIMPANAN TRANSAKSI VOUCHER]                              */
     /* ========================================================================= */
 
     return { id: Number(ins.lastInsertRowid), before, after };
@@ -1063,11 +1041,7 @@ async function checkPulsaStatusAsAdmin(txId) {
   return { tx: getDigiflazzStaffTransactionById(tx.id), vendor };
 }
 
-/* ========================================================================= */
 /* [AWAL GANTI: FUNGSI CANCEL & REFUND VOUCHER DENGAN WAKTU LOKAL SINKRON]   */
-/* Fungsi: Hapus voucher di MikroTik, refund saldo agen, dan catat riwayat   */
-/* transaksi refund menggunakan waktu lokal (+7 jam / WIB).                  */
-/* ========================================================================= */
 async function cancelAndRefundVoucher(txId, actorName = 'Admin') {
   const tId = Number(txId || 0);
   if (!tId) throw new Error('ID Transaksi tidak valid');
@@ -1133,8 +1107,6 @@ async function cancelAndRefundVoucher(txId, actorName = 'Admin') {
 
   return run();
 }
-/* ========================================================================= */
-/* [AKHIR GANTI: FUNGSI CANCEL & REFUND VOUCHER]                             */
 /* ========================================================================= */
 
 module.exports = {
