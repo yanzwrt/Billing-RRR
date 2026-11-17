@@ -1,4 +1,4 @@
-# RTRWNET Management & Billing System
+# Management & Billing System
 
 ![ISP Management Hero](public/img/hero.png)
 
