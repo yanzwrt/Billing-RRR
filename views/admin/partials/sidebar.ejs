@@ -70,19 +70,54 @@ document.addEventListener('DOMContentLoaded', () => {
       <button class="sb-close btn-g btn-sm" onclick="toggleSidebar()" style="flex-shrink: 0;"><i class="bi bi-x-lg"></i></button>
     </div>
 
-    <!-- Baris 2: Tombol Bahasa, Sound, dan Tema (Dibuat Full Lebar & Rapi) -->
+    <!-- Baris 2: Tombol Bahasa, Sound, Notifikasi, dan Tema -->
     <div style="margin-top: 10px; display: flex; gap: 4px; align-items: center; justify-content: space-between; width: 100%;">
-      <div style="display: flex; gap: 4px;">
+      <div style="display: flex; gap: 4px; align-items: center;">
         <a href="/lang/id" class="btn btn-g btn-sm" style="padding: 3px 6px; font-size: 11px;">ID</a>
         <a href="/lang/en" class="btn btn-g btn-sm" style="padding: 3px 6px; font-size: 11px;">EN</a>
         <button type="button" id="btnSidebarSoundbox" class="btn btn-g btn-sm" onclick="toggleAdminSoundbox()" title="Soundbox" style="padding: 3px 6px;">
           <i class="bi bi-volume-up-fill" id="sidebarSoundboxIcon" style="color:#10b981"></i>
         </button>
+        
+        <!-- >>> AWAL TOMBOL & DROPDOWN NOTIFIKASI <<< -->
+        <div id="notifWrapper" style="position: relative; display: inline-block;">
+          <button type="button" id="btnSidebarNotif" class="btn btn-g btn-sm" onclick="toggleSidebarNotifDropdown(event)" title="Notifikasi Sistem" style="padding: 3px 7px; position: relative;">
+            <i class="bi bi-bell-fill" id="sidebarNotifIcon" style="color: #64748b;"></i>
+            <span id="sidebarNotifBadge" style="display: none; position: absolute; top: -5px; right: -5px; background: #ef4444; color: #fff; font-size: 9px; font-weight: 800; padding: 1px 4px; border-radius: 999px; line-height: 1; border: 1.5px solid var(--bg2, #1e293b); box-shadow: 0 0 6px rgba(239,68,68,0.7); animation: notifPulse 2s infinite;">0</span>
+          </button>
+
+          <!-- Floating Dropdown Box Popover -->
+          <div id="sidebarNotifDropdown" class="sb-notif-dropdown">
+            <div class="sb-notif-header">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <i class="bi bi-bell-fill" style="color: #3b82f6;"></i>
+                <span style="font-weight: 700; font-size: 12px;">Pemberitahuan</span>
+              </div>
+              <span id="sbNotifTotalBadge" class="sb-notif-count-badge">0 Baru</span>
+            </div>
+            
+            <div id="sbNotifListContainer" class="sb-notif-list">
+              <div style="text-align: center; padding: 20px 10px; color: #94a3b8; font-size: 11px;">
+                <i class="bi bi-bell-slash" style="font-size: 22px; display: block; margin-bottom: 6px; opacity: 0.6;"></i>
+                Tidak ada notifikasi baru
+              </div>
+            </div>
+
+            <div class="sb-notif-footer">
+              <a href="javascript:void(0)" onclick="fetchSidebarNotifications(true)" style="text-decoration: none; font-size: 11px; font-weight: 600; color: #3b82f6; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                <i class="bi bi-arrow-clockwise"></i> Segarkan
+              </a>
+            </div>
+          </div>
+        </div>
+        <!-- >>> AKHIR TOMBOL & DROPDOWN NOTIFIKASI <<< -->
       </div>
+
       <button type="button" class="btn btn-g btn-sm theme-toggle-btn" onclick="toggleAppTheme()" title="Ganti Tema" style="padding: 3px 8px; font-size: 11px;">
         <i class="bi bi-moon-stars-fill theme-toggle-icon" style="color:#fbbf24"></i> Tema
       </button>
     </div>
+	
 	
 	<!-- Kotak Sapaan & Jam Realtime WIB Tepat di Bawah Tombol -->
     <div style="margin-top: 8px; padding: 6px 10px; background: rgba(0, 0, 0, 0.05); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; width: 100%; box-sizing: border-box;">
@@ -196,6 +231,174 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </div>
 
+<!-- >>> AWAL CSS KHUSUS DROPDOWN NOTIFIKASI SIDEBAR (RESPONSIF & BISA DI-SCROLL) <<< -->
+<style>
+@keyframes notifPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.sb-notif-dropdown {
+  display: none;
+  position: fixed !important;
+  width: 290px;
+  max-width: calc(100vw - 20px) !important;
+  max-height: 400px;
+  background: var(--bg2, #1e293b);
+  border: 1px solid var(--border, rgba(148, 163, 184, 0.25));
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.1);
+  z-index: 99999999 !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  animation: notifDropFade 0.18s ease-out forwards;
+}
+
+.light-theme .sb-notif-dropdown,
+[data-theme="light"] .sb-notif-dropdown {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0,0,0,0.06);
+}
+
+@keyframes notifDropFade {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.sb-notif-dropdown.show {
+  display: flex !important;
+}
+
+.sb-notif-header {
+  padding: 10px 14px;
+  background: rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid var(--border, rgba(148, 163, 184, 0.15));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.light-theme .sb-notif-header,
+[data-theme="light"] .sb-notif-header {
+  background: #f8fafc;
+}
+
+.sb-notif-count-badge {
+  font-size: 10px;
+  background: rgba(59, 130, 246, 0.18);
+  color: #3b82f6;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+/* LIST NOTIFIKASI - DIJAMIN MUNCUL SCROLLBAR & BISA DIUSAP DI ANDROID */
+.sb-notif-list {
+  display: block !important;
+  flex: 1 1 auto !important;
+  height: 250px !important;
+  max-height: 280px !important;
+  overflow-y: scroll !important; /* Paksa scroll bar selalu aktif */
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-y !important;
+  scrollbar-gutter: stable;
+}
+
+/* Tampilkan batang scrollbar tebal berwarna jelas di layar sentuh */
+.sb-notif-list::-webkit-scrollbar {
+  width: 6px !important;
+  display: block !important;
+}
+.sb-notif-list::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1) !important;
+}
+.sb-notif-list::-webkit-scrollbar-thumb {
+  background: #3b82f6 !important; /* Warna biru jelas */
+  border-radius: 10px !important;
+}
+
+.sb-notif-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border, rgba(148, 163, 184, 0.1));
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s ease;
+}
+
+.sb-notif-item:hover, .sb-notif-item:active {
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.sb-notif-icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.sb-notif-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.sb-notif-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text, #f8fafc);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.light-theme .sb-notif-title,
+[data-theme="light"] .sb-notif-title {
+  color: #0f172a;
+}
+
+.sb-notif-desc {
+  font-size: 10.5px;
+  color: var(--muted, #94a3b8);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.sb-notif-badge-pill {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.sb-notif-footer {
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.04);
+  border-top: 1px solid var(--border, rgba(148, 163, 184, 0.15));
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.light-theme .sb-notif-footer,
+[data-theme="light"] .sb-notif-footer {
+  background: #f8fafc;
+}
+</style>
+<!-- >>> AKHIR CSS KHUSUS DROPDOWN NOTIFIKASI <<< -->
+
 <script>
 (function() {
   function updateSidebarGreetingAndClock() {
@@ -232,6 +435,211 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(updateSidebarGreetingAndClock, 1000);
 })();
 </script>
+
+<!-- >>> AWAL JAVASCRIPT NOTIFIKASI SIDEBAR (TELEPORT KE BODY & TOUCH UNLOCKED) <<< -->
+<script>
+let currentServerNotifTotal = 0;
+
+function getNotifItemKey(item) {
+  const subId = item.latestId || item.count || 0;
+  return `${item.type}_${subId}`;
+}
+
+function getDismissedNotifKeys() {
+  try {
+    return JSON.parse(localStorage.getItem('dismissed_notif_keys') || '[]');
+  } catch (_) {
+    return [];
+  }
+}
+
+function onNotificationItemClick(itemType, latestId, count) {
+  const subId = latestId || count || 0;
+  const key = `${itemType}_${subId}`;
+  
+  const dismissed = getDismissedNotifKeys();
+  if (!dismissed.includes(key)) {
+    dismissed.push(key);
+    if (dismissed.length > 50) dismissed.shift();
+    localStorage.setItem('dismissed_notif_keys', JSON.stringify(dismissed));
+  }
+
+  if (itemType === 'payment_invoice' && latestId) {
+    localStorage.setItem('last_seen_paid_invoice_id', latestId);
+  }
+
+  fetchSidebarNotifications();
+}
+
+function positionNotifDropdown() {
+  const dropdown = document.getElementById('sidebarNotifDropdown');
+  const btn = document.getElementById('btnSidebarNotif');
+  if (!dropdown || !btn) return;
+
+  const rect = btn.getBoundingClientRect();
+  const dropdownWidth = Math.min(290, window.innerWidth - 20);
+  const screenWidth = window.innerWidth;
+  const screenHeight = window.innerHeight;
+
+  let top = rect.bottom + 8;
+  let left = rect.left;
+
+  // Sesuaikan posisi jika di layar ponsel/PWA keluar tepi
+  if (left + dropdownWidth > screenWidth - 10) {
+    left = screenWidth - dropdownWidth - 10;
+  }
+  if (left < 10) {
+    left = 10;
+  }
+
+  dropdown.style.width = `${dropdownWidth}px`;
+  dropdown.style.top = `${top}px`;
+  dropdown.style.left = `${left}px`;
+
+  // Hitung sisa ruang tinggi layar agar list otomatis membatasi tinggi dan memunculkan scrollbar
+  const listEl = document.getElementById('sbNotifListContainer');
+  const availableListHeight = Math.max(140, screenHeight - top - 110);
+  if (listEl) {
+    listEl.style.maxHeight = `${availableListHeight}px`;
+    listEl.style.height = 'auto';
+  }
+}
+
+function toggleSidebarNotifDropdown(event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const dropdown = document.getElementById('sidebarNotifDropdown');
+  if (!dropdown) return;
+
+  const isShown = dropdown.classList.contains('show');
+  if (!isShown) {
+    document.querySelectorAll('.sb-notif-dropdown.show').forEach(el => el.classList.remove('show'));
+    dropdown.classList.add('show');
+    positionNotifDropdown();
+    fetchSidebarNotifications();
+  } else {
+    dropdown.classList.remove('show');
+  }
+}
+
+// Tutup jika klik di luar dropdown
+document.addEventListener('click', function(e) {
+  const dropdown = document.getElementById('sidebarNotifDropdown');
+  const btn = document.getElementById('btnSidebarNotif');
+  if (dropdown && dropdown.classList.contains('show')) {
+    if (!dropdown.contains(e.target) && (!btn || !btn.contains(e.target))) {
+      dropdown.classList.remove('show');
+    }
+  }
+});
+
+async function fetchSidebarNotifications(isManual = false) {
+  try {
+    const lastSeenInvId = localStorage.getItem('last_seen_paid_invoice_id') || 0;
+    const res = await fetch(`/admin/api/notifications/summary?last_seen_invoice_id=${encodeURIComponent(lastSeenInvId)}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data || !data.success) return;
+
+    const badge = document.getElementById('sidebarNotifBadge');
+    const icon = document.getElementById('sidebarNotifIcon');
+    const totalBadge = document.getElementById('sbNotifTotalBadge');
+    const container = document.getElementById('sbNotifListContainer');
+
+    const dismissedKeys = new Set(getDismissedNotifKeys());
+
+    const activeItems = (data.items || []).filter(item => {
+      const key = getNotifItemKey(item);
+      return !dismissedKeys.has(key);
+    });
+
+    const activeTotalCount = activeItems.reduce((acc, curr) => acc + (curr.count || 1), 0);
+
+    if (badge) {
+      if (activeTotalCount > 0) {
+        badge.innerText = activeTotalCount > 99 ? '99+' : activeTotalCount;
+        badge.style.display = 'block';
+        if (icon) icon.style.color = '#ef4444';
+      } else {
+        badge.style.display = 'none';
+        if (icon) icon.style.color = '#64748b';
+      }
+    }
+
+    if (totalBadge) {
+      totalBadge.innerText = `${activeTotalCount} Belum Dibaca`;
+    }
+
+    if (container) {
+      if (activeItems.length > 0) {
+        container.innerHTML = activeItems.map(item => `
+          <a href="${item.url}" class="sb-notif-item" onclick="onNotificationItemClick('${item.type}', ${item.latestId || 0}, ${item.count || 1})">
+            <div class="sb-notif-icon-box" style="background: ${item.color}20; color: ${item.color};">
+              <i class="bi ${item.icon}"></i>
+            </div>
+            <div class="sb-notif-body">
+              <div class="sb-notif-title">${item.title}</div>
+              <div class="sb-notif-desc">${item.desc}</div>
+            </div>
+            <div class="sb-notif-badge-pill" style="background: ${item.color}20; color: ${item.color};">
+              ${item.count}
+            </div>
+          </a>
+        `).join('');
+      } else {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 25px 10px; color: #94a3b8; font-size: 11px;">
+            <i class="bi bi-bell-slash" style="font-size: 24px; display: block; margin-bottom: 6px; opacity: 0.6;"></i>
+            Semua beres! Tidak ada notifikasi tertunda.
+          </div>
+        `;
+      }
+    }
+
+    if (isManual) {
+      const btnIcon = document.querySelector('#sidebarNotifDropdown .sb-notif-footer i');
+      if (btnIcon) {
+        btnIcon.classList.add('spin');
+        setTimeout(() => btnIcon.classList.remove('spin'), 600);
+      }
+    }
+  } catch (err) {
+    console.debug('[Notif] Polling error:', err);
+  }
+}
+
+// INISIALISASI & TELEPORTASI KE LUAR CONTAINER SIDEBAR
+document.addEventListener('DOMContentLoaded', () => {
+  const dropdown = document.getElementById('sidebarNotifDropdown');
+  // Pindahkan elemen dropdown langsung ke document.body agar tidak terkunci oleh transform/overflow sidebar HP
+  if (dropdown && dropdown.parentElement !== document.body) {
+    document.body.appendChild(dropdown);
+  }
+
+  // Buka blokir touch event di HP Android agar usapan jari tidak dicegat sidebar
+  if (dropdown) {
+    dropdown.addEventListener('touchmove', function(e) {
+      e.stopPropagation();
+    }, { passive: true });
+    dropdown.addEventListener('wheel', function(e) {
+      e.stopPropagation();
+    }, { passive: true });
+  }
+
+  fetchSidebarNotifications();
+  setInterval(fetchSidebarNotifications, 12000);
+});
+
+window.addEventListener('resize', () => {
+  const dropdown = document.getElementById('sidebarNotifDropdown');
+  if (dropdown && dropdown.classList.contains('show')) {
+    positionNotifDropdown();
+  }
+});
+</script>
+<!-- >>> AKHIR JAVASCRIPT NOTIFIKASI SIDEBAR <<< -->
 
 <script>
   function toggleSidebar() {

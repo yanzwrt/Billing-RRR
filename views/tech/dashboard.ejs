@@ -16,6 +16,28 @@
   </div>
 </div>
 
+<!-- ========================================================================= -->
+    <!-- [TAMBAHAN: BANNER AKTIVASI PUSH NOTIFIKASI TEKNISI]                       -->
+    <!-- Fungsi: Meminta izin notifikasi HP teknisi agar tugas lapangan langsung masuk -->
+    <!-- ========================================================================= -->
+    <div id="pushPromptTech" style="display: none; background: rgba(59, 130, 246, 0.12); border: 1.5px solid rgba(59, 130, 246, 0.35); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; align-items: center; justify-content: space-between; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(59, 130, 246, 0.2); display: flex; align-items: center; justify-content: center; font-size: 18px; color: #60a5fa; flex-shrink: 0;">
+          <i class="bi bi-tools"></i>
+        </div>
+        <div>
+          <div style="font-weight: 800; font-size: 13px; color: #f8fafc;">Aktifkan Notifikasi Tugas Lapangan</div>
+          <div style="font-size: 11.5px; color: #94a3b8;">Terima pemberitahuan instan saat ada tugas gangguan atau pasang baru ditugaskan ke Anda.</div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 6px; flex-shrink: 0;">
+        <button type="button" class="btn btn-sm" style="background: #3b82f6; color: #ffffff; font-weight: 800; padding: 6px 14px; border-radius: 8px;" onclick="enablePushTech()">
+          <i class="bi bi-check-circle-fill me-1"></i> Aktifkan
+        </button>
+      </div>
+    </div>
+    <!-- ===================== AKHIR BANNER TEKNISI ============================ -->
+
 <!-- === AWAL BAGIAN TUGAS PASANG BARU (INSTALASI) === -->
 <% if (typeof registrations !== 'undefined' && registrations && registrations.length > 0) { %>
   <div class="mb-4">
@@ -310,5 +332,117 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 </script>
+
+<!-- ========================================================================= -->
+<!-- [TAMBAHAN: LOGIKA REGISTRASI PUSH NOTIFIKASI TEKNISI]                     -->
+<!-- Fungsi: Mendaftarkan perangkat teknisi ke database push_subscriptions     -->
+<!-- ========================================================================= -->
+<script>
+  function urlB64ToUint8Tech(base64String) {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  }
+
+  async function getTechServiceWorker() {
+    if (!('serviceWorker' in navigator)) throw new Error('Service Worker tidak didukung.');
+    let reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) {
+      reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    }
+    return reg;
+  }
+
+  async function enablePushTech() {
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        alert('Izin notifikasi ditolak di browser HP Anda.');
+        return;
+      }
+
+      const promptEl = document.getElementById('pushPromptTech');
+      if (promptEl) promptEl.style.display = 'none';
+
+      const reg = await getTechServiceWorker();
+      if (!reg.active) {
+        await new Promise((resolve) => {
+          navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true });
+          setTimeout(resolve, 3000);
+        });
+      }
+
+      const keyRes = await fetch('/api/push/public-key');
+      const keyData = await keyRes.json();
+      if (!keyData.success || !keyData.publicKey) throw new Error('Gagal mengambil kunci server.');
+
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlB64ToUint8Tech(keyData.publicKey)
+        });
+      }
+
+      // Kirim ke backend dengan role 'tech'
+      const saveRes = await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          role: 'tech',
+          userId: 'tech',
+          subscription: sub
+        })
+      });
+      const saveResult = await saveRes.json();
+
+      if (saveResult.success) {
+        alert('✅ Notifikasi Teknisi Berhasil Diaktifkan!');
+        // Kirim tes uji coba khusus teknisi
+        fetch('/api/push/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            role: 'tech',
+            title: '🛠️ NOTIFIKASI TEKNISI',
+            body: 'HP Anda siap menerima tugas gangguan baru di lapangan!',
+            url: '/tech'
+          })
+        });
+      } else {
+        alert('Gagal simpan: ' + saveResult.error);
+      }
+    } catch (e) {
+      alert('Error aktivasi teknisi: ' + e.message);
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', async () => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    
+    if (Notification.permission !== 'granted') {
+      const promptEl = document.getElementById('pushPromptTech');
+      if (promptEl) promptEl.style.display = 'flex';
+    } else {
+      try {
+        const reg = await getTechServiceWorker();
+        let sub = await reg.pushManager.getSubscription();
+        if (sub) {
+          fetch('/api/push/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: 'tech', userId: 'tech', subscription: sub })
+          });
+        }
+      } catch (err) {}
+    }
+  });
+</script>
+<!-- ===================== AKHIR SKRIP TEKNISI =============================== -->
 
 <%- include('partials/bottom_nav') %>

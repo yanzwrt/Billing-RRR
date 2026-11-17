@@ -1447,6 +1447,33 @@ router.post('/register', async (req, res) => {
         try { await sendWA(digits, adminMsg); } catch(e) { /* ignore */ }
       }
     }
+	
+      // [PEMICU PUSH 3.2A: NOTIFIKASI PENDAFTARAN PASANG BARU]
+      try {
+        const pushService = require('../services/pushNotification');
+        const regName = String(req.body.name || req.body.nama || 'Calon Pelanggan').trim();
+        const regPkg = String(req.body.package || req.body.package_name || req.body.paket || 'Paket Internet').trim();
+        const regAddr = String(req.body.address || req.body.alamat || '').trim();
+
+        // 1. Notifikasi ke HP Admin
+        pushService.sendPushToRole('admin', {
+          title: '📝 Pendaftaran Pasang Baru!',
+          body: `${regName} mendaftar ${regPkg}${regAddr ? ' - ' + regAddr : ''}. Silakan cek data verifikasi.`,
+          url: '/admin/customers',
+          tag: 'reg-new-' + Date.now()
+        }).catch(() => {});
+
+        // 2. Notifikasi ke HP Teknisi (agar tim lapangan bersiap survey/tarik kabel)
+        pushService.sendPushToRole('tech', {
+          title: '📍 Rencana Pasang Baru',
+          body: `Ada permohonan pasang baru an. ${regName} (${regPkg}). Lokasi: ${regAddr || 'Cek di sistem'}.`,
+          url: '/tech/customers/new',
+          tag: 'tech-reg-' + Date.now()
+        }).catch(() => {});
+      } catch (pushErr) {
+        // Abaikan error agar proses submit pendaftaran pelanggan tetap sukses 100%
+      }
+      // =========================================================================
 
     res.render('register', { 
       error: null, 
@@ -2569,6 +2596,34 @@ router.post('/tickets/create', uploadCustomer.array('photos', 5), async (req, re
       logger.error(`[Ticket] WA Notification Error: ${waErr.message}`);
     }
     // --------------------------------------------
+
+    // [PEMICU PUSH 3.2B: NOTIFIKASI TIKET KOMPLAIN GANGGUAN BARU]
+    try {
+      const pushService = require('../services/pushNotification');
+      const custObj = customerSvc.getCustomerById(customerId);
+      const custNameTicket = custObj ? custObj.name : (profile ? profile.name : 'Pelanggan');
+      const ticketTitle = String(subject || 'Gangguan Koneksi').trim();
+      const ticketMsg = String(message || '').trim();
+
+      // 1. Notifikasi ke HP Admin
+      pushService.sendPushToRole('admin', {
+        title: '⚠️ Tiket Komplain Baru Masuk!',
+        body: `Dari ${custNameTicket}: "${ticketTitle}" - ${ticketMsg.slice(0, 80)}`,
+        url: '/admin/tickets',
+        tag: 'ticket-new-' + ticketId
+      }).catch(() => {});
+
+      // 2. Notifikasi ke HP Teknisi Lapangan
+      pushService.sendPushToRole('tech', {
+        title: '🛠️ Tugas Gangguan Baru!',
+        body: `${custNameTicket} melaporkan kendala: "${ticketTitle}". Mohon segera ditindaklanjuti.`,
+        url: '/tech/pool',
+        tag: 'tech-ticket-' + ticketId
+      }).catch(() => {});
+    } catch (pushErr) {
+      logger.warn('[Push Notification] Gagal mengirim push tiket: ' + pushErr.message);
+    }
+    // =========================================================================
 
   } catch (error) {
     req.session._msg = { type: 'danger', text: 'Gagal mengirim keluhan: ' + error.message };

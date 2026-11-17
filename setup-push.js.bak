@@ -1,0 +1,63 @@
+// =========================================================================
+// [SKRIP SETUP: INISIALISASI DATABASE & VAPID KEYS WEB PUSH]
+// Fungsi: 
+// 1. Membuat tabel push_subscriptions di SQLite jika belum ada
+// 2. Menghasilkan VAPID Keys permanen ke settings.json secara aman
+// =========================================================================
+
+const fs = require('fs');
+const path = require('path');
+const Database = require('better-sqlite3');
+const webpush = require('web-push');
+
+console.log('🔄 Memulai persiapan Web Push Notifications...');
+
+// 1. Buat Tabel di SQLite (database/billing.db)
+const dbPath = path.join(__dirname, 'database', 'billing.db');
+try {
+  const db = new Database(dbPath);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      role TEXT NOT NULL,
+      user_id TEXT,
+      endpoint TEXT UNIQUE NOT NULL,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  console.log('✅ Tabel "push_subscriptions" berhasil disiapkan di SQLite.');
+} catch (err) {
+  console.error('❌ Gagal menyiapkan tabel SQLite:', err.message);
+  process.exit(1);
+}
+
+// 2. Buat & Simpan Kunci VAPID ke settings.json (Tanpa merusak settingan lama)
+const settingsPath = path.join(__dirname, 'settings.json');
+try {
+  let settings = {};
+  if (fs.existsSync(settingsPath)) {
+    const raw = fs.readFileSync(settingsPath, 'utf8');
+    settings = JSON.parse(raw || '{}');
+  }
+
+  // Jika belum ada VAPID keys, kita generate baru sekali saja
+  if (!settings.vapid_public_key || !settings.vapid_private_key) {
+    const vapidKeys = webpush.generateVAPIDKeys();
+    settings.vapid_public_key = vapidKeys.publicKey;
+    settings.vapid_private_key = vapidKeys.privateKey;
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+    console.log('✅ Kunci VAPID baru berhasil digenerate dan disimpan ke settings.json.');
+  } else {
+    console.log('ℹ️ Kunci VAPID sudah ada di settings.json, menggunakan kunci lama.');
+  }
+
+  console.log('\n🔑 PUBLIC KEY VAPID ANDA:');
+  console.log(settings.vapid_public_key);
+  console.log('--------------------------------------------------');
+  console.log('🎉 Setup Fase 1 berhasil 100% tanpa kendala!\n');
+} catch (err) {
+  console.error('❌ Gagal memperbarui settings.json:', err.message);
+  process.exit(1);
+}

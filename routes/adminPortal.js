@@ -8204,6 +8204,238 @@ router.get('/api/soundbox/poll', requireAdminSession, (req, res) => {
   }
 });
 
+/* >>> AWAL KODE BARU: ENDPOINT RINGKASAN NOTIFIKASI ADMIN (BELL DROPDOWN) <<< */
+router.get('/api/notifications/summary', requireAdminSession, async (req, res) => {
+  try {
+    const items = [];
+
+    // 1. Live Chat Baru (Pesan Masuk Belum Dibaca)
+    try {
+      const unreadChat = db.prepare(`
+        SELECT COUNT(1) as cnt 
+        FROM wa_chat_messages 
+        WHERE direction = 'inbound' AND status != 'read'
+      `).get();
+      const chatCount = Number(unreadChat?.cnt || 0);
+      if (chatCount > 0) {
+        items.push({
+          type: 'chat',
+          title: 'Live Chat WhatsApp',
+          desc: `${chatCount} pesan baru belum dibaca`,
+          count: chatCount,
+          url: '/admin/whatsapp/live-chat',
+          icon: 'bi-chat-dots-fill',
+          color: '#10b981' // Hijau Emerald
+        });
+      }
+    } catch (_) {}
+
+    // 2. Tiket Gangguan / Keluhan Pelanggan Baru (Status Open / Pending)
+    try {
+      const openTickets = db.prepare(`
+        SELECT COUNT(1) as cnt 
+        FROM tickets 
+        WHERE status IN ('open', 'pending')
+      `).get();
+      const ticketCount = Number(openTickets?.cnt || 0);
+      if (ticketCount > 0) {
+        items.push({
+          type: 'ticket',
+          title: 'Tiket Gangguan Pelanggan',
+          desc: `${ticketCount} keluhan aktif butuh penanganan`,
+          count: ticketCount,
+          url: '/admin/tickets',
+          icon: 'bi-exclamation-octagon-fill',
+          color: '#ef4444' // Merah
+        });
+      }
+    } catch (_) {}
+
+    // 3. Pendaftaran Pasang Baru (Status Pending)
+    try {
+      const pendingReg = db.prepare(`
+        SELECT COUNT(1) as cnt 
+        FROM registrations 
+        WHERE status = 'pending'
+      `).get();
+      const regCount = Number(pendingReg?.cnt || 0);
+      if (regCount > 0) {
+        items.push({
+          type: 'registration',
+          title: 'Pendaftaran Pasang Baru',
+          desc: `${regCount} calon pelanggan baru menunggu teknisi`,
+          count: regCount,
+          url: '/admin/technicians?tab=registrations',
+          icon: 'bi-person-plus-fill',
+          color: '#3b82f6' // Biru
+        });
+      }
+    } catch (_) {}
+
+    // 4. Pembayaran Masuk Hari Ini (Hanya Menghitung yang Belum Dilihat Admin)
+    try {
+      const lastSeenInvId = Number(req.query.last_seen_invoice_id || 0);
+
+      // Hitung hanya invoice paid hari ini yang ID-nya lebih besar dari yang sudah dilihat admin
+      const newInvoices = db.prepare(`
+        SELECT COUNT(1) as cnt, COALESCE(SUM(amount), 0) as total, MAX(id) as max_id
+        FROM invoices 
+        WHERE status = 'paid' 
+          AND date(paid_at) = date(NOW_LOCAL())
+          AND id > ?
+      `).get(lastSeenInvId);
+
+      const invCount = Number(newInvoices?.cnt || 0);
+
+      if (invCount > 0) {
+        // Ambil transaksi pembayaran lunas TERAKHIR yang baru masuk
+        const lastPaid = db.prepare(`
+          SELECT i.id, i.amount, i.paid_at, c.name as customer_name, c.phone as customer_phone
+          FROM invoices i
+          JOIN customers c ON i.customer_id = c.id
+          WHERE i.status = 'paid' AND date(i.paid_at) = date(NOW_LOCAL()) AND i.id > ?
+          ORDER BY datetime(i.paid_at) DESC, i.id DESC
+          LIMIT 1
+        `).get(lastSeenInvId);
+
+        const latestName = lastPaid ? lastPaid.customer_name : '';
+        const latestAmount = lastPaid ? Number(lastPaid.amount || 0).toLocaleString('id-ID') : '0';
+        const latestId = lastPaid ? lastPaid.id : (newInvoices.max_id || 0);
+
+        let descText = '';
+        if (invCount === 1) {
+          descText = `${latestName} (Rp ${latestAmount})`;
+        } else {
+          descText = `${latestName} & ${invCount - 1} lainnya (Rp ${latestAmount})`;
+        }
+
+        const targetUrl = latestName 
+          ? `/admin/billing?status=paid&search=${encodeURIComponent(latestName)}` 
+          : `/admin/billing?status=paid`;
+
+        items.push({
+          type: 'payment_invoice',
+          title: 'Pembayaran Lunas Baru',
+          desc: descText,
+          count: invCount,
+          latestId: latestId, // Kirim ID terbaru agar frontend bisa mencatatnya
+          url: targetUrl,
+          icon: 'bi-check-circle-fill',
+          color: '#059669' // Hijau Emerald
+        });
+      }
+    } catch (_) {}
+
+    // 5. Pembelian Voucher Hotspot Online Hari Ini (Langsung Menampilkan Pembeli Terakhir)
+    try {
+      const todayVouchers = db.prepare(`
+        SELECT COUNT(1) as cnt, COALESCE(SUM(price), 0) as total 
+        FROM public_voucher_orders 
+        WHERE status IN ('paid', 'fulfilled') AND date(paid_at) = date(NOW_LOCAL())
+      `).get();
+      const vcCount = Number(todayVouchers?.cnt || 0);
+
+      if (vcCount > 0) {
+        const lastVc = db.prepare(`
+          SELECT id, buyer_phone, voucher_code, profile_name, price 
+          FROM public_voucher_orders 
+          WHERE status IN ('paid', 'fulfilled') AND date(paid_at) = date(NOW_LOCAL())
+          ORDER BY id DESC LIMIT 1
+        `).get();
+
+        const buyerPhone = lastVc ? lastVc.buyer_phone : '';
+        const vcTargetUrl = buyerPhone 
+          ? `/admin/vouchers/orders?q=${encodeURIComponent(buyerPhone)}`
+          : `/admin/vouchers/orders`;
+
+        items.push({
+          type: 'payment_voucher',
+          title: 'Voucher QRIS Terjual',
+          desc: lastVc ? `${buyerPhone} (${lastVc.profile_name})` : `${vcCount} voucher terjual`,
+          count: vcCount,
+          url: vcTargetUrl,
+          icon: 'bi-qr-code-scan',
+          color: '#8b5cf6' // Ungu
+        });
+      }
+    } catch (_) {}
+
+    // 6. Request Tagihan Masuk dari Kolektor (Pending Approval)
+    try {
+      const pendingCollector = db.prepare(`
+        SELECT COUNT(1) as cnt 
+        FROM collector_payment_requests 
+        WHERE status = 'pending'
+      `).get();
+      const colCount = Number(pendingCollector?.cnt || 0);
+      if (colCount > 0) {
+        items.push({
+          type: 'collector_request',
+          title: 'Approval Setoran Kolektor',
+          desc: `${colCount} setoran tagihan menunggu konfirmasi`,
+          count: colCount,
+          url: '/admin/collector-payments',
+          icon: 'bi-cash-coin',
+          color: '#f59e0b' // Kuning Amber
+        });
+      }
+    } catch (_) {}
+
+    // 7. Perangkat Offline & Redaman Tinggi (Cek Cepat dari OLT Cache)
+    try {
+      const allActiveOlts = oltSvc.getActiveOlts() || [];
+      let totalOfflineOnus = 0;
+      let totalWeakOnus = 0;
+
+      for (const olt of allActiveOlts) {
+        // Ambil data OLT cepat (memakai cache getOltStats tanpa beban CPU)
+        const stats = await oltSvc.getOltStats(olt.id, false).catch(() => null);
+        if (stats) {
+          totalOfflineOnus += Number(stats.onus_offline || 0);
+          totalWeakOnus += Number(stats.onus_weak || 0);
+        }
+      }
+
+      if (totalOfflineOnus > 0) {
+        items.push({
+          type: 'onu_offline',
+          title: 'Modem / ONU Terputus',
+          desc: `${totalOfflineOnus} modem terpantau offline`,
+          count: totalOfflineOnus,
+          url: '/admin/onu-provision',
+          icon: 'bi-router-fill',
+          color: '#dc2626' // Merah Gelap
+        });
+      }
+
+      if (totalWeakOnus > 0) {
+        items.push({
+          type: 'onu_optical',
+          title: 'Redaman Optik Buruk',
+          desc: `${totalWeakOnus} modem sinyal RX < -27 dBm`,
+          count: totalWeakOnus,
+          url: '/admin/olts',
+          icon: 'bi-reception-1',
+          color: '#ea580c' // Oranye
+        });
+      }
+    } catch (_) {}
+
+    // Hitung total akumulasi angka notifikasi
+    const totalCount = items.reduce((acc, curr) => acc + (curr.count || 1), 0);
+
+    return res.json({
+      success: true,
+      total: totalCount,
+      items
+    });
+  } catch (err) {
+    logger.error('[API Notification] Error: ' + err.message);
+    return res.status(500).json({ success: false, total: 0, items: [] });
+  }
+});
+/* ========================================================================= */
+
 router.post('/api/soundbox/test', requireAdminSession, (req, res) => {
   try {
     const soundboxSvc = require('../services/soundboxService');

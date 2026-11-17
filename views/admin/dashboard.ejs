@@ -75,6 +75,24 @@
   </div>
 
   <div class="page">
+    <!-- [TAMBAHAN: BANNER AKTIVASI PUSH NOTIFIKASI ADMIN]                         -->
+    <div id="pushPromptAdmin" style="display: none; background: rgba(245, 158, 11, 0.12); border: 1.5px solid rgba(245, 158, 11, 0.35); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; align-items: center; justify-content: space-between; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(245, 158, 11, 0.2); display: flex; align-items: center; justify-content: center; font-size: 18px; color: #fbbf24; flex-shrink: 0;">
+          <i class="bi bi-bell-fill"></i>
+        </div>
+        <div>
+          <div style="font-weight: 800; font-size: 13px; color: #f8fafc;">Aktifkan Notifikasi di HP Ini</div>
+          <div style="font-size: 11.5px; color: #94a3b8;">Dapatkan notifikasi pembayaran masuk, pasang baru, dan tiket komplain meski aplikasi ditutup.</div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 6px; flex-shrink: 0;">
+        <button type="button" class="btn btn-sm" style="background: #f59e0b; color: #0d1117; font-weight: 800; padding: 6px 14px; border-radius: 8px;" onclick="enablePushAdmin()">
+          <i class="bi bi-check-circle-fill me-1"></i> Aktifkan
+        </button>
+      </div>
+    </div>
+    <!-- ========================================================================= -->
     <% const isStaffUser = (typeof session !== 'undefined' && session && session.isStaff); %>
     <!-- TAB NAVIGATION -->
     <div class="tab-bar">
@@ -1262,6 +1280,138 @@ async function deleteMonDevice(deviceId, acsId) {
   }
 }
 
+</script>
+<!-- [TAMBAHAN: LOGIKA REGISTRASI PUSH NOTIFIKASI ADMIN]                       -->
+<script>
+  // Helper konversi VAPID key
+  function urlB64ToUint8(base64String) {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  }
+
+  // Fungsi saat tombol "Aktifkan" diklik
+  async function enablePushAdmin() {
+    try {
+      // 1. Minta izin notifikasi sistem Android/Browser
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        alert('Izin notifikasi ditolak. Harap izinkan notifikasi di setelan browser HP Anda.');
+        return;
+      }
+
+      const promptEl = document.getElementById('pushPromptAdmin');
+      if (promptEl) promptEl.style.display = 'none';
+
+      // 2. Pastikan dukungan Service Worker
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        throw new Error('Browser ini tidak mendukung Push Notifications.');
+      }
+
+      // 3. Daftarkan / Ambil Service Worker yang aktif
+      console.log('Mendaftarkan Service Worker...');
+      const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+      
+      // Tunggu hingga Service Worker benar-benar aktif (mengatasi no active Service Worker)
+      let activeWorker = registration.active;
+      if (!activeWorker) {
+        await new Promise((resolve) => {
+          navigator.serviceWorker.ready.then((reg) => {
+            activeWorker = reg.active;
+            resolve();
+          });
+          // Jaga-jaga jika event ready terlalu lama, beri batas waktu 3 detik
+          setTimeout(resolve, 3000);
+        });
+      }
+
+      // 4. Ambil Public Key VAPID dari server
+      const keyRes = await fetch('/api/push/public-key');
+      const keyData = await keyRes.json();
+      if (!keyData.success || !keyData.publicKey) {
+        throw new Error('Gagal mengambil kunci keamanan server.');
+      }
+
+      // 5. Buat langganan push (Subscribe)
+      console.log('Membuat langganan PushManager...');
+      let subscription = await registration.pushManager.getSubscription();
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlB64ToUint8(keyData.publicKey)
+        });
+      }
+
+      // 6. Kirim token ke database SQLite server
+      const saveRes = await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          role: 'admin',
+          userId: 'admin',
+          subscription: subscription
+        })
+      });
+      const saveResult = await saveRes.json();
+
+      if (saveResult.success) {
+        alert('✅ Berhasil! Perangkat Anda kini terdaftar untuk menerima notifikasi.');
+        // Kirim tes notifikasi instan
+        fetch('/api/push/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            role: 'admin',
+            title: '🔔 NOTIFIKASI ADMIN',
+            body: 'Notifikasi berhasil masuk ke panel Android Anda!',
+            url: '/admin'
+          })
+        });
+      } else {
+        alert('Gagal menyimpan token ke server: ' + saveResult.error);
+      }
+    } catch (e) {
+      console.error('Push Error:', e);
+      alert('Gagal mengaktifkan: ' + e.message);
+    }
+  }
+
+  // Cek otomatis saat halaman dimuat (Hanya aktif jika menggunakan HTTPS atau localhost)
+  window.addEventListener('DOMContentLoaded', async () => {
+    // Jika diakses via HTTP IP lokal (selain localhost), matikan fitur push agar tidak error/mengganggu
+    const isLocalHttp = window.location.protocol === 'http:' && 
+                        window.location.hostname !== 'localhost' && 
+                        window.location.hostname !== '127.0.0.1';
+    
+    if (isLocalHttp) {
+      console.info('[Push] Fitur notifikasi dinonaktifkan otomatis pada akses HTTP IP lokal.');
+      return; // Berhenti di sini, tidak akan memunculkan alert atau banner error apa pun
+    }
+
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    
+    if (Notification.permission !== 'granted') {
+      const promptEl = document.getElementById('pushPromptAdmin');
+      if (promptEl) promptEl.style.display = 'flex';
+    } else {
+      try {
+        const reg = await getAdminServiceWorker();
+        let sub = await reg.pushManager.getSubscription();
+        if (sub) {
+          fetch('/api/push/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: 'admin', userId: 'admin', subscription: sub })
+          });
+        }
+      } catch (err) {}
+    }
+  });
 </script>
 </body>
 </html>

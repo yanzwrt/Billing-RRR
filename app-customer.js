@@ -88,7 +88,7 @@ app.use(express.text({
   }
 }));
 
-// === MENYATUKAN SESSION KE DATABASE UTAMA ===
+// === AWAL PERUBAHAN: MENYATUKAN SESSION KE DATABASE UTAMA ===
 app.use(session({
   store: new SQLiteStore({
     client: db, // Menggunakan koneksi database utama project Anda (billing.db)
@@ -110,7 +110,7 @@ app.use(session({
   },
   name: 'billing.sid'
 }));
-// ======
+// === AKHIR PERUBAHAN ===
 
 // Middleware Proteksi CSRF berbasis Referer/Origin (Aman untuk production tanpa merubah EJS)
 app.use((req, res, next) => {
@@ -1055,6 +1055,34 @@ app.post('/api/webhook/v1/payment-notif', multer().any(), async (req, res) => {
             } catch (ttsErr) {
               logger.warn('[WEBHOOK] TTS voice notification error: ' + ttsErr.message);
             }
+			
+            // [PEMICU PUSH 3.1A: NOTIFIKASI PEMBAYARAN TAGIHAN LUNAS]
+            try {
+              const custRowForPush = custId > 0 ? db.prepare('SELECT name FROM customers WHERE id = ?').get(custId) : null;
+              const cName = custRowForPush?.name || 'Pelanggan';
+
+              // 1. Notifikasi ke Admin
+              pushService.sendPushToRole('admin', {
+                title: '💰 Pembayaran Diterima (Tagihan Lunas)',
+                body: `Invoice #${invId} an. ${cName} senilai Rp ${Number(amount).toLocaleString('id-ID')} telah lunas via ${service || 'QRIS'}.`,
+                url: '/admin/billing',
+                tag: 'pay-inv-' + invId
+              }).catch(() => {});
+
+              // 2. Notifikasi ke Pelanggan yang bayar
+              if (custId > 0) {
+                pushService.sendPushToUser('customer', custId, {
+                  title: '✅ Pembayaran Berhasil Diterima',
+                  body: `Terima kasih! Tagihan internet Anda senilai Rp ${Number(amount).toLocaleString('id-ID')} telah lunas. Layanan internet Anda aktif.`,
+                  url: '/customer/dashboard',
+                  tag: 'cust-paid-' + invId
+                }).catch(() => {});
+              }
+            } catch (pushErr) {
+              logger.warn('[Push Notification] Gagal mengirim push tagihan: ' + pushErr.message);
+            }
+            // =========================================================================
+			
           }
           } else if (Array.isArray(vCandidates) && vCandidates.length === 1) {
             const ord = vCandidates[0];
@@ -1100,6 +1128,20 @@ app.post('/api/webhook/v1/payment-notif', multer().any(), async (req, res) => {
               } catch (ttsErr) {
                 logger.warn('[WEBHOOK] TTS voucher voice notification error: ' + ttsErr.message);
               }
+			  
+              // [PEMICU PUSH 3.1B: NOTIFIKASI VOUCHER HOTSPOT KE HP ADMIN]
+              try {
+                pushService.sendPushToRole('admin', {
+                  title: '🎫 Pembelian Voucher Hotspot Berhasil',
+                  body: `Paket ${ord.profile_name || 'Hotspot'} seharga Rp ${Number(amount).toLocaleString('id-ID')} berhasil dibayar via ${service || 'QRIS'}.`,
+                  url: '/admin/vouchers',
+                  tag: 'pay-voucher-' + ordId
+                }).catch(() => {});
+              } catch (pushErr) {
+                logger.warn('[Push Notification] Gagal mengirim push voucher: ' + pushErr.message);
+              }
+              // =========================================================================
+			  
             }
           } else if (Array.isArray(dCandidates) && dCandidates.length === 1) {
             const don = dCandidates[0];
@@ -1235,6 +1277,33 @@ app.post('/api/webhook/v1/payment-notif', multer().any(), async (req, res) => {
                 logger.warn('[WEBHOOK] TTS topup voice notification error: ' + ttsErr.message);
               }
             }
+			
+              // [PEMICU PUSH 3.1C: NOTIFIKASI TOP-UP SALDO]
+              try {
+                const cNameTopup = custName || 'Pelanggan';
+
+                // 1. Notifikasi ke Admin
+                pushService.sendPushToRole('admin', {
+                  title: '💳 Top-Up Saldo Masuk',
+                  body: `Pelanggan ${cNameTopup} berhasil top-up saldo Rp ${Number(baseAmount).toLocaleString('id-ID')} via ${service || 'QRIS'}.`,
+                  url: '/admin/customers',
+                  tag: 'pay-topup-' + topupId
+                }).catch(() => {});
+
+                // 2. Notifikasi ke Pelanggan
+                if (custId > 0) {
+                  pushService.sendPushToUser('customer', custId, {
+                    title: '💳 Saldo Berhasil Masuk',
+                    body: `Top-up saldo Anda sebesar Rp ${Number(baseAmount).toLocaleString('id-ID')} telah aktif. Total saldo sekarang Rp ${Number(updatedBalance).toLocaleString('id-ID')}.`,
+                    url: '/customer/dashboard',
+                    tag: 'cust-topup-' + topupId
+                  }).catch(() => {});
+                }
+              } catch (pushErr) {
+                logger.warn('[Push Notification] Gagal mengirim push top-up: ' + pushErr.message);
+              }
+              // =========================================================================
+			
           }
         } else if (totalCandidates > 1) {
           const invIds = Array.isArray(invCandidates) ? invCandidates.map(x => x.id).join(',') : '';
@@ -2077,6 +2146,57 @@ app.get(['/api/voice-assistant/tts', '/admin/api/voice-assistant/tts'], requireV
     res.status(500).send('Error generate TTS: ' + err.message);
   }
 });
+
+// [TAMBAHAN API: ENDPOINT WEB PUSH NOTIFICATIONS]
+const pushService = require('./services/pushNotification');
+
+// 1. Endpoint mengambil VAPID Public Key
+app.get('/api/push/public-key', (req, res) => {
+  res.json({ success: true, publicKey: pushService.vapidPublicKey });
+});
+
+// 2. Endpoint mendaftarkan token HP pengguna
+app.post('/api/push/subscribe', express.json(), (req, res) => {
+  try {
+    const { role, userId, subscription } = req.body;
+    if (!subscription || !role) {
+      return res.status(400).json({ success: false, error: 'Data subscription tidak lengkap' });
+    }
+    pushService.saveSubscription(role, userId, subscription);
+    res.json({ success: true, message: 'Perangkat berhasil didaftarkan untuk notifikasi' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 3. Endpoint mencopot pendaftaran notifikasi (unsubscribe)
+app.post('/api/push/unsubscribe', express.json(), (req, res) => {
+  try {
+    const { endpoint } = req.body;
+    if (endpoint) {
+      pushService.deleteSubscription(endpoint);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 4. Endpoint Test Notifikasi (Bisa dipanggil untuk uji coba)
+app.post('/api/push/test', express.json(), async (req, res) => {
+  try {
+    const { role, title, body, url } = req.body;
+    const result = await pushService.sendPushToRole(role || 'admin', {
+      title: title || '🔔 Uji Coba Notifikasi IKDMP',
+      body: body || 'Koneksi Push Berhasil! Notifikasi ini tetap masuk meski aplikasi ditutup.',
+      url: url || '/admin'
+    });
+    res.json({ success: true, result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+// ===================== AKHIR ENDPOINT WEB PUSH ===========================
 
 // Fungsi untuk memulai server dengan penanganan port yang sudah digunakan
 function startServer(portToUse) {
