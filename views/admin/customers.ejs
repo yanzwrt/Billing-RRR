@@ -28,6 +28,47 @@
       .mf { flex-wrap: wrap !important; gap: 8px !important; }
       .mf button, .mf a { flex: 1 1 100% !important; text-align: center !important; justify-content: center !important; }
     }
+	
+	/* ==================== [AWAL: CSS RESPONSIVE MODAL DETAIL DI HP] ==================== */
+    @media (max-width: 768px) {
+      #viewDetailModal .mb {
+        max-width: 100vw !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        max-height: 100vh !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+        display: flex;
+        flex-direction: column;
+      }
+      #viewDetailModal .mbody {
+        max-height: calc(100vh - 125px) !important;
+        padding: 10px 12px !important;
+      }
+      /* Ubah grid 2 kolom menjadi 1 kolom ke bawah di HP */
+      #viewDetailModal div[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+        gap: 8px !important;
+      }
+      /* Rapikan tombol footer bawah agar pas di layar kecil */
+      #viewDetailModal .mf {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 6px !important;
+        padding: 10px 12px !important;
+      }
+      #viewDetailModal .mf > div {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 6px !important;
+        width: 100%;
+      }
+      #viewDetailModal .mf button {
+        width: 100% !important;
+        justify-content: center !important;
+      }
+    }
+    /* ==================== [AKHIR: CSS RESPONSIVE MODAL DETAIL DI HP] ==================== */
   </style>
 </head>
 <body>
@@ -1090,180 +1131,418 @@
   </div>
 </div>
 
-<!-- Modal Detail & Koneksi Pelanggan -->
+<!-- ==================== [AWAL: BLOK MODAL DETAIL FIX DARK & LIGHT + TOMBOL LEGA] ==================== -->
+<style>
+  /* Styling Khusus Modal Detail agar 100% Kontras Sempurna di Dark & Light */
+  #viewDetailModal .mb {
+    background: var(--bg2, var(--card-bg, #ffffff)) !important;
+    border: 1px solid var(--border, #cbd5e1) !important;
+    color: var(--text, #0f172a) !important;
+  }
+  #viewDetailModal .cust-box-card {
+    background: var(--panel, var(--bg3, rgba(148,163,184,0.06))) !important;
+    border: 1px solid var(--border, rgba(148,163,184,0.2)) !important;
+    border-radius: 10px;
+    padding: 12px;
+  }
+  #viewDetailModal .cust-subbox {
+    background: var(--bg2, var(--panel2, rgba(148,163,184,0.08))) !important;
+    border: 1px solid var(--border, rgba(148,163,184,0.18)) !important;
+  }
+  #viewDetailModal td, #viewDetailModal span, #viewDetailModal strong, #viewDetailModal h5 {
+    color: var(--text, #0f172a);
+  }
+  #viewDetailModal .text-muted-auto {
+    color: var(--muted, #64748b) !important;
+  }
+  #viewDetailModal code {
+    background: transparent !important;
+  }
+</style>
+
+<!-- ==================== [AWAL: BLOK MODAL DETAIL FIX HEADER RAMPING & TANPA ABU] ==================== -->
+<style>
+  /* Styling Bersih: Tanpa Background Abu di Light Mode, Kontras Tinggi di Dark Mode */
+  #viewDetailModal .mb {
+    background: var(--bg2, var(--card-bg, #ffffff)) !important;
+    border: 1px solid var(--border, #e2e8f0) !important;
+    color: var(--text, #0f172a) !important;
+  }
+  #viewDetailModal .cust-box-card {
+    background: transparent !important;
+    border: 1px solid var(--border, #e2e8f0) !important;
+    border-radius: 8px;
+    padding: 10px 14px;
+  }
+  #viewDetailModal .cust-subbox {
+    background: transparent !important;
+    border: 1px solid var(--border, #e2e8f0) !important;
+  }
+  #viewDetailModal td, #viewDetailModal span, #viewDetailModal strong, #viewDetailModal h5 {
+    color: var(--text, #0f172a);
+  }
+  #viewDetailModal .text-muted-auto {
+    color: var(--muted, #64748b) !important;
+  }
+  #viewDetailModal code {
+    background: transparent !important;
+  }
+</style>
+
 <div class="mo" id="viewDetailModal">
-  <div class="mb" style="max-width:700px">
-    <div class="mh">
-      <span class="mt" id="v_title"><i class="bi bi-eye-fill"></i> Detail & Informasi Koneksi Pelanggan</span>
-      <button type="button" class="mc" onclick="closeModal('viewDetailModal')">&times;</button>
+  <div class="mb" style="max-width:870px; padding:0; overflow:hidden; border-radius:12px; box-shadow:0 20px 45px rgba(0,0,0,0.25);">
+    
+    <!-- Modal Header Ramping: Hemat Tempat, Tidak Tebal -->
+    <div class="mh" style="padding:8px 16px; border-bottom:1px solid var(--border, #e2e8f0); display:flex; justify-content:space-between; align-items:center; background:transparent;">
+      <div style="display:flex; align-items:center; gap:6px;">
+        <i class="bi bi-person-vcard text-primary" style="font-size:16px;"></i>
+        <span style="font-size:13.5px; font-weight:800; color:var(--text, #0f172a); margin:0;">Detail & Pengawasan Pelanggan</span>
+      </div>
+      <button type="button" class="mc" onclick="closeModal('viewDetailModal')" style="font-size:20px; color:var(--muted, #64748b); line-height:1; cursor:pointer; background:none; border:none; padding:2px 6px;">&times;</button>
     </div>
-    <div class="mbody" style="padding:16px 20px">
-      <!-- Status Badge & Quick Info -->
-      <div class="d-flex justify-content-between align-items-center mb-3 p-3" style="background:var(--panel2);border:1px solid rgba(148,163,184,0.15);border-radius:12px">
+
+    <!-- Modal Body: Ramping dan Ringkas -->
+    <div class="mbody" style="max-height:75vh; overflow-y:auto; padding:12px 18px 8px 18px;">
+      
+      <!-- Top Banner Header: Info Pelanggan + Dot Status (Border Halus, Tanpa Abu Tebal) -->
+      <div class="cust-box-card" style="margin-bottom:10px; padding:8px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
         <div>
-          <h5 id="v_cust_name" class="m-0 font-weight-bold" style="color:var(--text);font-size:16px">-</h5>
-          <span class="text-muted" style="font-size:12px">ID Pelanggan: #<strong id="v_cust_id">-</strong></span>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <h5 id="v_cust_name" style="margin:0; font-size:16.5px; font-weight:800;">-</h5>
+            <span id="v_cust_site_badge" class="badge" style="font-size:9.5px; padding:2px 7px; font-weight:700;">Site 1</span>
+          </div>
+          <div style="font-size:11.5px; margin-top:3px;" class="text-muted-auto">
+            ID: #<strong id="v_cust_id" style="color:var(--text);">-</strong> &bull; 
+            Paket: <span id="v_package_badge" style="font-weight:700; color:var(--primary);">-</span> &bull; 
+            <span id="v_expired_status" style="font-weight:600;">-</span>
+          </div>
         </div>
-        <div id="v_online_badge">
-          <!-- Badge Online/Offline inserted dynamically -->
+        
+        <!-- Dot Status Minimalis & Uptime -->
+        <div style="text-align:right;">
+          <div id="v_dot_status_container" style="display:inline-flex; align-items:center; gap:6px; font-weight:800; font-size:12.5px;">
+            <span style="display:inline-block; width:9px; height:9px; border-radius:50%; background:#94a3b8;"></span>
+            <span id="v_dot_status_text" style="color:#94a3b8;">OFFLINE</span>
+          </div>
+          <div style="font-size:10.5px; margin-top:2px;" class="text-muted-auto">
+            <i class="bi bi-clock-history"></i> <span id="v_uptime_text">Tidak Terhubung</span>
+          </div>
         </div>
       </div>
 
-      <!-- Grid Data MikroTik & Koneksi -->
-      <div class="mb-3">
-        <div class="fw6 mb-2 text-primary" style="font-size:13px"><i class="bi bi-router"></i> Data Informasi Koneksi MikroTik</div>
-        <div style="background:var(--panel2);border:1px solid rgba(148,163,184,0.15);border-radius:10px;padding:12px">
-          <table class="tbl" style="width:100%;border-collapse:collapse;font-size:12px">
+      <!-- GRID 2 KOLOM: MIKROTIK (KIRI) & PERANGKAT MODEM/OLT (KANAN) -->
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
+        
+        <!-- KOTAK KIRI: KONEKSI MIKROTIK -->
+        <div class="cust-box-card">
+          <div style="font-size:10.5px; font-weight:800; text-transform:uppercase; color:var(--primary); margin-bottom:6px; display:flex; align-items:center; gap:6px;">
+            <i class="bi bi-router"></i> Data Koneksi MikroTik
+          </div>
+          <table style="width:100%; border-collapse:collapse; font-size:11.5px;">
+            <!-- ==================== [AWAL: BARIS USER, PASS, & IP DENGAN FITUR SENSOR BINTANG] ==================== -->
             <tr>
-              <td style="width:38%;color:var(--muted);padding:6px 0">Username PPPoE / Hotspot</td>
-              <td style="padding:6px 0">
-                <code id="v_username" style="font-weight:700;color:#38bdf8;font-size:13px">-</code>
-                <button class="btn btn-g btn-sm py-0 px-2 ms-2" onclick="copyToClipboard('v_username', 'Username')"><i class="bi bi-copy"></i> Copy</button>
+              <td class="text-muted-auto" style="padding:4px 0; width:40%;">User PPPoE / HS</td>
+              <td style="padding:4px 0;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:4px;">
+                  <span id="v_username_container" onclick="toggleSecretField('v_username')" style="cursor:pointer; display:inline-flex; align-items:center; gap:4px;" title="Klik untuk menampilkan / menyembunyikan username">
+                    <code id="v_username_masked" style="font-weight:700; color:#0284c7; font-size:11.5px; letter-spacing:1px;">••••••••</code>
+                    <i id="v_username_icon" class="bi bi-eye-slash text-muted-auto" style="font-size:11px;"></i>
+                  </span>
+                  <!-- Simpan nilai asli di elemen tersembunyi agar tombol copy tetap bisa menyalin -->
+                  <span id="v_username" style="display:none;">-</span>
+                  <button type="button" class="btn btn-g btn-sm py-0 px-2" onclick="copyValue('v_username', this)" title="Salin Username"><i class="bi bi-copy"></i></button>
+                </div>
               </td>
             </tr>
             <tr>
-              <td style="color:var(--muted);padding:6px 0">Password PPPoE / Hotspot</td>
-              <td style="padding:6px 0">
-                <code id="v_password" style="font-weight:700;color:#f472b6;font-size:13px">-</code>
-                <button class="btn btn-g btn-sm py-0 px-2 ms-2" onclick="copyToClipboard('v_password', 'Password')"><i class="bi bi-copy"></i> Copy</button>
+              <td class="text-muted-auto" style="padding:4px 0;">Password</td>
+              <td style="padding:4px 0;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:4px;">
+                  <span id="v_password_container" onclick="toggleSecretField('v_password')" style="cursor:pointer; display:inline-flex; align-items:center; gap:4px;" title="Klik untuk menampilkan / menyembunyikan password">
+                    <code id="v_password_masked" style="font-weight:700; color:#db2777; font-size:11.5px; letter-spacing:1px;">••••••••</code>
+                    <i id="v_password_icon" class="bi bi-eye-slash text-muted-auto" style="font-size:11px;"></i>
+                  </span>
+                  <!-- Simpan nilai asli di elemen tersembunyi -->
+                  <span id="v_password" style="display:none;">-</span>
+                  <button type="button" class="btn btn-g btn-sm py-0 px-2" onclick="copyValue('v_password', this)" title="Salin Password"><i class="bi bi-copy"></i></button>
+                </div>
               </td>
             </tr>
             <tr>
-              <td style="color:var(--muted);padding:6px 0">IP Address (Sesi / Static)</td>
-              <td style="padding:6px 0">
-                <code id="v_ip" style="font-weight:700;color:#4ade80;font-size:13px">-</code>
-                <button class="btn btn-g btn-sm py-0 px-2 ms-2" onclick="copyToClipboard('v_ip', 'IP Address')"><i class="bi bi-copy"></i> Copy</button>
+              <td class="text-muted-auto" style="padding:4px 0;">IP Address</td>
+              <td style="padding:4px 0;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:4px;">
+                  <span id="v_ip_container" onclick="toggleSecretField('v_ip')" style="cursor:pointer; display:inline-flex; align-items:center; gap:4px;" title="Klik untuk menampilkan / menyembunyikan IP">
+                    <code id="v_ip_masked" style="font-weight:700; color:#16a34a; font-size:11.5px; letter-spacing:1px;">••••••••</code>
+                    <i id="v_ip_icon" class="bi bi-eye-slash text-muted-auto" style="font-size:11px;"></i>
+                  </span>
+                  <!-- Simpan nilai asli di elemen tersembunyi -->
+                  <span id="v_ip" style="display:none;">-</span>
+                  <button type="button" class="btn btn-g btn-sm py-0 px-2" onclick="copyValue('v_ip', this)" title="Salin IP"><i class="bi bi-copy"></i></button>
+                </div>
+              </td>
+            </tr>
+<!-- ==================== [AKHIR: BARIS USER, PASS, & IP DENGAN FITUR SENSOR BINTANG] ==================== -->
+            <tr>
+              <td class="text-muted-auto" style="padding:4px 0;">MAC / Caller-ID</td>
+              <td style="padding:4px 0;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:4px;">
+                  <code id="v_mac" style="font-weight:700; color:#d97706; font-size:11px;">-</code>
+                  <button type="button" class="btn btn-g btn-sm py-0 px-2" onclick="copyValue('v_mac', this)" title="Salin MAC"><i class="bi bi-copy"></i></button>
+                </div>
               </td>
             </tr>
             <tr>
-              <td style="color:var(--muted);padding:6px 0">MAC Address / Caller-ID</td>
-              <td style="padding:6px 0">
-                <code id="v_mac" style="font-weight:700;color:#fbbf24;font-size:12px">-</code>
-                <button class="btn btn-g btn-sm py-0 px-2 ms-2" onclick="copyToClipboard('v_mac', 'MAC Address')"><i class="bi bi-copy"></i> Copy</button>
+              <td class="text-muted-auto" style="padding:4px 0;">Router Target</td>
+              <td id="v_router_name" style="padding:4px 0; font-weight:700;">-</td>
+            </tr>
+            <tr>
+              <td class="text-muted-auto" style="padding:4px 0;">Tipe Koneksi</td>
+              <td id="v_conn_type" style="padding:4px 0; font-weight:800; text-transform:uppercase;">-</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- KOTAK KANAN: PERANGKAT MODEM ONU & OLT -->
+        <div class="cust-box-card">
+          <div style="font-size:10.5px; font-weight:800; text-transform:uppercase; color:#9333ea; margin-bottom:6px; display:flex; align-items:center; justify-content:space-between;">
+            <span><i class="bi bi-hdd-network"></i> Perangkat Modem ONU & OLT</span>
+            <button type="button" class="btn btn-g btn-sm py-0 px-2" onclick="refreshCustomerDeviceInfo()" title="Sinkronkan Modem / OLT" style="font-size:10px;"><i class="bi bi-arrow-repeat"></i> Sync</button>
+          </div>
+          <table style="width:100%; border-collapse:collapse; font-size:11.5px;">
+            <tr>
+              <td class="text-muted-auto" style="padding:4px 0; width:40%;">Redaman Optik</td>
+              <td style="padding:4px 0;">
+                <span id="v_rx_power_badge" class="badge" style="background:transparent; border:1px solid var(--border); font-size:11px; font-weight:800; padding:2px 7px;">
+                  <i class="bi bi-reception-4"></i> <span id="v_rx_power_val">Memuat...</span>
+                </span>
               </td>
             </tr>
             <tr>
-              <td style="color:var(--muted);padding:6px 0">Router Target</td>
-              <td id="v_router_name" style="padding:6px 0">-</td>
+              <td class="text-muted-auto" style="padding:4px 0;">Model ONU</td>
+              <td id="v_onu_model" style="padding:4px 0; font-weight:700;">-</td>
             </tr>
             <tr>
-              <td style="color:var(--muted);padding:6px 0">Tipe Koneksi</td>
-              <td id="v_conn_type" style="padding:6px 0">-</td>
+              <td class="text-muted-auto" style="padding:4px 0;">Perangkat OLT</td>
+              <td style="padding:4px 0;"><span id="v_olt_name" style="font-weight:700;">-</span> <small id="v_pon_port" class="text-muted-auto"></small></td>
             </tr>
             <tr>
-              <td style="color:var(--muted);padding:6px 0">Uptime Sesi Active</td>
-              <td style="padding:6px 0"><strong id="v_uptime" style="color:var(--text)">-</strong></td>
+              <td class="text-muted-auto" style="padding:4px 0;">Kotak ODP</td>
+              <td id="v_odp_name" style="padding:4px 0; font-weight:700; color:#6366f1;">-</td>
+            </tr>
+            <tr>
+              <td class="text-muted-auto" style="padding:4px 0;">WiFi (SSID)</td>
+              <td style="padding:4px 0;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:4px;">
+                  <strong id="v_wifi_ssid" style="font-size:11.5px;">-</strong>
+                  <button type="button" class="btn btn-g btn-sm py-0 px-2" onclick="promptChangeSSID()" title="Ubah Nama WiFi"><i class="bi bi-pencil-square"></i> Ubah</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="text-muted-auto" style="padding:4px 0;">Password WiFi</td>
+              <td style="padding:4px 0;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:4px;">
+                  <span id="v_wifi_pass" style="font-family:monospace; font-weight:700; color:#d97706;">******</span>
+                  <button type="button" class="btn btn-g btn-sm py-0 px-2" onclick="promptChangeWifiPassword()" title="Ganti Password WiFi"><i class="bi bi-key-fill"></i> Ganti</button>
+                </div>
+              </td>
             </tr>
           </table>
         </div>
       </div>
 
-<!-- ==================== [MULAI PERUBAHAN UI KOTAK TRAFIK] ==================== -->
-      <!-- === [AWAL PERUBAHAN: DETAIL PELANGGAN BULANAN] === -->
-<div class="mb-3">
-  <div class="fw6 mb-2 text-primary" style="font-size:13px"><i class="bi bi-arrow-down-up"></i> Data Statistik Trafik & Pemakaian Bulanan</div>
-  
-  <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-    <!-- KOTAK KIRI: LIVE THROUGHPUT -->
-    <div style="border:1px solid #bfdbfe; border-radius:10px; padding:10px; background:rgba(59,130,246,0.02);">
-      <div style="font-size:10px; font-weight:700; text-transform:uppercase; color:#2563eb; margin-bottom:6px;">
-        <i class="bi bi-activity"></i> Live Throughput
-      </div>
-      <div style="display:flex; flex-direction:column; gap:6px; text-align:center;">
-        <div style="padding:6px; border-radius:6px; border:1px solid #e2e8f0; background:var(--panel);">
-          <div style="font-size:9px; color:#16a34a; font-weight:700;"><i class="bi bi-arrow-down"></i> DOWNLOAD (RX)</div>
-          <strong id="v_traffic_rx" style="font-size:12px; font-weight:800; color:var(--text);">0 bps</strong>
-        </div>
-        <div style="padding:6px; border-radius:6px; border:1px solid #e2e8f0; background:var(--panel);">
-          <div style="font-size:9px; color:#2563eb; font-weight:700;"><i class="bi bi-arrow-up"></i> UPLOAD (TX)</div>
-          <strong id="v_traffic_tx" style="font-size:12px; font-weight:800; color:var(--text);">0 bps</strong>
-        </div>
-      </div>
-    </div>
+      <!-- KOTAK STATISTIK TRAFIK -->
+      <div style="margin-bottom:10px;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+          <!-- LIVE THROUGHPUT -->
+          <div class="cust-box-card" style="border-color:rgba(59,130,246,0.25) !important;">
+            <div style="font-size:9.5px; font-weight:800; text-transform:uppercase; color:#0284c7; margin-bottom:5px;">
+              <i class="bi bi-activity"></i> Live Throughput (MikroTik)
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; text-align:center;">
+              <div class="cust-subbox" style="padding:5px; border-radius:6px;">
+                <div style="font-size:8.5px; color:#16a34a; font-weight:700;"><i class="bi bi-arrow-down"></i> DOWNLOAD (RX)</div>
+                <strong id="v_traffic_rx" style="font-size:11.5px; font-weight:800;">0 bps</strong>
+              </div>
+              <div class="cust-subbox" style="padding:5px; border-radius:6px;">
+                <div style="font-size:8.5px; color:#0284c7; font-weight:700;"><i class="bi bi-arrow-up"></i> UPLOAD (TX)</div>
+                <strong id="v_traffic_tx" style="font-size:11.5px; font-weight:800;">0 bps</strong>
+              </div>
+            </div>
+          </div>
 
-    <!-- KOTAK KANAN: TOTAL BULANAN (MEMAKAI KOLOM BAWAAN) -->
-    <div style="border:1px solid #cbd5e1; border-radius:10px; padding:10px; background:var(--panel2);">
-      <div style="font-size:10px; font-weight:700; text-transform:uppercase; color:var(--muted); margin-bottom:6px;">
-        <i class="bi bi-pie-chart"></i> Total Akumulasi Bulanan
-      </div>
-      <div style="display:flex; flex-direction:column; gap:6px; text-align:center;">
-        <div style="padding:6px; border-radius:6px; border:1px solid #cbd5e1; background:var(--panel);">
-          <div style="font-size:9px; color:#0284c7; font-weight:700;"><i class="bi bi-download"></i> DOWNLOAD BULANAN</div>
-          <strong id="v_rx_fmt" style="font-size:12px; font-weight:800; color:var(--text);">0 B</strong>
+          <!-- TOTAL BULANAN -->
+          <div class="cust-box-card">
+            <div style="font-size:9.5px; font-weight:800; text-transform:uppercase; margin-bottom:5px;" class="text-muted-auto">
+              <i class="bi bi-pie-chart"></i> Total Akumulasi Bulanan
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; text-align:center;">
+              <div class="cust-subbox" style="padding:5px; border-radius:6px;">
+                <div style="font-size:8.5px; color:#0284c7; font-weight:700;"><i class="bi bi-download"></i> TOTAL RX</div>
+                <strong id="v_rx_fmt" style="font-size:11.5px; font-weight:800;">0 B</strong>
+              </div>
+              <div class="cust-subbox" style="padding:5px; border-radius:6px;">
+                <div style="font-size:8.5px; color:#db2777; font-weight:700;"><i class="bi bi-upload"></i> TOTAL TX</div>
+                <strong id="v_tx_fmt" style="font-size:11.5px; font-weight:800;">0 B</strong>
+              </div>
+            </div>
+          </div>
         </div>
-        <div style="padding:6px; border-radius:6px; border:1px solid #cbd5e1; background:var(--panel);">
-          <div style="font-size:9px; color:#db2777; font-weight:700;"><i class="bi bi-upload"></i> UPLOAD BULANAN</div>
-          <strong id="v_tx_fmt" style="font-size:12px; font-weight:800; color:var(--text);">0 B</strong>
-        </div>
       </div>
-    </div>
-  </div>
-</div>
-<!-- === [AKHIR PERUBAHAN: DETAIL PELANGGAN BULANAN] === -->
 
-      <!-- Info Pelanggan Tambahan -->
-      <div>
-        <div class="fw6 mb-2 text-primary" style="font-size:13px"><i class="bi bi-person-vcard"></i> Data Informasi Pelanggan</div>
-        <div style="background:var(--panel2);border:1px solid rgba(148,163,184,0.15);border-radius:10px;padding:12px">
-          <table class="tbl" style="width:100%;border-collapse:collapse;font-size:12px">
+      <!-- DATA PRIBADI PELANGGAN & BILLING -->
+      <div class="cust-box-card" style="margin-bottom:4px;">
+        <div style="font-size:10.5px; font-weight:800; text-transform:uppercase; color:#16a34a; margin-bottom:6px;">
+          <i class="bi bi-person-lines-fill"></i> Data Informasi Pelanggan & Keuangan
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px;">
+          <table style="width:100%; border-collapse:collapse; font-size:11.5px;">
             <tr>
-              <td style="width:38%;color:var(--muted);padding:6px 0">NIK / No. KTP</td>
-              <td style="padding:6px 0">
-                <code id="v_nik" style="font-weight:700;color:var(--text);font-size:12px">-</code>
-                <button class="btn btn-g btn-sm py-0 px-2 ms-2" onclick="copyToClipboard('v_nik', 'NIK')"><i class="bi bi-copy"></i> Copy</button>
+              <td class="text-muted-auto" style="padding:3px 0; width:38%;">NIK / KTP</td>
+              <td style="padding:3px 0;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:4px;">
+                  <code id="v_nik" style="font-weight:700; font-size:11px;">-</code>
+                  <button type="button" class="btn btn-g btn-sm py-0 px-2" onclick="copyValue('v_nik', this)" title="Salin NIK"><i class="bi bi-copy"></i></button>
+                </div>
               </td>
             </tr>
             <tr>
-              <td style="width:38%;color:var(--muted);padding:6px 0">No. Telepon / WhatsApp</td>
-              <td style="padding:6px 0">
-                <code id="v_phone" style="font-weight:700;color:var(--text);font-size:12px">-</code>
-                <button class="btn btn-g btn-sm py-0 px-2 ms-2" onclick="copyToClipboard('v_phone', 'No HP')"><i class="bi bi-copy"></i> Copy</button>
+              <td class="text-muted-auto" style="padding:3px 0;">No. WhatsApp</td>
+              <td style="padding:3px 0;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:4px;">
+                  <strong id="v_phone" style="font-size:11.5px;">-</strong>
+                  <div style="display:flex; gap:4px;">
+                    <a id="v_wa_link" href="#" target="_blank" class="btn btn-s btn-sm py-0 px-2" title="Buka WhatsApp Pelanggan"><i class="bi bi-whatsapp"></i> Chat</a>
+                    <button type="button" class="btn btn-g btn-sm py-0 px-2" onclick="copyValue('v_phone', this)" title="Salin No HP"><i class="bi bi-copy"></i></button>
+                  </div>
+                </div>
               </td>
             </tr>
             <tr>
-              <td style="color:var(--muted);padding:6px 0">Alamat & Area</td>
-              <td id="v_address_area" style="padding:6px 0">-</td>
+              <td class="text-muted-auto" style="padding:3px 0;">Alamat Lengkap</td>
+              <td id="v_address_area" style="padding:3px 0; font-size:11px;">-</td>
+            </tr>
+          </table>
+
+          <table style="width:100%; border-collapse:collapse; font-size:11.5px;">
+            <tr>
+              <td class="text-muted-auto" style="padding:3px 0; width:40%;">Tag ONU (ACS)</td>
+              <td style="padding:3px 0;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:4px;">
+                  <code id="v_genieacs" style="font-weight:700; font-size:11px;">-</code>
+                  <button type="button" class="btn btn-g btn-sm py-0 px-2" onclick="copyValue('v_genieacs', this)" title="Salin Tag ACS"><i class="bi bi-copy"></i></button>
+                </div>
+              </td>
             </tr>
             <tr>
-              <td style="color:var(--muted);padding:6px 0">Paket Internet</td>
-              <td id="v_package" style="padding:6px 0">-</td>
-            </tr>
-            <tr>
-              <td style="color:var(--muted);padding:6px 0">Masa Aktif (Prabayar)</td>
-              <td id="v_expired_at" style="padding:6px 0">-</td>
-            </tr>
-            <tr>
-              <td style="color:var(--muted);padding:6px 0">Saldo Dompet Pelanggan</td>
-              <td style="padding:6px 0">
-                <span id="v_balance" style="font-weight:700;color:#10b981;font-size:14px">Rp 0</span>
+              <td class="text-muted-auto" style="padding:3px 0;">Saldo Dompet</td>
+              <td style="padding:3px 0;">
+                <span id="v_balance" style="font-weight:800; color:#16a34a; font-size:12.5px;">Rp 0</span>
                 <button type="button" class="btn btn-s btn-sm py-0 px-2 ms-2" onclick="openTopupFromDetail()"><i class="bi bi-wallet2"></i> Kelola Saldo</button>
               </td>
             </tr>
             <tr>
-              <td style="color:var(--muted);padding:6px 0">Tag ONU (GenieACS)</td>
-              <td style="padding:6px 0">
-                <code id="v_genieacs" style="font-weight:700;color:var(--text);font-size:12px">-</code>
-                <button class="btn btn-g btn-sm py-0 px-2 ms-2" onclick="copyToClipboard('v_genieacs', 'GenieACS Tag')"><i class="bi bi-copy"></i> Copy</button>
-              </td>
-            </tr>
-            <tr>
-              <td style="color:var(--muted);padding:6px 0">Status Akun & Auto-Isolir</td>
-              <td id="v_status_account" style="padding:6px 0">-</td>
+              <td class="text-muted-auto" style="padding:3px 0;">Auto-Isolir</td>
+              <td id="v_status_account" style="padding:3px 0; font-weight:700;">-</td>
             </tr>
           </table>
         </div>
       </div>
+
     </div>
-    <div class="mf d-flex justify-content-between align-items-center">
-      <form id="v_disconnect_form" method="POST" action="" style="display:inline" onsubmit="return confirm('Apakah Anda yakin ingin MEMUTUS koneksi aktif pelanggan ini dari MikroTik?')">
-        <button type="submit" class="btn btn-d btn-sm fw-bold" style="background:#ef4444;color:#fff;border:none;padding:6px 14px">
-          <i class="bi bi-power me-1"></i> Putus Sesi Active MikroTik
+
+    <!-- Modal Footer Lega: Tombol Terangkat Sempurna dan Tidak Mepet -->
+    <div class="mf" style="padding:10px 18px 14px 18px; margin-top:4px; border-top:1px solid var(--border, #e2e8f0); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; background:transparent;">
+      
+      <!-- Aksi Cepat Teknis -->
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <!-- 1. Putus Sesi Active MikroTik -->
+        <button type="button" class="btn btn-g btn-sm" onclick="showModernConfirm('Putus Sesi Active', 'Putus koneksi aktif sesi pelanggan ini dari MikroTik sekarang?', () => document.getElementById('v_disconnect_form').submit())" title="Tendang sesi aktif agar dial ulang">
+          <i class="bi bi-arrow-repeat text-warning"></i> Putus Sesi
         </button>
-      </form>
-      <button type="button" class="btn btn-g" onclick="closeModal('viewDetailModal')">Tutup</button>
+
+        <!-- 2. Tombol Isolir Manual (Warna Oranye) -->
+        <button type="button" id="v_action_isolate_btn" class="btn btn-w btn-sm" onclick="showModernConfirm('Konfirmasi Isolir Manual', 'Yakin ingin mengisolir layanan pelanggan ini secara manual?', () => document.getElementById('v_isolate_form').submit())" title="Isolir Layanan">
+          <i class="bi bi-pause-circle"></i> Isolir Manual
+        </button>
+
+        <!-- 3. Tombol Buka Isolir (Warna Hijau seperti di Billing) -->
+        <button type="button" id="v_action_unisolate_btn" class="btn btn-s btn-sm" onclick="showModernConfirm('Konfirmasi Buka Isolir', 'Buka kembali isolir layanan pelanggan ini secara manual?', () => document.getElementById('v_unisolate_form').submit())" title="Buka Akses Layanan">
+          <i class="bi bi-check-circle"></i> Buka Isolir
+        </button>
+
+        <!-- 4. Reboot Modem via OLT (Instan lewat OLT SNMP/CLI) -->
+        <button type="button" class="btn btn-g btn-sm" onclick="triggerRebootOnuViaOLT()" title="Reboot Modem Pelanggan Langsung Lewat OLT (Instan)">
+          <i class="bi bi-power text-danger"></i> Reboot ONU
+        </button>
+
+        <!-- Form Tersembunyi untuk Eksekusi Tindakan -->
+        <form id="v_disconnect_form" method="POST" action="" style="display:none;"></form>
+        <form id="v_isolate_form" method="POST" action="" style="display:none;"></form>
+        <form id="v_unisolate_form" method="POST" action="" style="display:none;"></form>
+      </div>
+
+      <!-- Tombol Tutup -->
+      <button type="button" class="btn btn-g btn-sm" onclick="closeModal('viewDetailModal')" style="min-width:80px; justify-content:center;">Tutup</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==================== DIALOG KONFIRMASI MODERN (POPUP ELEGAN) ==================== -->
+<div class="mo" id="customConfirmModal" style="z-index:99999;">
+  <div class="mb" style="max-width:400px; border-radius:12px; background:var(--bg2, var(--card-bg, #ffffff)); border:1px solid var(--border); box-shadow:0 20px 40px rgba(0,0,0,0.3); padding:0; overflow:hidden;">
+    <div style="padding:12px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px;">
+      <i class="bi bi-shield-exclamation text-warning" style="font-size:18px;"></i>
+      <h6 id="customConfirmTitle" style="margin:0; font-weight:800; font-size:13.5px; color:var(--text);">Konfirmasi Tindakan</h6>
+    </div>
+    <div style="padding:14px 16px;">
+      <p id="customConfirmMessage" style="margin:0; font-size:12.5px; color:var(--muted); line-height:1.5;">Apakah Anda yakin?</p>
+    </div>
+    <div style="padding:10px 16px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:8px;">
+      <button type="button" class="btn btn-g btn-sm" onclick="closeModal('customConfirmModal')">Batal</button>
+      <button type="button" id="customConfirmOkBtn" class="btn btn-p btn-sm">Ya, Lanjutkan</button>
     </div>
   </div>
 </div>
+<!-- ==================== [AKHIR: BLOK MODAL DETAIL FIX HEADER RAMPING & TANPA ABU] ==================== -->
+<!-- ==================== [AWAL: MODAL INPUT PROMPT KUSTOM UNTUK WIFI & PASSWORD] ==================== -->
+<div class="mo" id="customPromptModal" style="z-index:99999;">
+  <div class="mb" style="max-width:420px; border-radius:12px; background:var(--bg2, var(--card-bg, #ffffff)); border:1px solid var(--border); box-shadow:0 20px 45px rgba(0,0,0,0.3); padding:0; overflow:hidden;">
+    
+    <!-- Header Modal -->
+    <div style="padding:12px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <i id="customPromptIcon" class="bi bi-pencil-square text-primary" style="font-size:16px;"></i>
+        <h6 id="customPromptTitle" style="margin:0; font-weight:800; font-size:14px; color:var(--text);">Ubah Data</h6>
+      </div>
+      <button type="button" class="mc" onclick="closeModal('customPromptModal')" style="font-size:20px; color:var(--muted); line-height:1; cursor:pointer; background:none; border:none; padding:2px 6px;">&times;</button>
+    </div>
+
+    <!-- Body Modal -->
+    <div style="padding:16px 18px 12px 18px;">
+      <label id="customPromptLabel" class="fl" style="font-size:12px; font-weight:700; margin-bottom:6px; color:var(--text); display:block;">Masukkan nilai baru:</label>
+      
+      <div style="position:relative;">
+        <input type="text" id="customPromptInput" class="fc" style="font-size:13px; font-weight:600; padding:8px 12px;" autocomplete="off">
+        <button type="button" id="customPromptToggleEye" onclick="togglePromptPasswordEye()" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--muted); cursor:pointer; display:none;">
+          <i class="bi bi-eye"></i>
+        </button>
+      </div>
+      
+      <small id="customPromptHint" class="text-muted" style="font-size:11px; display:block; margin-top:5px;"></small>
+    </div>
+
+    <!-- Footer Modal -->
+    <div style="padding:10px 18px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:8px;">
+      <button type="button" class="btn btn-g btn-sm" onclick="closeModal('customPromptModal')">Batal</button>
+      <button type="button" id="customPromptSaveBtn" class="btn btn-p btn-sm"><i class="bi bi-check-lg"></i> Simpan</button>
+    </div>
+
+  </div>
+</div>
+<!-- ==================== [AKHIR: MODAL INPUT PROMPT KUSTOM UNTUK WIFI & PASSWORD] ==================== -->
 
 <!-- Modal Top-Up / Kelola Saldo Pelanggan -->
 <div class="mo" id="topupBalanceModal">
@@ -1439,6 +1718,7 @@ let currentDetailIdx = null;
 let currentDetailTimer = null;
 let currentActiveCustomerId = null;
 
+// ==================== [AWAL: LOGIKA JAVASCRIPT DETAIL, COPY & TRAFIK ANTI-ERROR] ====================
 function formatBytesBitrate(bytesPerSec) {
   if (!bytesPerSec || bytesPerSec <= 0) return '0 bps';
   const bitsPerSec = Number(bytesPerSec) * 8;
@@ -1448,7 +1728,7 @@ function formatBytesBitrate(bytesPerSec) {
   return Math.round(bitsPerSec) + ' bps';
 }
 
-// === [PERBAIKAN KONSISTENSI AGAR ANGKA TIDAK BERUBAH-UBAH] ===
+// 1. Polling Trafik Live MikroTik (Aman Tanpa Error v_online_badge)
 async function pollCustomerLiveTrafficModal() {
   if (!currentActiveCustomerId) return;
   try {
@@ -1456,20 +1736,19 @@ async function pollCustomerLiveTrafficModal() {
     if (tRes.ok) {
       const tData = await tRes.json();
       if (tData.ok) {
-        // 1. Update Live Throughput (Mbps / bps)
+        // Update Throughput Realtime
         if (tData.online) {
           const downloadBps = Math.round((tData.rxMbps || 0) * 1000000 / 8);
           const uploadBps = Math.round((tData.txMbps || 0) * 1000000 / 8);
           if (document.getElementById('v_traffic_rx')) document.getElementById('v_traffic_rx').textContent = formatBytesBitrate(downloadBps);
           if (document.getElementById('v_traffic_tx')) document.getElementById('v_traffic_tx').textContent = formatBytesBitrate(uploadBps);
 
-          // Update badge modal menjadi ONLINE jika sebelumnya sempat render offline
-          const badgeEl = document.getElementById('v_online_badge');
-          if (badgeEl && !badgeEl.innerHTML.includes('ONLINE')) {
-            badgeEl.innerHTML = `
-              <span class="badge" style="background:rgba(16,185,129,0.18);color:#10b981;border:1px solid rgba(16,185,129,0.35);font-size:12px;padding:6px 12px;font-weight:800">
-                <i class="bi bi-circle-fill" style="font-size:8px;margin-right:6px"></i>ONLINE
-              </span>
+          // Update dot status jika ada perubahan
+          const dotContainer = document.getElementById('v_dot_status_container');
+          if (dotContainer && !dotContainer.innerHTML.includes('#10b981')) {
+            dotContainer.innerHTML = `
+              <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#10b981; box-shadow:0 0 8px #10b981;"></span>
+              <span style="color:#10b981;">ONLINE</span>
             `;
           }
         } else {
@@ -1477,29 +1756,155 @@ async function pollCustomerLiveTrafficModal() {
           if (document.getElementById('v_traffic_tx')) document.getElementById('v_traffic_tx').textContent = '0 bps (Offline)';
         }
 
-        // 2. KUNCI TOTAL BULANAN AGAR KONSISTEN DENGAN TABEL UTAMA
-        // Ambil langsung dari memori objek pelanggan lokal (c.bytes_in & c.bytes_out) 
-        // yang sudah disinkronkan di tabel, agar tidak terjadi loncatan angka.
+        // Kunci Total Pemakaian Bulanan dari Memori Lokal
         const currentCust = customersData.find(x => Number(x.id) === Number(currentActiveCustomerId));
         if (currentCust) {
-          const totalRxBytes = Number(currentCust.bytes_in || 0); // Download Bulanan
-          const totalTxBytes = Number(currentCust.bytes_out || 0); // Upload Bulanan
-
+          const totalRxBytes = Number(currentCust.bytes_in || 0);
+          const totalTxBytes = Number(currentCust.bytes_out || 0);
           if (document.getElementById('v_rx_fmt')) document.getElementById('v_rx_fmt').textContent = formatBytesVal(totalRxBytes);
           if (document.getElementById('v_tx_fmt')) document.getElementById('v_tx_fmt').textContent = formatBytesVal(totalTxBytes);
         }
       }
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Live traffic poll warn:', e);
+  }
 }
-// ==============================================================
 
-// Ganti seluruh fungsi viewCustDetail dengan versi ini:
+// ==================== [AWAL: LOGIKA JAVASCRIPT DETAIL, COPY, & DIALOG MODERN] ====================
+
+// 1. Helper Dialog Konfirmasi Modern (Bukan confirm bawaan browser yang kaku)
+let customConfirmCallback = null;
+function showModernConfirm(title, message, onOk) {
+  const modal = document.getElementById('customConfirmModal');
+  const tEl = document.getElementById('customConfirmTitle');
+  const mEl = document.getElementById('customConfirmMessage');
+  const okBtn = document.getElementById('customConfirmOkBtn');
+  
+  if (tEl) tEl.textContent = title || 'Konfirmasi Tindakan';
+  if (mEl) mEl.textContent = message || 'Apakah Anda yakin ingin melanjutkan?';
+  
+  customConfirmCallback = onOk;
+  if (okBtn) {
+    okBtn.onclick = function() {
+      closeModal('customConfirmModal');
+      if (typeof customConfirmCallback === 'function') {
+        customConfirmCallback();
+      }
+    };
+  }
+  openModal('customConfirmModal');
+}
+window.showModernConfirm = showModernConfirm;
+
+// 2. Helper Universal Copy to Clipboard (100% Berfungsi di HTTP / IP Lokal)
+function copyValue(elementId, btnElement) {
+  try {
+    const el = document.getElementById(elementId);
+    let textToCopy = '';
+    
+    if (el) {
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+        textToCopy = el.value;
+      } else {
+        textToCopy = el.innerText || el.textContent || '';
+      }
+    }
+    
+    textToCopy = String(textToCopy || '').trim();
+    if (!textToCopy || textToCopy === '-' || textToCopy === '******') {
+      return;
+    }
+
+    const tempTextArea = document.createElement('textarea');
+    tempTextArea.value = textToCopy;
+    tempTextArea.setAttribute('readonly', '');
+    tempTextArea.style.position = 'fixed';
+    tempTextArea.style.top = '-9999px';
+    tempTextArea.style.left = '-9999px';
+    tempTextArea.style.opacity = '0';
+    document.body.appendChild(tempTextArea);
+
+    tempTextArea.focus();
+    tempTextArea.select();
+    tempTextArea.setSelectionRange(0, 99999);
+
+    let success = false;
+    try {
+      success = document.execCommand('copy');
+    } catch (cmdErr) {
+      success = false;
+    }
+
+    if (!success && navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(textToCopy);
+      success = true;
+    }
+
+    document.body.removeChild(tempTextArea);
+
+    // Animasi tombol copy berubah menjadi centang hijau lembut
+    if (btnElement) {
+      const origHtml = btnElement.innerHTML;
+      btnElement.innerHTML = '<span style="color:#16a34a; font-weight:700;"><i class="bi bi-check2"></i> Salin!</span>';
+      setTimeout(() => {
+        btnElement.innerHTML = origHtml;
+      }, 1500);
+    }
+  } catch (err) {
+    console.warn('Gagal menyalin:', err);
+  }
+}
+window.copyValue = copyValue;
+window.copyToClipboard = (id, label) => copyValue(id, null);
+
+// ==================== [AWAL: HELPER SENSOR BINTANG PRIVASI] ====================
+const secretFieldsState = {};
+
+// Reset field kembali tertutup bintang setiap kali modal dibuka
+function resetSecretField(fieldId, realValue) {
+  secretFieldsState[fieldId] = false; // false = tertutup bintang
+  const maskedEl = document.getElementById(fieldId + '_masked');
+  const iconEl = document.getElementById(fieldId + '_icon');
+  if (maskedEl) {
+    maskedEl.textContent = (!realValue || realValue === '-') ? '-' : '••••••••';
+  }
+  if (iconEl) {
+    iconEl.className = 'bi bi-eye-slash text-muted-auto';
+  }
+}
+
+// Buka / Tutup Bintang saat diklik
+function toggleSecretField(fieldId) {
+  const isRevealed = !!secretFieldsState[fieldId];
+  const realVal = document.getElementById(fieldId)?.textContent || '-';
+  const maskedEl = document.getElementById(fieldId + '_masked');
+  const iconEl = document.getElementById(fieldId + '_icon');
+
+  if (!realVal || realVal === '-') return;
+
+  if (isRevealed) {
+    // Tutup kembali jadi bintang
+    secretFieldsState[fieldId] = false;
+    if (maskedEl) maskedEl.textContent = '••••••••';
+    if (iconEl) iconEl.className = 'bi bi-eye-slash text-muted-auto';
+  } else {
+    // Buka tampilkan teks aslinya
+    secretFieldsState[fieldId] = true;
+    if (maskedEl) maskedEl.textContent = realVal;
+    if (iconEl) iconEl.className = 'bi bi-eye text-primary';
+  }
+}
+window.toggleSecretField = toggleSecretField;
+window.resetSecretField = resetSecretField;
+// ==================== [AKHIR: HELPER SENSOR BINTANG PRIVASI] ====================
+
+// 3. Fungsi Utama Buka Detail Pelanggan
 async function viewCustDetail(idx) {
   try {
     const c = customersData[idx];
     if (!c) {
-      alert('Data pelanggan tidak ditemukan.');
+      showModernConfirm('Pemberitahuan', 'Data pelanggan tidak ditemukan.', null);
       return;
     }
 
@@ -1507,7 +1912,7 @@ async function viewCustDetail(idx) {
     currentActiveCustomerId = c.id; 
     openModal('viewDetailModal');
 
-    // 1. Ambil kunci pencarian sesi (Username, Static IP / To-Address, atau MAC Address)
+    // Sesi MikroTik
     const unameKey = String(c.pppoe_username || c.hotspot_username || '').trim().toLowerCase();
     const staticIpKey = String(c.static_ip || '').trim().toLowerCase();
     const macKey = String(c.mac_address || '').trim().toLowerCase();
@@ -1522,125 +1927,460 @@ async function viewCustDetail(idx) {
     }
     const isOnline = !!session;
 
+    // Header & Badge Site
     if (document.getElementById('v_cust_name')) document.getElementById('v_cust_name').textContent = c.name || '-';
     if (document.getElementById('v_cust_id')) document.getElementById('v_cust_id').textContent = c.id || '-';
-
-    if (document.getElementById('v_online_badge')) {
-      if (isOnline) {
-        document.getElementById('v_online_badge').innerHTML = `
-          <span class="badge" style="background:rgba(16,185,129,0.18);color:#10b981;border:1px solid rgba(16,185,129,0.35);font-size:12px;padding:6px 12px;font-weight:800">
-            <i class="bi bi-circle-fill" style="font-size:8px;margin-right:6px"></i>ONLINE
-          </span>
-        `;
+    
+    const siteBadge = document.getElementById('v_cust_site_badge');
+    if (siteBadge) {
+      const site = c.site || 'site-1';
+      siteBadge.textContent = site.toUpperCase();
+      if (site === 'site-2') {
+        siteBadge.style.cssText = 'font-size:10px; padding:3px 8px; background:rgba(245,158,11,0.15); color:#d97706; border:1px solid rgba(245,158,11,0.3); font-weight:700;';
+      } else if (site === 'site-3') {
+        siteBadge.style.cssText = 'font-size:10px; padding:3px 8px; background:rgba(168,85,247,0.15); color:#9333ea; border:1px solid rgba(168,85,247,0.3); font-weight:700;';
       } else {
-        document.getElementById('v_online_badge').innerHTML = `
-          <span class="badge" style="background:rgba(148,163,184,0.12);color:#94a3b8;border:1px solid rgba(148,163,184,0.25);font-size:12px;padding:6px 12px">
-            <i class="bi bi-circle-fill" style="font-size:8px;margin-right:6px"></i>OFFLINE
-          </span>
-        `;
+        siteBadge.style.cssText = 'font-size:10px; padding:3px 8px; background:rgba(59,130,246,0.15); color:#2563eb; border:1px solid rgba(59,130,246,0.3); font-weight:700;';
       }
     }
 
-    if (document.getElementById('v_username')) document.getElementById('v_username').textContent = c.pppoe_username || c.hotspot_username || '-';
-    if (document.getElementById('v_password')) document.getElementById('v_password').textContent = c.pppoe_password || c.hotspot_password || '-';
-    if (document.getElementById('v_ip')) document.getElementById('v_ip').textContent = (session && session.ip) ? session.ip : (c.static_ip || '-');
+    if (document.getElementById('v_package_badge')) {
+      document.getElementById('v_package_badge').textContent = c.package_name ? `${c.package_name} (Rp ${Number(c.package_price || 0).toLocaleString('id-ID')})` : 'Reguler';
+    }
+
+    if (document.getElementById('v_expired_status')) {
+      if (c.package_billing_type === 'prepaid' || c.expired_at) {
+        const expStr = c.expired_at ? String(c.expired_at).slice(0, 10) : '-';
+        document.getElementById('v_expired_status').innerHTML = `<span style="color:#d97706;"><i class="bi bi-hourglass-split"></i> Exp: ${expStr}</span>`;
+      } else {
+        document.getElementById('v_expired_status').textContent = `Pascabayar (Tgl Isolir: ${c.isolate_day || 10})`;
+      }
+    }
+
+    // Dot Status Minimalis
+    const dotContainer = document.getElementById('v_dot_status_container');
+    const uptimeText = document.getElementById('v_uptime_text');
+
+    if (dotContainer && uptimeText) {
+      if (isOnline) {
+        dotContainer.innerHTML = `
+          <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#16a34a; box-shadow:0 0 8px #16a34a;"></span>
+          <span style="color:#16a34a;">ONLINE</span>
+        `;
+        uptimeText.textContent = session.uptime ? `Uptime: ${session.uptime}` : 'Terhubung';
+      } else {
+        dotContainer.innerHTML = `
+          <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#94a3b8;"></span>
+          <span style="color:#94a3b8;">OFFLINE</span>
+        `;
+        uptimeText.textContent = 'Tidak Terhubung (Offline)';
+      }
+    }
+
+    // Data Kolom MikroTik
+    // Simpan nilai riil ke hidden elemen (untuk tombol copy)
+    const rawUser = c.pppoe_username || c.hotspot_username || '-';
+    const rawPass = c.pppoe_password || c.hotspot_password || '-';
+    const rawIp = (session && session.ip) ? session.ip : (c.static_ip || '-');
+
+    if (document.getElementById('v_username')) document.getElementById('v_username').textContent = rawUser;
+    if (document.getElementById('v_password')) document.getElementById('v_password').textContent = rawPass;
+    if (document.getElementById('v_ip')) document.getElementById('v_ip').textContent = rawIp;
+
+    // Set kondisi awal: SELALU TERTUTUP BINTANG (HIDDEN / MASKED) UNTUK PRIVASI
+    resetSecretField('v_username', rawUser);
+    resetSecretField('v_password', rawPass);
+    resetSecretField('v_ip', rawIp);
+
     if (document.getElementById('v_mac')) document.getElementById('v_mac').textContent = (session && session.callerId) ? session.callerId : (c.mac_address || '-');
     
     const routerObj = (routersData || []).find(r => Number(r.id) === Number(c.router_id));
     if (document.getElementById('v_router_name')) document.getElementById('v_router_name').textContent = routerObj ? routerObj.name : (c.router_id ? ('Router #' + c.router_id) : '-');
     if (document.getElementById('v_conn_type')) document.getElementById('v_conn_type').textContent = (c.connection_type || 'pppoe').toUpperCase();
-    if (document.getElementById('v_uptime')) document.getElementById('v_uptime').textContent = session ? (session.uptime || 'Active') : 'Tidak Terhubung (Offline)';
+// ==================== [AKHIR: DATA MIKROTIK AUTO-MASKED SENSOR BINTANG] ====================
 
-    // --- [LANGSUNG AMBIL DATA FRESH DARI API AGAR TIDAK SALAH SAAT PERTAMA DIBUKA] ---
-    if (document.getElementById('v_rx_fmt')) document.getElementById('v_rx_fmt').textContent = 'Memuat...';
-    if (document.getElementById('v_tx_fmt')) document.getElementById('v_tx_fmt').textContent = 'Memuat...';
-
-    // Panggil langsung fungsi polling trafik agar data akurat muncul seketika modal terbuka
-    await pollCustomerLiveTrafficModal();
-    // -------------------------------------------------------------------------------
-
-    const limitGB = c.fup_limit_gb || 0;
-    const useFup = c.use_fup === 1;
-    const fupText = (useFup && limitGB > 0 ? ` (Limit FUP: ${limitGB} GB)` : ' (Unlimited)');
-    if (document.getElementById('v_total_fup')) document.getElementById('v_total_fup').textContent = fupText;
-
+    // Data Kolom Pribadi & Keuangan
     if (document.getElementById('v_nik')) document.getElementById('v_nik').textContent = c.nik || '-';
     if (document.getElementById('v_phone')) document.getElementById('v_phone').textContent = c.phone || '-';
     if (document.getElementById('v_address_area')) document.getElementById('v_address_area').textContent = (c.address || '-') + (c.area ? ` [Area: ${c.area}]` : '');
-    if (document.getElementById('v_package')) document.getElementById('v_package').textContent = c.package_name ? `${c.package_name} (Rp ${Number(c.package_price||0).toLocaleString('id-ID')})` : '-';
-    if (document.getElementById('v_expired_at')) {
-      if (c.package_billing_type === 'prepaid' || c.expired_at) {
-        const expStr = c.expired_at ? String(c.expired_at).slice(0, 10) : '-';
-        const isExp = c.expired_at ? (new Date(c.expired_at) < new Date()) : false;
-        document.getElementById('v_expired_at').innerHTML = `
-          <span class="badge ${isExp ? 'bd' : 'bs'}" style="font-weight:700;">
-            <i class="bi bi-clock-history"></i> ${expStr} ${isExp ? '(Expired / Terisolir)' : '(Aktif)'}
-          </span>
-        `;
-      } else {
-        document.getElementById('v_expired_at').textContent = 'Pascabayar (Bulanan Kalender)';
-      }
-    }
     if (document.getElementById('v_genieacs')) document.getElementById('v_genieacs').textContent = c.genieacs_tag || '-';
-    if (document.getElementById('v_status_account')) document.getElementById('v_status_account').textContent = `Status: ${c.status || 'active'} | Auto Isolir: ${c.auto_isolate === 0 ? 'Nonaktif' : 'Aktif (Tgl ' + (c.isolate_day || '-') + ')'}`;
+    if (document.getElementById('v_status_account')) {
+      document.getElementById('v_status_account').textContent = c.auto_isolate === 0 ? 'Bebas Isolir (OFF)' : `Aktif (Tgl ${c.isolate_day || 10})`;
+    }
     if (document.getElementById('v_balance')) document.getElementById('v_balance').textContent = 'Rp ' + Number(c.balance || 0).toLocaleString('id-ID');
 
-    if (document.getElementById('v_disconnect_form')) {
-      document.getElementById('v_disconnect_form').action = '/admin/customers/' + c.id + '/disconnect';
+    // Link WhatsApp
+    const waLink = document.getElementById('v_wa_link');
+    if (waLink) {
+      if (c.phone) {
+        let cleanPhone = String(c.phone).replace(/\D/g, '');
+        if (cleanPhone.startsWith('0')) cleanPhone = '62' + cleanPhone.slice(1);
+        waLink.href = `https://wa.me/${cleanPhone}`;
+        waLink.style.display = 'inline-flex';
+      } else {
+        waLink.style.display = 'none';
+      }
     }
 
-    // Jalankan timer Live Throughput selanjutnya
+    // Set Action URL Form
+    if (document.getElementById('v_disconnect_form')) {
+      document.getElementById('v_disconnect_form').action = `/admin/customers/${c.id}/disconnect`;
+    }
+    if (document.getElementById('v_isolate_form')) {
+      document.getElementById('v_isolate_form').action = `/admin/customers/${c.id}/isolate`;
+    }
+    if (document.getElementById('v_unisolate_form')) {
+      document.getElementById('v_unisolate_form').action = `/admin/customers/${c.id}/unisolate`;
+    }
+
+    // Tampilkan tombol Isolir Manual vs Buka Isolir secara presisi
+    const isoBtn = document.getElementById('v_action_isolate_btn');
+    const unisoBtn = document.getElementById('v_action_unisolate_btn');
+    if (isoBtn && unisoBtn) {
+      if (c.status === 'suspended') {
+        isoBtn.style.display = 'none';
+        unisoBtn.style.display = 'inline-flex';
+      } else {
+        isoBtn.style.display = 'inline-flex';
+        unisoBtn.style.display = 'none';
+      }
+    }
+
+    // Refresh Data Realtime Trafik & Modem OLT
+    if (document.getElementById('v_rx_fmt')) document.getElementById('v_rx_fmt').textContent = 'Memuat...';
+    if (document.getElementById('v_tx_fmt')) document.getElementById('v_tx_fmt').textContent = 'Memuat...';
+    await pollCustomerLiveTrafficModal();
+    await refreshCustomerDeviceInfo();
+
     if (currentDetailTimer) clearInterval(currentDetailTimer);
     currentDetailTimer = setInterval(pollCustomerLiveTrafficModal, 1500);
 
-    setTimeout(() => {
-      fetchLiveSessions();
-    }, 50);
-
   } catch (err) {
-    console.error('Error in viewCustDetail:', err);
-    alert('Terjadi kesalahan saat memuat detail pelanggan: ' + err.message);
+    console.error('Error viewCustDetail:', err);
   }
 }
 
-async function fetchLiveSessions() {
+// 4. Sinkronisasi Data Modem ONU, Redaman & WiFi
+async function refreshCustomerDeviceInfo() {
+  if (!currentActiveCustomerId) return;
   try {
-    const res = await fetch('/admin/api/customers/live-sessions');
-    if (!res.ok) return;
-    const data = await res.json();
-    if (!data.ok || !data.sessions) return;
+    const rxPowerVal = document.getElementById('v_rx_power_val');
+    const rxPowerBadge = document.getElementById('v_rx_power_badge');
+    const onuModel = document.getElementById('v_onu_model');
+    const oltName = document.getElementById('v_olt_name');
+    const ponPort = document.getElementById('v_pon_port');
+    const odpName = document.getElementById('v_odp_name');
+    const wifiSsid = document.getElementById('v_wifi_ssid');
+    const wifiPass = document.getElementById('v_wifi_pass');
 
-    for (const [key, session] of Object.entries(data.sessions)) {
-      const lowerKey = key.toLowerCase();
-      activeSessionsMapObj.set(lowerKey, session);
-      // Daftarkan juga berdasarkan IP dan MAC jika ada
-      if (session.ip && session.ip !== '-') {
-        activeSessionsMapObj.set(String(session.ip).trim().toLowerCase(), session);
-      }
-      if (session.callerId && session.callerId !== '-') {
-        activeSessionsMapObj.set(String(session.callerId).trim().toLowerCase(), session);
+    if (rxPowerVal) rxPowerVal.textContent = 'Mengecek...';
+
+    const res = await fetch(`/admin/api/customers/${currentActiveCustomerId}/device-info`);
+    if (!res.ok) return;
+    const json = await res.json();
+    if (!json.ok || !json.data) return;
+
+    const d = json.data;
+
+    if (rxPowerVal) rxPowerVal.textContent = d.rxPower || '-';
+    if (rxPowerBadge) {
+      if (d.rxStatus === 'good') {
+        rxPowerBadge.style.cssText = 'background:rgba(22,163,74,0.15); color:#16a34a; border:1px solid rgba(22,163,74,0.3); font-weight:800; padding:3px 8px;';
+      } else if (d.rxStatus === 'warning') {
+        rxPowerBadge.style.cssText = 'background:rgba(217,119,6,0.15); color:#d97706; border:1px solid rgba(217,119,6,0.3); font-weight:800; padding:3px 8px;';
+      } else if (d.rxStatus === 'critical') {
+        rxPowerBadge.style.cssText = 'background:rgba(220,38,38,0.15); color:#dc2626; border:1px solid rgba(220,38,38,0.3); font-weight:800; padding:3px 8px;';
+      } else {
+        rxPowerBadge.style.cssText = 'background:rgba(148,163,184,0.15); color:var(--text); padding:3px 8px; border:1px solid var(--border);';
       }
     }
 
-    document.querySelectorAll('.cust-conn-cell').forEach(cell => {
-      const username = cell.dataset.username;
-      if (!username) return;
-      const s = data.sessions[username];
-      const uptimeEl = cell.querySelector('.conn-uptime');
-      const ipEl = cell.querySelector('.conn-ip');
+    if (onuModel) onuModel.textContent = d.model || '-';
+    if (oltName) oltName.textContent = d.oltName || '-';
+    if (ponPort) ponPort.textContent = d.ponPort ? `(${d.ponPort})` : '';
+    if (odpName) odpName.textContent = d.odpName || '-';
+    if (wifiSsid) wifiSsid.textContent = d.ssid || '-';
+    if (wifiPass) wifiPass.textContent = d.wifiPassword ? d.wifiPassword : '******';
 
-      if (s) {
-        // Hentikan penimpaan .conn-rx dan .conn-tx di sini agar angka bulanan tetap stabil
-        if (uptimeEl) uptimeEl.textContent = s.uptime || '-';
-        if (ipEl) ipEl.textContent = s.ip || '-';
-      }
-    });
-  } catch (err) {
-    console.warn('Live sessions fetch error:', err);
+  } catch (e) {
+    console.warn('Gagal refresh device info:', e);
   }
 }
 
-setInterval(fetchLiveSessions, 5000);
+// 5. Ubah SSID & Password WiFi
+// ==================== [AWAL: JAVASCRIPT POPUP KUSTOM GANTI NAMA WIFI & PASSWORD] ====================
+
+// Helper Tampilkan Modal Input Prompt Elegan
+let customPromptSubmitCallback = null;
+function showModernPrompt(options) {
+  const modal = document.getElementById('customPromptModal');
+  const titleEl = document.getElementById('customPromptTitle');
+  const labelEl = document.getElementById('customPromptLabel');
+  const inputEl = document.getElementById('customPromptInput');
+  const hintEl = document.getElementById('customPromptHint');
+  const iconEl = document.getElementById('customPromptIcon');
+  const saveBtn = document.getElementById('customPromptSaveBtn');
+  const eyeBtn = document.getElementById('customPromptToggleEye');
+
+  if (titleEl) titleEl.textContent = options.title || 'Ubah Data';
+  if (labelEl) labelEl.textContent = options.label || 'Masukkan nilai baru:';
+  if (hintEl) hintEl.textContent = options.hint || '';
+  if (iconEl) iconEl.className = options.icon ? `bi ${options.icon} text-primary` : 'bi bi-pencil-square text-primary';
+
+  if (inputEl) {
+    inputEl.type = options.isPassword ? 'password' : 'text';
+    inputEl.value = options.defaultValue || '';
+    inputEl.placeholder = options.placeholder || '';
+  }
+
+  if (eyeBtn) {
+    eyeBtn.style.display = options.isPassword ? 'block' : 'none';
+  }
+
+  customPromptSubmitCallback = options.onSubmit;
+
+  if (saveBtn) {
+    saveBtn.onclick = async function() {
+      const val = inputEl ? inputEl.value.trim() : '';
+      if (typeof customPromptSubmitCallback === 'function') {
+        const canClose = await customPromptSubmitCallback(val);
+        if (canClose !== false) {
+          closeModal('customPromptModal');
+        }
+      }
+    };
+  }
+
+  // Izinkan submit dengan menekan tombol Enter
+  if (inputEl) {
+    inputEl.onkeydown = function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        saveBtn.click();
+      }
+    };
+  }
+
+  openModal('customPromptModal');
+  setTimeout(() => inputEl && inputEl.focus(), 150);
+}
+
+// Toggle lihat password di dalam prompt
+function togglePromptPasswordEye() {
+  const inputEl = document.getElementById('customPromptInput');
+  const eyeBtn = document.getElementById('customPromptToggleEye');
+  if (!inputEl) return;
+  if (inputEl.type === 'password') {
+    inputEl.type = 'text';
+    if (eyeBtn) eyeBtn.innerHTML = '<i class="bi bi-eye-slash text-primary"></i>';
+  } else {
+    inputEl.type = 'password';
+    if (eyeBtn) eyeBtn.innerHTML = '<i class="bi bi-eye"></i>';
+  }
+}
+window.showModernPrompt = showModernPrompt;
+window.togglePromptPasswordEye = togglePromptPasswordEye;
+
+// 1. Ubah SSID / Nama WiFi Menggunakan Modal Pop-up Kustom
+function promptChangeSSID() {
+  if (!currentActiveCustomerId) return;
+  const currentCust = customersData.find(x => Number(x.id) === Number(currentActiveCustomerId));
+  if (!currentCust) return;
+
+  const currentSsid = document.getElementById('v_wifi_ssid')?.textContent || '';
+  const cleanCurrentSsid = (currentSsid !== '-' && currentSsid !== 'Memuat...') ? currentSsid : '';
+
+  showModernPrompt({
+    title: 'Ubah Nama WiFi (SSID)',
+    label: `Nama WiFi untuk pelanggan "${currentCust.name}":`,
+    defaultValue: cleanCurrentSsid,
+    placeholder: 'Contoh: Rumah_Aam',
+    hint: 'Nama SSID akan langsung dikirim ke modem ONU via TR-069 GenieACS.',
+    icon: 'bi-wifi',
+    isPassword: false,
+    onSubmit: async (newSsid) => {
+      if (!newSsid) {
+        showModernConfirm('Peringatan', 'Nama WiFi (SSID) tidak boleh kosong.', null);
+        return false;
+      }
+      if (newSsid === cleanCurrentSsid) {
+        return true; // Tidak ada perubahan, langsung tutup
+      }
+
+      const tag = currentCust.genieacs_tag || currentCust.pppoe_username || currentCust.phone;
+      if (!tag) {
+        showModernConfirm('Peringatan', 'Pelanggan ini belum memiliki Tag ONU / Username untuk GenieACS.', null);
+        return false;
+      }
+
+      try {
+        const res = await fetch(`/admin/api/device/${encodeURIComponent(tag)}/ssid`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ssid: newSsid })
+        });
+        const resJson = await res.json();
+        if (resJson.success) {
+          showModernConfirm('Berhasil', `✅ Nama WiFi berhasil diubah menjadi: "${newSsid}"`, null);
+          if (document.getElementById('v_wifi_ssid')) {
+            document.getElementById('v_wifi_ssid').textContent = newSsid;
+          }
+          return true;
+        } else {
+          showModernConfirm('Gagal', 'Gagal mengubah nama WiFi: ' + (resJson.error || 'Perangkat tidak merespon'), null);
+          return false;
+        }
+      } catch (err) {
+        showModernConfirm('Error', 'Terjadi kesalahan sistem: ' + err.message, null);
+        return false;
+      }
+    }
+  });
+}
+
+// 2. Ubah Password WiFi Menggunakan Modal Pop-up Kustom
+function promptChangeWifiPassword() {
+  if (!currentActiveCustomerId) return;
+  const currentCust = customersData.find(x => Number(x.id) === Number(currentActiveCustomerId));
+  if (!currentCust) return;
+
+  showModernPrompt({
+    title: 'Ganti Password WiFi',
+    label: `Password baru untuk WiFi pelanggan "${currentCust.name}":`,
+    defaultValue: '',
+    placeholder: 'Minimal 8 karakter...',
+    hint: 'Panjang password minimal 8 karakter. Sandi akan langsung di-push ke modem.',
+    icon: 'bi-key-fill',
+    isPassword: true,
+    onSubmit: async (newPass) => {
+      if (!newPass || newPass.length < 8) {
+        showModernConfirm('Peringatan', 'Password WiFi minimal harus 8 karakter!', null);
+        return false;
+      }
+
+      const tag = currentCust.genieacs_tag || currentCust.pppoe_username || currentCust.phone;
+      if (!tag) {
+        showModernConfirm('Peringatan', 'Pelanggan ini belum memiliki Tag ONU / Username untuk GenieACS.', null);
+        return false;
+      }
+
+      try {
+        const res = await fetch(`/admin/api/device/${encodeURIComponent(tag)}/password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: newPass })
+        });
+        const resJson = await res.json();
+        if (resJson.success) {
+          showModernConfirm('Berhasil', '✅ Password WiFi berhasil diperbarui ke modem pelanggan!', null);
+          if (document.getElementById('v_wifi_pass')) {
+            document.getElementById('v_wifi_pass').textContent = newPass;
+          }
+          return true;
+        } else {
+          showModernConfirm('Gagal', 'Gagal mengubah password: ' + (resJson.error || 'Perangkat tidak merespon'), null);
+          return false;
+        }
+      } catch (err) {
+        showModernConfirm('Error', 'Terjadi kesalahan sistem: ' + err.message, null);
+        return false;
+      }
+    }
+  });
+}
+
+window.promptChangeSSID = promptChangeSSID;
+window.promptChangeWifiPassword = promptChangeWifiPassword;
+// ==================== [AKHIR: JAVASCRIPT POPUP KUSTOM GANTI NAMA WIFI & PASSWORD] ====================
+
+// 6. Reboot Modem ONU SNMP OLT
+let currentCachedDeviceInfo = null;
+
+// Tangkap cache info perangkat saat refresh
+const origRefreshCustomerDeviceInfo = refreshCustomerDeviceInfo;
+refreshCustomerDeviceInfo = async function() {
+  if (!currentActiveCustomerId) return;
+  try {
+    const rxPowerVal = document.getElementById('v_rx_power_val');
+    const rxPowerBadge = document.getElementById('v_rx_power_badge');
+    const onuModel = document.getElementById('v_onu_model');
+    const oltName = document.getElementById('v_olt_name');
+    const ponPort = document.getElementById('v_pon_port');
+    const odpName = document.getElementById('v_odp_name');
+    const wifiSsid = document.getElementById('v_wifi_ssid');
+    const wifiPass = document.getElementById('v_wifi_pass');
+
+    if (rxPowerVal) rxPowerVal.textContent = 'Mengecek...';
+
+    const res = await fetch(`/admin/api/customers/${currentActiveCustomerId}/device-info`);
+    if (!res.ok) return;
+    const json = await res.json();
+    if (!json.ok || !json.data) return;
+
+    const d = json.data;
+    currentCachedDeviceInfo = d; // Simpan di cache untuk aksi reboot OLT
+
+    if (rxPowerVal) rxPowerVal.textContent = d.rxPower || '-';
+    if (rxPowerBadge) {
+      if (d.rxStatus === 'good') {
+        rxPowerBadge.style.cssText = 'background:rgba(22,163,74,0.12); color:#16a34a; border:1px solid rgba(22,163,74,0.3); font-weight:800; padding:2px 7px;';
+      } else if (d.rxStatus === 'warning') {
+        rxPowerBadge.style.cssText = 'background:rgba(217,119,6,0.12); color:#d97706; border:1px solid rgba(217,119,6,0.3); font-weight:800; padding:2px 7px;';
+      } else if (d.rxStatus === 'critical') {
+        rxPowerBadge.style.cssText = 'background:rgba(220,38,38,0.12); color:#dc2626; border:1px solid rgba(220,38,38,0.3); font-weight:800; padding:2px 7px;';
+      } else {
+        rxPowerBadge.style.cssText = 'background:transparent; color:var(--text); padding:2px 7px; border:1px solid var(--border);';
+      }
+    }
+
+    if (onuModel) onuModel.textContent = d.model || '-';
+    if (oltName) oltName.textContent = d.oltName || '-';
+    if (ponPort) ponPort.textContent = d.ponPort ? `(${d.ponPort})` : '';
+    if (odpName) odpName.textContent = d.odpName || '-';
+    if (wifiSsid) wifiSsid.textContent = d.ssid || '-';
+    if (wifiPass) wifiPass.textContent = d.wifiPassword ? d.wifiPassword : '******';
+
+  } catch (e) {
+    console.warn('Gagal refresh device info:', e);
+  }
+};
+
+// ==================== [AWAL: EKSEKUSI REBOOT VIA OLT BAWAAN] ====================
+function triggerRebootOnuViaOLT() {
+  if (!currentActiveCustomerId) return;
+  const currentCust = customersData.find(x => Number(x.id) === Number(currentActiveCustomerId));
+  if (!currentCust) return;
+
+  showModernConfirm(
+    'Reboot Modem via OLT',
+    `Kirim perintah reboot ke modem milik "${currentCust.name}" langsung melalui OLT?`,
+    async () => {
+      try {
+        const res = await fetch(`/admin/api/customers/${currentCust.id}/reboot-onu-olt`, { 
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const resJson = await res.json();
+        
+        if (resJson.success) {
+          showModernConfirm(
+            'Sukses OLT', 
+            `✅ ${resJson.message}\nModem sedang restart (butuh waktu 1-2 menit hingga kembali online).`, 
+            null
+          );
+        } else {
+          showModernConfirm('Gagal Reboot OLT', resJson.message || 'Gagal mengirim reboot ke OLT', null);
+        }
+      } catch (err) {
+        showModernConfirm('Error OLT', 'Terjadi kesalahan: ' + err.message, null);
+      }
+    }
+  );
+}
+
+window.triggerRebootOnuViaOLT = triggerRebootOnuViaOLT;
+window.triggerRebootONU = triggerRebootOnuViaOLT;
+// ==================== [AKHIR: EKSEKUSI REBOOT VIA OLT BAWAAN] ====================
 
 function filterByStatus(statusVal) {
   const url = new URL(window.location.href);

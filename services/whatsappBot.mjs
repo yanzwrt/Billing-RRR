@@ -259,11 +259,15 @@ export function resolveContactIdentity(phoneDigits, pushName = '') {
     }
 
     // 5. Cek Staf / Admin Mitra -> Nama (Staf)
-    const staff = db.prepare(
-      'SELECT id, name FROM staff WHERE phone LIKE ? OR phone LIKE ? LIMIT 1'
-    ).get(`%${last8}%`, `%${digits}%`);
-    if (staff && staff.name) {
-      return { name: `${staff.name} (Staf)`, customerId: null, role: 'staff' };
+    try {
+      const staff = db.prepare(
+        'SELECT id, name FROM staff WHERE phone LIKE ? OR phone LIKE ? LIMIT 1'
+      ).get(`%${last8}%`, `%${digits}%`);
+      if (staff && staff.name) {
+        return { name: `${staff.name} (Staf)`, customerId: null, role: 'staff' };
+      }
+    } catch (_) {
+      // Abaikan jika tabel staff belum ada
     }
 
     // 6. Cek Kasir -> Nama (Kasir)
@@ -1449,8 +1453,8 @@ export async function sendMonitoringAlert(message, priority = 'medium') {
   }
 
   try {
-    const priorityIcon = priority === 'high' ? '🚨' : priority === 'medium' ? '⚠️' : 'ℹ️';
-    const formattedMessage = `${priorityIcon} *MONITORING ALERT*\n\n${message}`;
+    // Gunakan pesan langsung murni dari template tanpa tambahan header skrip dobel
+    const formattedMessage = String(message || '').trim();
 
     // Get admin numbers from settings
     const adminNumbers = getWhatsappAdminNumbers();

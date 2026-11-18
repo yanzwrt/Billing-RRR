@@ -115,6 +115,26 @@
               <span>Aktifkan Alert Monitoring</span>
             </label>
           </div>
+		  
+		  <!-- === AWAL TAMBAHAN: INPUT PARAMETER MONITORING GENIEACS === -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 16px; background: rgba(0,0,0,0.15); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+            <div>
+              <label class="fl" style="font-size: 11px;">Batas Jam Offline (Threshold Jam)</label>
+              <input type="number" class="fc" name="genieacs_offline_threshold_hours" value="<%= (typeof templates.genieacs_offline_threshold_hours !== 'undefined' && templates.genieacs_offline_threshold_hours) ? templates.genieacs_offline_threshold_hours : 24 %>" min="1" max="168" style="padding: 6px 10px; font-size: 13px;">
+              <small style="color: var(--muted); font-size: 10px;">Dianggap gangguan jika mati lebih dari X jam.</small>
+            </div>
+            <div>
+              <label class="fl" style="font-size: 11px;">Batas Redaman Kritis (dBm)</label>
+              <input type="number" step="0.5" class="fc" name="genieacs_rxpower_threshold" value="<%= (typeof templates.genieacs_rxpower_threshold !== 'undefined' && templates.genieacs_rxpower_threshold) ? templates.genieacs_rxpower_threshold : -27 %>" min="-40" max="-10" style="padding: 6px 10px; font-size: 13px;">
+              <small style="color: var(--muted); font-size: 10px;">Alert jika redaman lebih buruk dari X dBm.</small>
+            </div>
+            <div>
+              <label class="fl" style="font-size: 11px;">Interval Cek Otomatis (Per Jam)</label>
+              <input type="number" class="fc" name="genieacs_monitoring_interval_hours" value="<%= (typeof templates.genieacs_monitoring_interval_hours !== 'undefined' && templates.genieacs_monitoring_interval_hours) ? templates.genieacs_monitoring_interval_hours : 6 %>" min="1" max="24" style="padding: 6px 10px; font-size: 13px;">
+              <small style="color: var(--muted); font-size: 10px;">Jeda waktu bot memeriksa ulang data perangkat.</small>
+            </div>
+          </div>
+<!-- === AKHIR TAMBAHAN: INPUT PARAMETER MONITORING GENIEACS === -->
 
           <div class="template-grid">
             <!-- KIRI: PERANGKAT OFFLINE -->

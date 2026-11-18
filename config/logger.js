@@ -65,4 +65,21 @@ const logger = winston.createLogger({
     ]
 });
 
+// ==================== [AWAL: FILTER LOG WARNING MIKROTIK TERTENTU] ====================
+const originalWarn = logger.warn.bind(logger);
+logger.warn = function (message, ...meta) {
+    const msgStr = typeof message === 'string' ? message : JSON.stringify(message || '');
+    
+    // Abaikan log warning spesifik MikroTik tag & unknown reply agar terminal bersih
+    if (
+        msgStr.includes('Received unknown reply') || 
+        msgStr.includes('Received data for unregistered tag')
+    ) {
+        return logger; 
+    }
+    
+    return originalWarn(message, ...meta);
+};
+// ==================== [AKHIR: FILTER LOG WARNING MIKROTIK TERTENTU] ====================
+
 module.exports = { logger };

@@ -1110,6 +1110,197 @@ cron.schedule('59 23 * * *', () => {
   }
 });
 
+// 1. Ambil detail ONU, Redaman Optik & WiFi dari GenieACS / OLT untuk modal detail
+// ==================== [AWAL: DEVICE-INFO PRIORITAS 100% OLT UNTUK REDAMAN & JARAK] ====================
+router.get('/api/customers/:id/device-info', requireAdminSession, async (req, res) => {
+  try {
+    const custId = Number(req.params.id);
+    const customer = customerSvc.getCustomerById(custId);
+    if (!customer) return res.status(404).json({ ok: false, error: 'Pelanggan tidak ditemukan' });
+
+    let deviceInfo = {
+      rxPower: '-',
+      rxStatus: 'unknown',
+      distance: '-',
+      model: '-',
+      ssid: '-',
+      wifiPassword: '-',
+      oltId: customer.olt_id || null,
+      oltName: customer.olt_name || '-',
+      onuIndex: null,
+      odpName: customer.odp_name || '-',
+      ponPort: customer.pon_port || '-',
+      tag: customer.genieacs_tag || customer.phone || '-',
+      serialNumber: '-'
+    };
+
+    // 1. PRIORITAS UTAMA: AMBIL REDAMAN & JARAK LANGSUNG DARI OLT (SNMP REAL-TIME)
+    let oltAvailable = false;
+    try {
+      const opticalData = await oltSvc.getCustomerOptical(customer);
+      if (opticalData && opticalData.available) {
+        oltAvailable = true;
+        if (opticalData.index) deviceInfo.onuIndex = opticalData.index;
+        if (opticalData.rxPower && opticalData.rxPower !== 'N/A') {
+          deviceInfo.rxPower = opticalData.rxPower;
+          const numRx = parseFloat(opticalData.rxPower);
+          if (!isNaN(numRx)) {
+            if (numRx >= -23.0 && numRx <= -14.0) deviceInfo.rxStatus = 'good'; // Bagus (-14 s/d -23)
+            else if (numRx < -23.0 && numRx >= -27.0) deviceInfo.rxStatus = 'warning'; // Warning (-23 s/d -27)
+            else deviceInfo.rxStatus = 'critical'; // Bahaya / Drop
+          }
+        }
+        if (opticalData.distance && opticalData.distance !== '-') {
+          deviceInfo.distance = opticalData.distance;
+        }
+      }
+    } catch (oltErr) {
+      logger.debug('[device-info] OLT direct optical error: ' + oltErr.message);
+    }
+
+    // 2. AMBIL WIFI (SSID & PASSWORD) DARI GENIEACS (DAN REDAMAN CADANGAN JIKA OLT OFFLINE)
+    const queryTag = customer.genieacs_tag || customer.pppoe_username || customer.phone;
+    if (queryTag) {
+      try {
+        const acsData = await customerDevice.getCustomerDeviceData(queryTag);
+        if (acsData && acsData.status !== 'Tidak ditemukan') {
+          deviceInfo.model = acsData.model || acsData.productClass || '-';
+          deviceInfo.ssid = acsData.ssid || '-';
+          deviceInfo.serialNumber = acsData.serialNumber || '-';
+
+          // Hanya gunakan redaman GenieACS jika OLT tidak memberikan nilai
+          if ((deviceInfo.rxPower === '-' || deviceInfo.rxPower === 'N/A') && acsData.rxPower && acsData.rxPower !== 'N/A') {
+            deviceInfo.rxPower = acsData.rxPower;
+            const numRx = parseFloat(deviceInfo.rxPower);
+            if (!isNaN(numRx)) {
+              if (numRx >= -23.0 && numRx <= -14.0) deviceInfo.rxStatus = 'good';
+              else if (numRx < -23.0 && numRx >= -27.0) deviceInfo.rxStatus = 'warning';
+              else deviceInfo.rxStatus = 'critical';
+            }
+          }
+        }
+      } catch (acsErr) {
+        logger.debug('[device-info] GenieACS fetch error: ' + acsErr.message);
+      }
+    }
+
+    return res.json({ ok: true, data: deviceInfo });
+// ==================== [AKHIR: DEVICE-INFO PRIORITAS 100% OLT UNTUK REDAMAN & JARAK] ====================
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// 2. Blokir Akses Manual MikroTik (Disable PPPoE Secret / Hotspot User)
+router.post('/customers/:id/block-secret', requireAdminSession, async (req, res) => {
+  try {
+    const custId = Number(req.params.id);
+    const customer = customerSvc.getCustomerById(custId);
+    if (!customer) throw new Error('Pelanggan tidak ditemukan');
+
+    const routerId = customerSvc.getEffectiveRouterId(customer.router_id);
+    let conn = null;
+    try {
+      conn = routerId ? await mikrotikService.getConnection(routerId) : await mikrotikService.getConnection();
+      if (conn && conn.client) {
+        if (customer.pppoe_username) {
+          const secrets = await conn.client.menu('/ppp/secret').where('name', customer.pppoe_username).get();
+          for (const s of secrets) {
+            const sid = s['.id'] || s.id;
+            await conn.client.menu('/ppp/secret').set(sid, { disabled: 'yes' });
+          }
+          await mikrotikService.kickPppoeUser(customer.pppoe_username, routerId);
+        } else if (customer.hotspot_username) {
+          await mikrotikService.setHotspotUserDisabled(customer.hotspot_username, true, routerId);
+        }
+      }
+    } finally {
+      if (conn && conn.api) conn.api.close();
+    }
+
+    db.prepare("UPDATE customers SET status = 'suspended' WHERE id = ?").run(custId);
+    req.session._msg = { type: 'success', text: `Akses MikroTik untuk "${customer.name}" berhasil DIBLOKIR / DINONAKTIFKAN.` };
+  } catch (err) {
+    req.session._msg = { type: 'error', text: 'Gagal memblokir: ' + err.message };
+  }
+  res.redirect('back');
+});
+
+/* ==================== [AWAL: REBOOT PELANGGAN LANGSUNG DARI OLT ASLI] ==================== */
+router.post('/api/customers/:id/reboot-onu-olt', requireAdminSession, restrictToAdmin, async (req, res) => {
+  try {
+    const custId = Number(req.params.id);
+    const customer = customerSvc.getCustomerById(custId);
+    if (!customer) return res.status(404).json({ success: false, message: 'Pelanggan tidak ditemukan' });
+
+    // 1. Tentukan OLT ID milik pelanggan
+    let oltId = customer.olt_id ? Number(customer.olt_id) : null;
+    if (!oltId && customer.odp_id) {
+      const odp = db.prepare('SELECT olt_id FROM odps WHERE id = ?').get(customer.odp_id);
+      if (odp && odp.olt_id) oltId = Number(odp.olt_id);
+    }
+    if (!oltId) {
+      const allActive = oltSvc.getActiveOlts();
+      if (allActive && allActive.length > 0) oltId = allActive[0].id;
+    }
+
+    if (!oltId) {
+      return res.status(400).json({ success: false, message: 'Pelanggan ini belum dihubungkan ke OLT' });
+    }
+
+    // 2. Ambil data ONU dari OLT untuk mencocokkan index (seperti index 4718626)
+    const stats = await oltSvc.getOltStats(oltId, true);
+    if (!stats || !Array.isArray(stats.onus) || stats.onus.length === 0) {
+      return res.status(400).json({ success: false, message: 'Gagal membaca daftar ONU di OLT atau OLT offline' });
+    }
+
+    const snClean = String(customer.genieacs_tag || customer.mac_address || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    const pppoeClean = String(customer.pppoe_username || '').trim().toLowerCase();
+    const nameClean = String(customer.name || '').trim().toLowerCase();
+
+    let targetIndex = null;
+    let targetName = customer.name;
+
+    for (const onu of stats.onus) {
+      const onuSn = String(onu.sn || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+      const onuName = String(onu.name || '').trim().toLowerCase();
+
+      // Cocokkan berdasarkan SN/Tag, Username PPPoE, atau Nama (Sama persis seperti di menu OLT)
+      if (snClean && snClean.length >= 4 && (onuSn === snClean || onuSn.includes(snClean) || snClean.includes(onuSn))) {
+        targetIndex = onu.index || onu.id;
+        targetName = onu.name;
+        break;
+      }
+      if (pppoeClean && onuName === pppoeClean) {
+        targetIndex = onu.index || onu.id;
+        targetName = onu.name;
+        break;
+      }
+      if (nameClean && onuName === nameClean) {
+        targetIndex = onu.index || onu.id;
+        targetName = onu.name;
+        break;
+      }
+    }
+
+    if (!targetIndex) {
+      return res.status(404).json({ success: false, message: 'Modem pelanggan tidak ditemukan di daftar ONU OLT' });
+    }
+
+    // 3. Panggil fungsi reboot bawaan OLT yang SUDAH TERBUKTI SUKSES
+    await oltSvc.rebootOnu(oltId, targetIndex);
+    logger.info(`[Customer-Reboot-OLT] Berhasil reboot modem pelanggan ${customer.name} (Index OLT: ${targetIndex})`);
+
+    return res.json({ 
+      success: true, 
+      message: `Perintah reboot berhasil dikirim via OLT ke modem [${targetName}] (Index: ${targetIndex}).` 
+    });
+  } catch (err) {
+    logger.error('[Customer-Reboot-OLT Error]:', err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // === JALUR PELANGGAN ===
 router.post('/api/customers/:id/cable-path', requireAdminSession, (req, res) => {
   try {
@@ -6971,7 +7162,9 @@ router.get('/mikrotik', requireAdminSession, requireSidebarMenuAccess('mikrotik'
   };
   
   const routers = dbRouters.length > 0 ? dbRouters : [settingsRouter];
-  const activeRouterId = req.selectedRouterId || (routers[0] ? routers[0].id : '');
+  
+  // Jika req.selectedRouterId bernilai null/kosong, biarkan kosong (artinya user memilih Default)
+  const activeRouterId = req.selectedRouterId ? req.selectedRouterId : '';
 
   res.render('admin/mikrotik', {
     title: 'Monitoring MikroTik', company: company(), activePage: 'mikrotik',
@@ -8468,22 +8661,20 @@ router.get('/whatsapp/templates', requireAdminSession, requireSidebarMenuAccess(
   const defaultIsolir = `Yth. Pelanggan {{nama}},\n\nLayanan internet Anda (Paket {{paket}}) saat ini ditangguhkan (Terisolir) karena belum melunasi tagihan sebesar *Rp {{tagihan}}*.\n\nSilakan lakukan pembayaran segera melalui portal pelanggan: {{link}}\n\nTerima kasih.`;
 
   const defaultOfflineTmpl = 
-`⚠️ *MONITORING ALERT*
+`⚠️ *PERINGATAN: PERANGKAT OFFLINE*
+Total: {{total_offline}} Perangkat (> {{threshold_jam}} Jam)
 
-*PERINGATAN: PERANGKAT OFFLINE*
-
-{{total_offline}} perangkat offline lebih dari {{threshold_jam}} jam:
-
-{{daftar_perangkat}}⚠️ *Mohon segera ditindaklanjuti.*`;
+{{daftar_perangkat}}
+Mohon tim teknisi segera melakukan pengecekan lapangan.
+_Sistem Monitoring {{company}}_`;
 
   const defaultRedamanTmpl = 
-`⚠️ *MONITORING ALERT*
+`🚨 *PERINGATAN: REDAMAN TINGGI (DROP RX)*
+Total: {{total_redaman}} Perangkat (Drop < {{threshold}} dBm)
 
-*PERINGATAN: REDAMAN TINGGI (OPTICAL LOSS)*
-
-{{total_redaman}} perangkat memiliki nilai RX Power lebih buruk dari {{threshold}} dBm:
-
-{{daftar_perangkat}}⚠️ *Mohon segera dicek untuk menghindari koneksi terputus.*`;
+{{daftar_perangkat}}
+Mohon segera diperiksa redaman / kabel optiknya.
+_Sistem Monitoring {{company}}_`;
 
   // === AWAL PENYESUAIAN FALLBACK TEMPLATE PENDAFTARAN ===
   const defaultRegAdmin = whatsappService.DEFAULT_REG_ADMIN_TEMPLATE;
@@ -8504,6 +8695,11 @@ router.get('/whatsapp/templates', requireAdminSession, requireSidebarMenuAccess(
   const templates = {
     whatsapp_auto_billing_message: db.getAppSetting('whatsapp_auto_billing_message', defaultAutoBilling),
     whatsapp_billing_qris_message: db.getAppSetting('whatsapp_billing_qris_message', defaultQris),
+	// === AWAL TAMBAHAN: PARAMETER THRESHOLD & INTERVAL MONITORING ===
+    genieacs_offline_threshold_hours: getSetting('genieacs_offline_threshold_hours', 24),
+    genieacs_rxpower_threshold: getSetting('genieacs_rxpower_threshold', -27),
+    genieacs_monitoring_interval_hours: getSetting('genieacs_monitoring_interval_hours', 6),
+    // === AKHIR TAMBAHAN: PARAMETER THRESHOLD & INTERVAL MONITORING ===
     whatsapp_payment_success_message: db.getAppSetting('whatsapp_payment_success_message', defaultSuccess),
     whatsapp_isolir_message: db.getAppSetting('whatsapp_isolir_message', defaultIsolir),
     whatsapp_device_offline_message: db.getAppSetting('whatsapp_device_offline_message', defaultOfflineTmpl),
@@ -8549,6 +8745,9 @@ router.post('/whatsapp/templates', requireAdminSession, express.urlencoded({ ext
       whatsapp_isolir_message,
       whatsapp_device_offline_message,
       whatsapp_device_rxpower_message,
+	  genieacs_offline_threshold_hours,
+      genieacs_rxpower_threshold,
+      genieacs_monitoring_interval_hours,
       whatsapp_reg_admin_template,
       whatsapp_reg_tech_template,
       whatsapp_reg_welcome_template,
@@ -8592,10 +8791,15 @@ router.post('/whatsapp/templates', requireAdminSession, express.urlencoded({ ext
 
     db.saveAppSetting('whatsapp_payment_success_enabled', whatsapp_payment_success_enabled ? '1' : '0');
     db.saveAppSetting('whatsapp_isolir_notif_enabled', whatsapp_isolir_notif_enabled ? '1' : '0');
-
+	
+    // === AWAL PERUBAHAN: SIMPAN PENGATURAN MONITORING GENIEACS ===
     saveSettings({
-      genieacs_monitoring_enabled: (genieacs_monitoring_enabled === '1' || genieacs_monitoring_enabled === 'on')
+      genieacs_monitoring_enabled: (genieacs_monitoring_enabled === '1' || genieacs_monitoring_enabled === 'on'),
+      genieacs_offline_threshold_hours: parseInt(genieacs_offline_threshold_hours, 10) || 24,
+      genieacs_rxpower_threshold: parseFloat(genieacs_rxpower_threshold) || -27,
+      genieacs_monitoring_interval_hours: parseInt(genieacs_monitoring_interval_hours, 10) || 6
     });
+    // === AKHIR PERUBAHAN: SIMPAN PENGATURAN MONITORING GENIEACS ===
 
     req.session._msg = { type: 'success', text: 'Semua template dan status saklar WhatsApp berhasil disimpan.' };
   } catch (e) {
@@ -10228,11 +10432,11 @@ router.post('/radius/nas/delete', requireAdminSession, restrictToAdmin, async (r
 try { db.prepare("ALTER TABLE customers ADD COLUMN last_raw_rx INTEGER DEFAULT 0").run(); } catch (e) {}
 try { db.prepare("ALTER TABLE customers ADD COLUMN last_raw_tx INTEGER DEFAULT 0").run(); } catch (e) {}
 
-const backgroundTrafficWorkerInterval = 30000; // Berjalan otomatis setiap 30 detik
+// ==================== [AWAL: BACKGROUND WORKER TRAFIK ANTI-LONJAKAN / ANTI-TB] ====================
+const backgroundTrafficWorkerInterval = 15000; // 15 detik
 
 setInterval(async () => {
   try {
-    // Ambil semua pelanggan aktif yang punya username PPPoE, Hotspot, atau Static IP
     const customersToSync = db.prepare(`
       SELECT id, router_id, connection_type, pppoe_username, hotspot_username, static_ip, mac_address,
              COALESCE(bytes_in, 0) as bytes_in,
@@ -10249,7 +10453,6 @@ setInterval(async () => {
 
     if (!customersToSync || customersToSync.length === 0) return;
 
-    // Kelompokkan pelanggan berdasarkan router_id
     const routersMap = new Map();
     for (const c of customersToSync) {
       let rId = c.router_id ? Number(c.router_id) : null;
@@ -10269,93 +10472,66 @@ setInterval(async () => {
         conn = routerId ? await mikrotikService.getConnection(routerId) : await mikrotikService.getConnection();
         if (!conn || !conn.client) continue;
 
-        // Tarik data interface router (untuk PPPoE)
-        const interfaces = await conn.client.menu('/interface').get().catch(() => []);
+        // Ambil Simple Queues
+        let simpleQueues = [];
+        try { simpleQueues = await conn.client.menu('/queue/simple').get().catch(() => []); } catch (_) {}
+
+        // Ambil Interfaces
+        let interfaces = [];
+        try { interfaces = await conn.client.menu('/interface').get().catch(() => []); } catch (_) {}
+
         const ifaceMap = new Map();
         for (const iface of (interfaces || [])) {
           ifaceMap.set(String(iface.name || '').toLowerCase(), iface);
         }
 
-        // Tarik data hotspot host (untuk Hotspot & Binding/Bypass)
-        let hotspotHosts = [];
-        try {
-          hotspotHosts = await conn.client.menu('/ip/hotspot/host').get().catch(() => []);
-        } catch (hErr) {}
-
-        const hostMap = new Map();
-        for (const h of hotspotHosts) {
-          const toIp = String(h['to-address'] || h.toAddress || '').trim().toLowerCase();
-          const ip = String(h.address || '').trim().toLowerCase();
-          const mac = String(h['mac-address'] || h.mac || '').trim().toLowerCase();
-          const user = String(h.user || '').trim().toLowerCase();
-
-          if (toIp) hostMap.set(toIp, h);
-          if (ip && !hostMap.has(ip)) hostMap.set(ip, h);
-          if (mac && !hostMap.has(mac)) hostMap.set(mac, h);
-          if (user && !hostMap.has(user)) hostMap.set(user, h);
-        }
-
-        // Lakukan perhitungan delta per pelanggan
         for (const cust of custs) {
-          const connType = String(cust.connection_type || 'pppoe').toLowerCase();
           const pppUname = String(cust.pppoe_username || '').trim().toLowerCase();
           const hsUname = String(cust.hotspot_username || '').trim().toLowerCase();
           const staticIp = String(cust.static_ip || '').trim().toLowerCase();
-          const mac = String(cust.mac_address || '').trim().toLowerCase();
 
-          let rawDownloadBytes = 0; // Download (Router -> Pelanggan / bytes_in)
-          let rawUploadBytes = 0;   // Upload (Pelanggan -> Router / bytes_out)
+          let rawDownloadBytes = 0; // Download (RX)
+          let rawUploadBytes = 0;   // Upload (TX)
           let foundSource = false;
 
-          // 1. Pelanggan PPPoE: Ambil dari interface
-          if (pppUname && ifaceMap.size > 0) {
-            const iface = ifaceMap.get(`<pppoe-${pppUname}>`) || 
-                          ifaceMap.get(`pppoe-${pppUname}`) || 
-                          (interfaces || []).find(i => String(i.name || '').toLowerCase().includes(pppUname));
-            if (iface) {
-              rawDownloadBytes = numField(iface, ['tx-byte', 'txBytes', 'bytes-out', 'bytesOut']);
-              rawUploadBytes   = numField(iface, ['rx-byte', 'rxBytes', 'bytes-in', 'bytesIn']);
-              foundSource = true;
-            }
-          }
-
-          // 2. Pelanggan Hotspot & Binding: Ambil langsung dari /queue/simple (Mendukung multi-device -2, -3 dst)
-          if (!foundSource) {
-            // Ambil data simple queues dari router
-            let simpleQueues = [];
-            try {
-              simpleQueues = await conn.client.menu('/queue/simple').get().catch(() => []);
-            } catch (qErr) {}
-
-            for (const q of (simpleQueues || [])) {
+          // 1. Cek dari Simple Queue (Untuk Hotspot / Static / Sesi yang pakai queue)
+          if (simpleQueues.length > 0) {
+            for (const q of simpleQueues) {
               const qName = String(q.name || '').toLowerCase().replace(/^<|>$/g, '');
-              const cleanHsUname = hsUname ? hsUname.toLowerCase() : '';
               const targetRaw = String(q.target || q['target'] || '').toLowerCase();
               const targetIp = targetRaw.split('/')[0].trim();
 
               const matchIp = staticIp && targetIp === staticIp;
-              
-              // Pengecekan regex presisi untuk Nurhasanah, Nurhasanah-2, Nurhasanah-3
               let matchName = false;
-              if (cleanHsUname) {
-                const escapedUser = cleanHsUname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const pattern = new RegExp(`^(hotspot-)?${escapedUser}(-[0-9]+)?$`, 'i');
-                matchName = pattern.test(qName);
+              if (pppUname && qName === pppUname) matchName = true;
+              if (hsUname) {
+                const escaped = hsUname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const pattern = new RegExp(`^(hotspot-)?${escaped}(-[0-9]+)?$`, 'i');
+                if (pattern.test(qName)) matchName = true;
               }
 
-              const matchComment = staticIp && String(q.comment || '').toLowerCase().includes(staticIp);
-
-              if (matchIp || matchName || matchComment) {
-                // Di MikroTik Simple Queue: bytes = "upload/download" (bytes-in/bytes-out)
+              if (matchIp || matchName) {
                 const bytesStr = String(q.bytes || q['bytes'] || '').trim();
                 if (bytesStr.includes('/')) {
                   const bParts = bytesStr.split('/');
-                  rawUploadBytes += (Number(bParts[0]) || 0);   // Jumlahkan Upload semua HP
-                  rawDownloadBytes += (Number(bParts[1]) || 0); // Jumlahkan Download semua HP
+                  rawUploadBytes   += (Number(bParts[0]) || 0);
+                  rawDownloadBytes += (Number(bParts[1]) || 0);
                   foundSource = true;
-                  // Jangan di-break agar HP ke-2 (-2) dan HP ke-3 (-3) ikut terjumlahkan
                 }
               }
+            }
+          }
+
+          // 2. Cek dari Interface PPPoE (Untuk router tanpa queue)
+          if (!foundSource && pppUname && ifaceMap.size > 0) {
+            const iface = ifaceMap.get(`<pppoe-${pppUname}>`) || 
+                          ifaceMap.get(`pppoe-${pppUname}`) || 
+                          (interfaces || []).find(i => String(i.name || '').toLowerCase().includes(pppUname));
+            
+            if (iface) {
+              rawUploadBytes   = numField(iface, ['rx-byte', 'rxBytes', 'bytes-in', 'bytesIn']);
+              rawDownloadBytes = numField(iface, ['tx-byte', 'txBytes', 'bytes-out', 'bytesOut']);
+              foundSource = true;
             }
           }
 
@@ -10367,20 +10543,25 @@ setInterval(async () => {
           let deltaRx = 0;
           let deltaTx = 0;
 
-          // Hitung delta dengan proteksi jika MikroTik di-reboot (counter kembali ke 0)
+          // PENGAMAN UTAMA: Jika raw saat ini lebih kecil dari sebelumnya (artinya router reboot / counter reset),
+          // JANGAN TAMBAHKAN KE DELTA (Set 0) untuk mencegah lonjakan nilai TeraByte!
           if (rawDownloadBytes >= lastRawRx) {
             deltaRx = rawDownloadBytes - lastRawRx;
           } else {
-            deltaRx = rawDownloadBytes;
+            deltaRx = 0; // Reset aman, abaikan lonjakan negatif
           }
 
           if (rawUploadBytes >= lastRawTx) {
             deltaTx = rawUploadBytes - lastRawTx;
           } else {
-            deltaTx = rawUploadBytes;
+            deltaTx = 0; // Reset aman, abaikan lonjakan negatif
           }
 
-          // Jika ada pemakaian data baru, simpan ke database
+          // Batasi kewajaran delta per 15 detik (maksimal setara 1 Gbps penuh = ~1.8 GB per 15 detik)
+          const MAX_WLAN_DELTA_BYTES = 2000 * 1024 * 1024; 
+          if (deltaRx > MAX_WLAN_DELTA_BYTES) deltaRx = 0;
+          if (deltaTx > MAX_WLAN_DELTA_BYTES) deltaTx = 0;
+
           if (deltaRx > 0 || deltaTx > 0) {
             db.prepare(`
               UPDATE customers 
@@ -10395,7 +10576,6 @@ setInterval(async () => {
 
             totalUpdated++;
           } else if (lastRawRx === 0 && lastRawTx === 0 && (rawDownloadBytes > 0 || rawUploadBytes > 0)) {
-            // Inisialisasi awal baseline counter jika baru pertama kali terbaca
             db.prepare(`
               UPDATE customers 
               SET last_raw_rx = ?, last_raw_tx = ? 
@@ -10411,14 +10591,11 @@ setInterval(async () => {
         }
       }
     }
-
-    if (totalUpdated > 0) {
-      logger.info(`[Traffic Worker] Berhasil memperbarui kuota ${totalUpdated} pelanggan aktif di latar belakang.`);
-    }
   } catch (err) {
     logger.error(`[Traffic Worker] Error: ${err.message}`);
   }
 }, backgroundTrafficWorkerInterval);
+// ==================== [AKHIR: BACKGROUND WORKER TRAFIK ANTI-LONJAKAN / ANTI-TB] ====================
 // ============================================================================
 
 /* ========================================================================= */

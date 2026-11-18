@@ -73,6 +73,57 @@ function builtinRowToDevice(row) {
   return device;
 }
 
+// === AWAL TAMBAHAN: HELPER RESOLUSI PELANGGAN BILLING DARI DATA TR-069 ===
+/**
+ * Mencari data pelanggan di tabel `customers` SQLite berdasarkan PPPoE username, SN, Tag, atau No HP
+ */
+function findCustomerForDevice(pppoeUsername, serialNumber, deviceId, tags = []) {
+  try {
+    // 1. Prioritas Utama: Cari berdasarkan PPPoE username
+    if (pppoeUsername && pppoeUsername !== 'Unknown' && pppoeUsername !== '-') {
+      const cleanPppoe = String(pppoeUsername).trim();
+      const row = db.prepare(
+        'SELECT id, name, phone, address, pppoe_username, area FROM customers WHERE LOWER(pppoe_username) = LOWER(?) LIMIT 1'
+      ).get(cleanPppoe);
+      if (row) return row;
+    }
+
+    // 2. Prioritas Kedua: Cari berdasarkan Serial Number / Tag / MAC
+    const cleanSn = String(serialNumber || '').trim();
+    if (cleanSn && cleanSn !== 'Unknown' && cleanSn.length >= 4) {
+      const row = db.prepare(
+        'SELECT id, name, phone, address, pppoe_username, area FROM customers WHERE genieacs_tag = ? OR mac_address = ? LIMIT 1'
+      ).get(cleanSn, cleanSn);
+      if (row) return row;
+    }
+
+    // 3. Prioritas Ketiga: Cari dari kumpulan Tag GenieACS
+    if (Array.isArray(tags) && tags.length > 0) {
+      for (const tag of tags) {
+        if (!tag) continue;
+        const cleanTag = String(tag).trim();
+        const row = db.prepare(
+          'SELECT id, name, phone, address, pppoe_username, area FROM customers WHERE genieacs_tag = ? OR pppoe_username = ? OR phone LIKE ? LIMIT 1'
+        ).get(cleanTag, cleanTag, `%${cleanTag}%`);
+        if (row) return row;
+      }
+    }
+
+    // 4. Prioritas Keempat: Cocokkan Device ID (misal ZTE-00259E) ke tag
+    if (deviceId) {
+      const shortId = deviceId.split('-')[2] || deviceId;
+      const row = db.prepare(
+        'SELECT id, name, phone, address, pppoe_username, area FROM customers WHERE genieacs_tag LIKE ? LIMIT 1'
+      ).get(`%${shortId}%`);
+      if (row) return row;
+    }
+  } catch (err) {
+    logger.debug(`[GenieACS Monitoring] Error matching customer: ${err.message}`);
+  }
+  return null;
+}
+// === AKHIR TAMBAHAN: HELPER RESOLUSI PELANGGAN BILLING ===
+
 /** Parse GenieACS-style query filter for SQLite */
 function matchesQuery(device, query) {
   if (!query || Object.keys(query).length === 0) return true;
@@ -799,365 +850,332 @@ const genieacsApi = {
     },
 };
 
-// Fungsi untuk memeriksa nilai RXPower dari semua perangkat
-async function monitorRXPower(threshold = -27) {
-    try {
-        logger.info(`[RXPower] Memulai pemantauan RXPower dengan threshold ${threshold} dBm`);
-        
-        // Ambil semua perangkat
-        const devices = await genieacsApi.getDevices();
-        logger.info(`[RXPower] Memeriksa RXPower untuk ${devices.length} perangkat...`);
-        
-        // Ambil data PPPoE dari Mikrotik
-        logger.debug('[RXPower] Mengambil data PPPoE dari Mikrotik...');
-        // const conn = await getMikrotikConnection(); // Removed Mikrotik connection
-        let pppoeSecrets = [];
-        
-        // if (conn) { // Removed Mikrotik connection
-        //     try {
-        //         // Dapatkan semua PPPoE secret dari Mikrotik
-        //         pppoeSecrets = await conn.write('/ppp/secret/print');
-        //         console.log(`Ditemukan ${pppoeSecrets.length} PPPoE secret`);
-        //     } catch (error) {
-        //         console.error('Error mendapatkan PPPoE secret:', error.message);
-        //     }
-        // }
-        
-        const criticalDevices = [];
-        
-        // Periksa setiap perangkat
-        for (const device of devices) {
-            try {
-                // Dapatkan nilai RXPower
-                const rxPowerPaths = [
-                    'VirtualParameters.RXPower',
-                    'VirtualParameters.redaman',
-                    'InternetGatewayDevice.WANDevice.1.WANPONInterfaceConfig.RXPower',
-                    'Device.XPON.Interface.1.Stats.RXPower'
-                ];
-                
-                let rxPower = null;
-                
-                // Periksa setiap jalur yang mungkin berisi nilai RXPower
-                for (const path of rxPowerPaths) {
-                    // Ekstrak nilai menggunakan path yang ada di device
-                    if (getRXPowerValue(device, path)) {
-                        rxPower = getRXPowerValue(device, path);
-                        break;
-                    }
-                }
-                
-                // Jika rxPower ditemukan dan di bawah threshold
-                if (rxPower !== null && parseFloat(rxPower) < threshold) {
-                    // Cari PPPoE username dari parameter perangkat (seperti di handleAdminCheckONU)
-                    let pppoeUsername = "Unknown";
-                    const serialNumber = getDeviceSerialNumber(device);
-                    const deviceId = device._id;
-                    const shortDeviceId = deviceId.split('-')[2] || deviceId;
-                    
-                    // Ambil PPPoE username dari parameter perangkat
-                    pppoeUsername = 
-                        device.InternetGatewayDevice?.WANDevice?.['1']?.WANConnectionDevice?.['1']?.WANPPPConnection?.['1']?.Username?._value ||
-                        device.InternetGatewayDevice?.WANDevice?.['0']?.WANConnectionDevice?.['0']?.WANPPPConnection?.['0']?.Username?._value ||
-                        device.VirtualParameters?.pppoeUsername?._value ||
-                        "Unknown";
-                    
-                    // Jika tidak ditemukan dari parameter perangkat, coba cari dari PPPoE secret di Mikrotik
-                    if (pppoeUsername === "Unknown") {
-                        // Coba cari PPPoE secret yang terkait dengan perangkat ini berdasarkan comment
-                        const matchingSecret = pppoeSecrets.find(secret => {
-                            if (!secret.comment) return false;
-                            
-                            // Cek apakah serial number atau device ID ada di kolom comment
-                            return (
-                                secret.comment.includes(serialNumber) || 
-                                secret.comment.includes(shortDeviceId)
-                            );
-                        });
-                        
-                        if (matchingSecret) {
-                            // Jika ditemukan secret yang cocok, gunakan nama secret sebagai username
-                            pppoeUsername = matchingSecret.name;
-                            logger.debug(`[RXPower] Menemukan PPPoE username ${pppoeUsername} untuk perangkat ${shortDeviceId} dari PPPoE secret`);
-                        }
-                    } else {
-                        logger.debug(`[RXPower] Menemukan PPPoE username ${pppoeUsername} untuk perangkat ${shortDeviceId} dari parameter perangkat`);
-                    }
-                    
-                    // Jika masih tidak ditemukan, coba cari dari tag perangkat
-                    if (pppoeUsername === "Unknown" && device._tags && Array.isArray(device._tags)) {
-                        // Cek apakah ada tag yang dimulai dengan "pppoe:" yang berisi username
-                        const pppoeTag = device._tags.find(tag => tag.startsWith('pppoe:'));
-                        if (pppoeTag) {
-                            pppoeUsername = pppoeTag.replace('pppoe:', '');
-                            logger.debug(`[RXPower] Menemukan PPPoE username ${pppoeUsername} untuk perangkat ${shortDeviceId} dari tag`);
-                        } else {
-                            logger.debug(`[RXPower] Tidak menemukan PPPoE username untuk perangkat ${shortDeviceId}, tags: ${JSON.stringify(device._tags)}`);
-                        }
-                    }
-                    
-                    const deviceInfo = {
-                        id: device._id,
-                        rxPower,
-                        serialNumber: getDeviceSerialNumber(device),
-                        lastInform: device._lastInform,
-                        pppoeUsername: pppoeUsername
-                    };
-                    
-                    criticalDevices.push(deviceInfo);
-                    logger.info(`[RXPower] Perangkat redaman tinggi: ${deviceInfo.id}, RXPower: ${rxPower} dBm, PPPoE: ${pppoeUsername}`);
-                }
-            } catch (deviceError) {
-                logger.error(`[RXPower] Error memeriksa RXPower untuk perangkat ${device._id}: ${deviceError.message || String(deviceError)}`);
-            }
-        }
-        
-        // Jika ada perangkat dengan RXPower di bawah threshold
-        if (criticalDevices.length > 0) {
-            // Buat pesan peringatan
-            let message = `*PERINGATAN: REDAMAN TINGGI*\n\n`;
-            message += `${criticalDevices.length} perangkat memiliki nilai RX Power lebih buruk dari ${threshold} dBm (semakin negatif = semakin buruk):\n\n`;
-            
-            criticalDevices.forEach((device, index) => {
-                message += `${index + 1}. *Device ID:* ${device.id.split('-')[2] || device.id}\n`;
-                message += `   📱 *S/N:* ${device.serialNumber}\n`;
-                message += `   👤 *PPPoE:* ${device.pppoeUsername}\n`;
-                message += `   📡 *RX Power:* ${device.rxPower} dBm\n`;
-                message += `   🕒 *Last Inform:* ${new Date(device.lastInform).toLocaleString('id-ID')}\n\n`;
-            });
-            
-            message += `⚠️ *Mohon segera dicek untuk menghindari koneksi terputus.*`;
-            
-            // Kirim notifikasi WhatsApp jika tersedia
-            if (sendMonitoringAlert) {
-                try {
-                    const result = await sendMonitoringAlert(message, 'high');
-                    if (result.success) {
-                        logger.info(`[RXPower] Notifikasi WhatsApp terkirim: ${result.message}`);
-                    } else {
-                        logger.warn(`[RXPower] Gagal mengirim notifikasi WhatsApp: ${result.message}`);
-                    }
-                } catch (error) {
-                    logger.error(`[RXPower] Error mengirim notifikasi WhatsApp: ${error.message}`);
-                }
-            } else {
-                logger.warn('[RXPower] WhatsApp bot tidak tersedia untuk mengirim notifikasi');
-            }
-            
-            logger.info(`[RXPower] Pesan peringatan dibuat untuk ${criticalDevices.length} perangkat`);
-        } else {
-            logger.info('[RXPower] Tidak ada perangkat dengan nilai RXPower di bawah threshold');
-        }
-        
-        return {
-            success: true,
-            criticalDevices,
-            message: `${criticalDevices.length} perangkat memiliki RXPower di atas threshold`
-        };
-    } catch (error) {
-        logger.error(`[RXPower] Error memantau RXPower: ${error.message || String(error)}`);
-        return {
-            success: false,
-            message: `Error memantau RXPower: ${error.message}`,
-            error
-        };
+// === AWAL PERUBAHAN: MONITORING REDAMAN TINGGI TERINTEGRASI TEMPLATE & PELANGGAN ===
+async function monitorRXPower(thresholdParam = null) {
+  try {
+    // 1. Cek Saklar ON/OFF Monitoring
+    const isEnabled = getSetting('genieacs_monitoring_enabled', false);
+    if (!isEnabled) {
+      logger.debug('[RXPower] Monitoring alert sedang dinonaktifkan di pengaturan.');
+      return { success: true, message: 'Monitoring disabled' };
     }
+
+    // Ambil threshold dari settings jika tidak dipassing khusus
+    const threshold = thresholdParam !== null ? thresholdParam : parseFloat(getSetting('genieacs_rxpower_threshold', -27));
+    logger.info(`[RXPower] Memulai pemantauan RXPower dengan threshold ${threshold} dBm`);
+
+    const devices = await genieacsApi.getDevices();
+    const criticalDevices = [];
+
+    for (const device of devices) {
+      try {
+        const rxPowerPaths = [
+          'VirtualParameters.RXPower',
+          'VirtualParameters.redaman',
+          'InternetGatewayDevice.WANDevice.1.WANPONInterfaceConfig.RXPower',
+          'Device.XPON.Interface.1.Stats.RXPower'
+        ];
+
+        let rxPower = null;
+        for (const path of rxPowerPaths) {
+          const val = getRXPowerValue(device, path);
+          if (val !== null && val !== undefined && val !== '') {
+            rxPower = val;
+            break;
+          }
+        }
+
+        if (rxPower !== null && parseFloat(rxPower) < threshold) {
+          const serialNumber = getDeviceSerialNumber(device);
+          const deviceId = device._id;
+          const shortDeviceId = deviceId.split('-')[2] || deviceId;
+
+          // Ambil PPPoE username dari TR-069 jika ada
+          let pppoeUsername =
+            device.InternetGatewayDevice?.WANDevice?.['1']?.WANConnectionDevice?.['1']?.WANPPPConnection?.['1']?.Username?._value ||
+            device.InternetGatewayDevice?.WANDevice?.['0']?.WANConnectionDevice?.['0']?.WANPPPConnection?.['0']?.Username?._value ||
+            device.VirtualParameters?.pppoeUsername?._value ||
+            'Unknown';
+
+          // Jika PPPoE masih Unknown, cari dari tag
+          if (pppoeUsername === 'Unknown' && Array.isArray(device._tags)) {
+            const pppTag = device._tags.find(t => t.startsWith('pppoe:'));
+            if (pppTag) pppoeUsername = pppTag.replace('pppoe:', '');
+          }
+
+          // Cari data lengkap pelanggan dari database billing
+          const customer = findCustomerForDevice(pppoeUsername, serialNumber, deviceId, device._tags);
+
+          criticalDevices.push({
+            id: device._id,
+            shortId: shortDeviceId,
+            rxPower,
+            serialNumber,
+            lastInform: device._lastInform,
+            customerName: customer ? customer.name : 'Belum Terdaftar di Billing',
+            pppoeUsername: (customer && customer.pppoe_username) ? customer.pppoe_username : pppoeUsername,
+            address: (customer && customer.address) ? customer.address : '-',
+            phone: (customer && customer.phone) ? customer.phone : '-'
+          });
+        }
+      } catch (deviceError) {
+        logger.error(`[RXPower] Error memeriksa perangkat ${device._id}: ${deviceError.message}`);
+      }
+    }
+
+    if (criticalDevices.length > 0) {
+      // 2. Susun Baris Daftar Perangkat Lengkap
+      let daftarPerangkatText = '';
+      criticalDevices.forEach((d, idx) => {
+        daftarPerangkatText += `${idx + 1}. 👤 *${d.customerName}* (PPPoE: \`${d.pppoeUsername}\`)\n`;
+        daftarPerangkatText += `   📍 *Alamat:* ${d.address}\n`;
+        if (d.phone && d.phone !== '-') daftarPerangkatText += `   📞 *No. WA:* ${d.phone}\n`;
+        daftarPerangkatText += `   📡 *RX Power:* *${d.rxPower} dBm*\n`;
+        daftarPerangkatText += `   📟 *SN:* ${d.serialNumber} (ID: ${d.shortId})\n`;
+        daftarPerangkatText += `   🕒 *Last Inform:* ${d.lastInform ? new Date(d.lastInform).toLocaleString('id-ID') : '-'}\n\n`;
+      });
+
+      // 3. Ambil Template dari Database
+      const defaultRedamanTmpl = 
+`🚨 *PERINGATAN: REDAMAN TINGGI (DROP RX)*
+Total: {{total_redaman}} Perangkat (Drop < {{threshold}} dBm)
+
+{{daftar_perangkat}}
+Mohon segera diperiksa redaman / kabel optiknya.
+_Sistem Monitoring {{company}}_`;
+
+      let tmpl = db.getAppSetting('whatsapp_device_rxpower_message', defaultRedamanTmpl) || defaultRedamanTmpl;
+      const companyName = getSetting('company_header', 'Internet Service');
+
+      let finalMessage = tmpl
+        .replace(/{{daftar_perangkat}}/gi, daftarPerangkatText)
+        .replace(/{{total_redaman}}/gi, String(criticalDevices.length))
+        .replace(/{{threshold}}/gi, String(threshold))
+        .replace(/{{company}}/gi, companyName);
+
+      // 4. Kirim Alert ke Admin & Seluruh Teknisi
+      if (sendMonitoringAlert) {
+        try {
+          const result = await sendMonitoringAlert(finalMessage, 'high');
+          logger.info(`[RXPower] Alert terkirim ke Admin & Teknisi: ${result.message}`);
+        } catch (err) {
+          logger.error(`[RXPower] Gagal kirim WA alert: ${err.message}`);
+        }
+      }
+    } else {
+      logger.info('[RXPower] Semua perangkat dalam batas redaman normal.');
+    }
+
+    return { success: true, count: criticalDevices.length };
+  } catch (error) {
+    logger.error(`[RXPower] Error monitoring: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+}
+
+// === AWAL FUNGSI HELPER GENIEACS SERIAL NUMBER & RXPOWER ===
+// Helper function untuk mendapatkan serial number dari perangkat
+function getDeviceSerialNumber(device) {
+  try {
+    const serialPaths = [
+      'DeviceID.SerialNumber',
+      'InternetGatewayDevice.DeviceInfo.SerialNumber',
+      'Device.DeviceInfo.SerialNumber'
+    ];
+    
+    for (const path of serialPaths) {
+      const parts = path.split('.');
+      let current = device;
+      
+      for (const part of parts) {
+        if (!current) break;
+        current = current[part];
+      }
+      
+      if (current && current._value !== undefined) {
+        return current._value;
+      }
+    }
+    
+    // Fallback ke ID perangkat jika serial number tidak ditemukan di parameter
+    if (device && device._id) {
+      const parts = device._id.split('-');
+      if (parts.length >= 3) {
+        return parts[2];
+      }
+      return device._id;
+    }
+    
+    return 'Unknown';
+  } catch (error) {
+    logger.error('Error getting device serial number:', error);
+    return 'Unknown';
+  }
 }
 
 // Helper function untuk mendapatkan nilai RXPower
 function getRXPowerValue(device, path) {
-    try {
-        // Split path menjadi parts
-        const parts = path.split('.');
-        let current = device;
-        
-        // Navigate through nested properties
-        for (const part of parts) {
-            if (!current) return null;
-            current = current[part];
-        }
-        
-        // Check if it's a GenieACS parameter object
-        if (current && current._value !== undefined) {
-            return current._value;
-        }
-        
-        return null;
-    } catch (error) {
-        logger.debug(`[RXPower] Error getting RXPower from path ${path}: ${error.message || String(error)}`);
-        return null;
+  try {
+    const parts = path.split('.');
+    let current = device;
+    
+    for (const part of parts) {
+      if (!current) return null;
+      current = current[part];
     }
+    
+    if (current && current._value !== undefined) {
+      return current._value;
+    }
+    
+    return null;
+  } catch (error) {
+    return null;
+  }
+}
+// === AKHIR FUNGSI HELPER GENIEACS SERIAL NUMBER & RXPOWER ===
+
+// === MONITORING PERANGKAT OFFLINE TERINTEGRASI TEMPLATE & PELANGGAN ===
+async function monitorOfflineDevices(thresholdHoursParam = null) {
+  try {
+    // 1. Cek Saklar ON/OFF Monitoring
+    const isEnabled = getSetting('genieacs_monitoring_enabled', false);
+    if (!isEnabled) {
+      logger.debug('[Offline] Monitoring alert sedang dinonaktifkan di pengaturan.');
+      return { success: true, message: 'Monitoring disabled' };
+    }
+
+    const thresholdHours = thresholdHoursParam !== null ? thresholdHoursParam : parseInt(getSetting('genieacs_offline_threshold_hours', 24), 10);
+    logger.info(`[Offline] Memulai pemantauan perangkat offline (> ${thresholdHours} jam)`);
+
+    const devices = await genieacsApi.getDevices();
+    const offlineDevices = [];
+    const now = new Date();
+    const thresholdMs = thresholdHours * 60 * 60 * 1000;
+
+    for (const device of devices) {
+      try {
+        if (!device._lastInform) continue;
+
+        const lastInformTime = new Date(device._lastInform).getTime();
+        const timeDiff = now.getTime() - lastInformTime;
+
+        if (timeDiff > thresholdMs) {
+          const serialNumber = getDeviceSerialNumber(device);
+          const deviceId = device._id;
+          const shortDeviceId = deviceId.split('-')[2] || deviceId;
+
+          let pppoeUsername =
+            device.InternetGatewayDevice?.WANDevice?.['1']?.WANConnectionDevice?.['1']?.WANPPPConnection?.['1']?.Username?._value ||
+            device.InternetGatewayDevice?.WANDevice?.['0']?.WANConnectionDevice?.['0']?.WANPPPConnection?.['0']?.Username?._value ||
+            device.VirtualParameters?.pppoeUsername?._value ||
+            'Unknown';
+
+          if (pppoeUsername === 'Unknown' && Array.isArray(device._tags)) {
+            const pppTag = device._tags.find(t => t.startsWith('pppoe:'));
+            if (pppTag) pppoeUsername = pppTag.replace('pppoe:', '');
+          }
+
+          // Cari data lengkap pelanggan dari database billing
+          const customer = findCustomerForDevice(pppoeUsername, serialNumber, deviceId, device._tags);
+
+          offlineDevices.push({
+            id: device._id,
+            shortId: shortDeviceId,
+            serialNumber,
+            lastInform: device._lastInform,
+            offlineHours: Math.round(timeDiff / (60 * 60 * 1000) * 10) / 10,
+            customerName: customer ? customer.name : 'Belum Terdaftar di Billing',
+            pppoeUsername: (customer && customer.pppoe_username) ? customer.pppoe_username : pppoeUsername,
+            address: (customer && customer.address) ? customer.address : '-',
+            phone: (customer && customer.phone) ? customer.phone : '-'
+          });
+        }
+      } catch (deviceError) {
+        logger.error(`[Offline] Error memeriksa perangkat ${device._id}: ${deviceError.message}`);
+      }
+    }
+
+    if (offlineDevices.length > 0) {
+      // 2. Susun Baris Daftar Perangkat Offline
+      let daftarPerangkatText = '';
+      offlineDevices.forEach((d, idx) => {
+        daftarPerangkatText += `${idx + 1}. 👤 *${d.customerName}* (PPPoE: \`${d.pppoeUsername}\`)\n`;
+        daftarPerangkatText += `   📍 *Alamat:* ${d.address}\n`;
+        if (d.phone && d.phone !== '-') daftarPerangkatText += `   📞 *No. WA:* ${d.phone}\n`;
+        daftarPerangkatText += `   ⏱️ *Offline:* *${d.offlineHours} Jam*\n`;
+        daftarPerangkatText += `   📟 *SN:* ${d.serialNumber} (ID: ${d.shortId})\n`;
+        daftarPerangkatText += `   🕒 *Last Inform:* ${d.lastInform ? new Date(d.lastInform).toLocaleString('id-ID') : '-'}\n\n`;
+      });
+
+      // 3. Ambil Template dari Database
+      const defaultOfflineTmpl = 
+`⚠️ *PERINGATAN: PERANGKAT OFFLINE*
+Total: {{total_offline}} Perangkat (> {{threshold_jam}} Jam)
+
+{{daftar_perangkat}}
+Mohon tim teknisi segera melakukan pengecekan lapangan.
+_Sistem Monitoring {{company}}_`;
+
+      let tmpl = db.getAppSetting('whatsapp_device_offline_message', defaultOfflineTmpl) || defaultOfflineTmpl;
+      const companyName = getSetting('company_header', 'Internet Service');
+
+      let finalMessage = tmpl
+        .replace(/{{daftar_perangkat}}/gi, daftarPerangkatText)
+        .replace(/{{total_offline}}/gi, String(offlineDevices.length))
+        .replace(/{{threshold_jam}}/gi, String(thresholdHours))
+        .replace(/{{company}}/gi, companyName);
+
+      // 4. Kirim Alert ke Admin & Seluruh Teknisi
+      if (sendMonitoringAlert) {
+        try {
+          const result = await sendMonitoringAlert(finalMessage, 'medium');
+          logger.info(`[Offline] Alert terkirim ke Admin & Teknisi: ${result.message}`);
+        } catch (err) {
+          logger.error(`[Offline] Gagal kirim WA alert: ${err.message}`);
+        }
+      }
+    } else {
+      logger.info('[Offline] Tidak ada perangkat yang offline melebihi batas threshold.');
+    }
+
+    return { success: true, count: offlineDevices.length };
+  } catch (error) {
+    logger.error(`[Offline] Error monitoring: ${error.message}`);
+    return { success: false, error: error.message };
+  }
 }
 
-// Helper function untuk mendapatkan serial number
-function getDeviceSerialNumber(device) {
-    try {
-        const serialPaths = [
-            'DeviceID.SerialNumber',
-            'InternetGatewayDevice.DeviceInfo.SerialNumber',
-            'Device.DeviceInfo.SerialNumber'
-        ];
-        
-        for (const path of serialPaths) {
-            const parts = path.split('.');
-            let current = device;
-            
-            for (const part of parts) {
-                if (!current) break;
-                current = current[part];
-            }
-            
-            if (current && current._value !== undefined) {
-                return current._value;
-            }
-        }
-        
-        // Fallback ke ID perangkat jika serial number tidak ditemukan
-        if (device._id) {
-            const parts = device._id.split('-');
-            if (parts.length >= 3) {
-                return parts[2];
-            }
-            return device._id;
-        }
-        
-        return 'Unknown';
-    } catch (error) {
-        logger.error('Error getting device serial number:', error);
-        return 'Unknown';
-    }
-}
-
-// Fungsi untuk memantau perangkat yang tidak aktif (offline)
-async function monitorOfflineDevices(thresholdHours = 24) {
-    try {
-        logger.info(`[Offline] Memulai pemantauan perangkat offline dengan threshold ${thresholdHours} jam`);
-        
-        // Ambil semua perangkat
-        const devices = await genieacsApi.getDevices();
-        logger.info(`[Offline] Memeriksa status untuk ${devices.length} perangkat...`);
-        
-        const offlineDevices = [];
-        const now = new Date();
-        const thresholdMs = thresholdHours * 60 * 60 * 1000; // Convert jam ke ms
-        
-        // Periksa setiap perangkat
-        for (const device of devices) {
-            try {
-                if (!device._lastInform) {
-                    logger.info(`[Offline] Perangkat ${device._id} tidak memiliki lastInform`);
-                    continue;
-                }
-                
-                const lastInformTime = new Date(device._lastInform).getTime();
-                const timeDiff = now.getTime() - lastInformTime;
-                
-                // Jika perangkat belum melakukan inform dalam waktu yang melebihi threshold
-                if (timeDiff > thresholdMs) {
-                    const deviceInfo = {
-                        id: device._id,
-                        serialNumber: getDeviceSerialNumber(device),
-                        lastInform: device._lastInform,
-                        offlineHours: Math.round(timeDiff / (60 * 60 * 1000) * 10) / 10 // Jam dengan 1 desimal
-                    };
-                    
-                    offlineDevices.push(deviceInfo);
-                    logger.info(`[Offline] Perangkat offline: ${deviceInfo.id}, Offline selama: ${deviceInfo.offlineHours} jam`);
-                }
-            } catch (deviceError) {
-                logger.error(`[Offline] Error memeriksa status untuk perangkat ${device._id}: ${deviceError.message || String(deviceError)}`);
-            }
-        }
-        
-        // Jika ada perangkat yang offline
-        if (offlineDevices.length > 0) {
-            // Buat pesan peringatan
-            let message = `*PERINGATAN: PERANGKAT OFFLINE*\n\n`;
-            message += `${offlineDevices.length} perangkat offline lebih dari ${thresholdHours} jam:\n\n`;
-            
-            offlineDevices.forEach((device, index) => {
-                message += `${index + 1}. *Device ID:* ${device.id.split('-')[2] || device.id}\n`;
-                message += `   📱 *S/N:* ${device.serialNumber}\n`;
-                message += `   ⏱️ *Offline:* ${device.offlineHours} jam\n`;
-                message += `   🕒 *Last Inform:* ${new Date(device.lastInform).toLocaleString('id-ID')}\n\n`;
-            });
-            
-            message += `⚠️ *Mohon segera ditindaklanjuti.*`;
-            
-            // Kirim notifikasi WhatsApp jika tersedia
-            if (sendMonitoringAlert) {
-                try {
-                    const result = await sendMonitoringAlert(message, 'medium');
-                    if (result.success) {
-                        logger.info(`[Offline] Notifikasi WhatsApp terkirim: ${result.message}`);
-                    } else {
-                        logger.warn(`[Offline] Gagal mengirim notifikasi WhatsApp: ${result.message}`);
-                    }
-                } catch (error) {
-                    logger.error(`[Offline] Error mengirim notifikasi WhatsApp: ${error.message}`);
-                }
-            } else {
-                logger.warn('[Offline] WhatsApp bot tidak tersedia untuk mengirim notifikasi');
-            }
-            
-            logger.info(`[Offline] Pesan peringatan perangkat offline terkirim untuk ${offlineDevices.length} perangkat`);
-        } else {
-            logger.info('[Offline] Tidak ada perangkat yang offline lebih dari threshold');
-        }
-        
-        return {
-            success: true,
-            offlineDevices,
-            message: `${offlineDevices.length} perangkat offline lebih dari ${thresholdHours} jam`
-        };
-    } catch (error) {
-        logger.error(`[Offline] Error memantau perangkat offline: ${error.message || String(error)}`);
-        return {
-            success: false,
-            message: `Error memantau perangkat offline: ${error.message}`,
-            error
-        };
-    }
-}
-
-// Jadwalkan monitoring setiap 6 jam
+// === PENJADWALAN DINAMIS SESUAI INTERVAL DATABASE ===
 function scheduleMonitoring() {
-    // Jalankan sekali saat startup (delay lebih lama untuk stabilitas)
-    setTimeout(async () => {
-        logger.info('[Monitoring] Menjalankan pemantauan RXPower awal...');
-        try {
-            await monitorRXPower();
-        } catch (error) {
-            logger.error('[Monitoring] Error pada pemantauan RXPower awal:', error.message);
-        }
-        
-        logger.info('[Monitoring] Menjalankan pemantauan perangkat offline awal...');
-        try {
-            await monitorOfflineDevices();
-        } catch (error) {
-            logger.error('[Monitoring] Error pada pemantauan offline awal:', error.message);
-        }
-        
-        // Jadwalkan secara berkala dengan error handling
-        setInterval(async () => {
-            logger.info('[Monitoring] Menjalankan pemantauan RXPower terjadwal...');
-            try {
-                await monitorRXPower();
-            } catch (error) {
-                logger.error('[Monitoring] Error pada pemantauan RXPower:', error.message);
-            }
-        }, 6 * 60 * 60 * 1000); // Setiap 6 jam
-        
-        setInterval(async () => {
-            logger.info('[Monitoring] Menjalankan pemantauan perangkat offline terjadwal...');
-            try {
-                await monitorOfflineDevices();
-            } catch (error) {
-                logger.error('[Monitoring] Error pada pemantauan offline:', error.message);
-            }
-        }, 12 * 60 * 60 * 1000); // Setiap 12 jam
-    }, 10 * 60 * 1000); // Mulai 10 menit setelah server berjalan (lebih stabil)
+  // Jalankan 5 menit setelah aplikasi start (agar Baileys & database terkoneksi sempurna)
+  setTimeout(async () => {
+    try {
+      await monitorRXPower();
+      await monitorOfflineDevices();
+    } catch (e) {
+      logger.error('[Monitoring] Error pemeriksaan awal: ' + e.message);
+    }
+
+    // Interval berulang (Default: setiap 6 jam atau sesuai input di database)
+    const runScheduled = async () => {
+      try {
+        await monitorRXPower();
+        await monitorOfflineDevices();
+      } catch (e) {
+        logger.error('[Monitoring] Error pemeriksaan berkala: ' + e.message);
+      }
+      
+      // Ambil kembali interval dari setting (fleksibel jika baru diubah oleh admin)
+      const intervalHours = Math.max(1, parseInt(getSetting('genieacs_monitoring_interval_hours', 6), 10));
+      setTimeout(runScheduled, intervalHours * 60 * 60 * 1000);
+    };
+
+    const intervalHours = Math.max(1, parseInt(getSetting('genieacs_monitoring_interval_hours', 6), 10));
+    setTimeout(runScheduled, intervalHours * 60 * 60 * 1000);
+  }, 5 * 60 * 1000);
 }
+// === AKHIR PERUBAHAN: MONITORING REDAMAN TINGGI & OFFLINE ===
 
 // Jalankan penjadwalan monitoring
 scheduleMonitoring();
