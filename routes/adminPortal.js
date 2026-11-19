@@ -1131,7 +1131,8 @@ router.get('/api/customers/:id/device-info', requireAdminSession, async (req, re
       odpName: customer.odp_name || '-',
       ponPort: customer.pon_port || '-',
       tag: customer.genieacs_tag || customer.phone || '-',
-      serialNumber: '-'
+      serialNumber: '-',
+	  connectedDevices: '-' // <-- Tambahan default value
     };
 
     // 1. PRIORITAS UTAMA: AMBIL REDAMAN & JARAK LANGSUNG DARI OLT (SNMP REAL-TIME)
@@ -1167,6 +1168,12 @@ router.get('/api/customers/:id/device-info', requireAdminSession, async (req, re
           deviceInfo.model = acsData.model || acsData.productClass || '-';
           deviceInfo.ssid = acsData.ssid || '-';
           deviceInfo.serialNumber = acsData.serialNumber || '-';
+		  // === AWAL TAMBAHAN: AMBIL DATA PERANGKAT TERSAMBUNG DARI GENIEACS ===
+          const devCount = acsData.userConnected ?? acsData.totalAssociations ?? acsData.activeDevices ?? null;
+          deviceInfo.connectedDevices = (devCount !== null && devCount !== undefined && devCount !== '' && devCount !== '-') 
+            ? String(devCount) 
+            : '-';
+          // === AKHIR TAMBAHAN ===
 
           // Hanya gunakan redaman GenieACS jika OLT tidak memberikan nilai
           if ((deviceInfo.rxPower === '-' || deviceInfo.rxPower === 'N/A') && acsData.rxPower && acsData.rxPower !== 'N/A') {
@@ -1300,6 +1307,140 @@ router.post('/api/customers/:id/reboot-onu-olt', requireAdminSession, restrictTo
     return res.status(500).json({ success: false, message: err.message });
   }
 });
+
+/* ==================== [AWAL: API PING PELANGGAN DARI SERVER BILLING (OS PING)] ==================== */
+const { execFile } = require('child_process');
+
+router.post('/api/customers/:id/ping', requireAdminSession, async (req, res) => {
+  try {
+    const custId = Number(req.params.id);
+    const customer = customerSvc.getCustomerById(custId);
+    if (!customer) return res.status(404).json({ success: false, message: 'Pelanggan tidak ditemukan' });
+
+    // 1. Cari IP aktif pelanggan dari sesi MikroTik atau Static IP
+    let targetIp = String(customer.static_ip || '').trim();
+    const pppUser = String(customer.pppoe_username || '').trim().toLowerCase();
+    const hsUser = String(customer.hotspot_username || '').trim().toLowerCase();
+
+    if (!targetIp && (pppUser || hsUser)) {
+      const allRouters = mikrotikService.getAllRouters() || [];
+      for (const r of allRouters) {
+        let testConn = null;
+        try {
+          testConn = await mikrotikService.getConnection(r.id);
+          if (testConn && testConn.client) {
+            if (pppUser) {
+              const actives = await testConn.client.menu('/ppp/active').where('name', pppUser).get();
+              if (actives && actives.length > 0) {
+                targetIp = actives[0].address || actives[0]['address'] || '';
+                break;
+              }
+            }
+            if (!targetIp && hsUser) {
+              const hsAct = await testConn.client.menu('/ip/hotspot/active').where('user', hsUser).get();
+              if (hsAct && hsAct.length > 0) {
+                targetIp = hsAct[0].address || hsAct[0]['address'] || '';
+                break;
+              }
+            }
+          }
+        } catch (_) {
+        } finally {
+          if (testConn && testConn.api) {
+            try { testConn.api.close(); } catch (_) {}
+          }
+        }
+      }
+    }
+
+    if (!targetIp) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Pelanggan sedang OFFLINE atau IP belum terdeteksi.' 
+      });
+    }
+
+    logger.info(`[OS Ping] Mengeksekusi ping ke target IP: ${targetIp} dari Server Billing...`);
+
+    // 2. Jalankan perintah 'ping -c 4 <targetIp>' dari sistem operasi Linux server
+    const pingData = await new Promise((resolve) => {
+      execFile('ping', ['-c', '4', '-W', '2', targetIp], { timeout: 5000 }, (error, stdout, stderr) => {
+        if (error) {
+          resolve({ success: false, output: stdout || stderr || error.message });
+        } else {
+          resolve({ success: true, output: stdout });
+        }
+      });
+    });
+
+    if (!pingData.success && !pingData.output.includes('rtt')) {
+      return res.json({
+        success: true,
+        data: {
+          targetIp,
+          routerName: 'Server Billing (CT100)',
+          sent: 4,
+          received: 0,
+          lossPercent: 100,
+          minRtt: '-',
+          avgRtt: '-',
+          maxRtt: '-',
+          quality: 'RTO (Putus Total)'
+        }
+      });
+    }
+
+    // 3. Parser Statistik Output Ping Linux
+    const output = pingData.output;
+    let sent = 4;
+    let received = 0;
+    let lossPercent = 100;
+    let minRtt = '-';
+    let avgRtt = '-';
+    let maxRtt = '-';
+
+    const transmittedMatch = output.match(/(\d+)\s+packets transmitted/i);
+    const receivedMatch = output.match(/(\d+)\s+received/i);
+    const lossMatch = output.match(/(\d+)% packet loss/i);
+    const rttMatch = output.match(/rtt min\/avg\/max\/mdev\s*=\s*([\d.]+)\/([\d.]+)\/([\d.]+)/i);
+
+    if (transmittedMatch) sent = Number(transmittedMatch[1]);
+    if (receivedMatch) received = Number(receivedMatch[1]);
+    if (lossMatch) lossPercent = Number(lossMatch[1]);
+    else lossPercent = Math.round(((sent - received) / sent) * 100);
+
+    if (rttMatch) {
+      minRtt = `${Number(rttMatch[1]).toFixed(1)}ms`;
+      avgRtt = `${Number(rttMatch[2]).toFixed(1)}ms`;
+      maxRtt = `${Number(rttMatch[3]).toFixed(1)}ms`;
+    }
+
+    let quality = 'Stabil';
+    if (lossPercent >= 100) quality = 'RTO (Putus Total)';
+    else if (lossPercent > 0) quality = 'Kurang Stabil (Ada RTO)';
+    else quality = 'Sangat Stabil (0% Loss)';
+
+    return res.json({
+      success: true,
+      data: {
+        targetIp,
+        routerName: 'Server Billing (CT100)',
+        sent,
+        received,
+        lossPercent,
+        minRtt,
+        avgRtt,
+        maxRtt,
+        quality
+      }
+    });
+
+  } catch (err) {
+    logger.error('[OS Ping Error]: ' + err.message);
+    return res.status(500).json({ success: false, message: 'Gagal melakukan ping: ' + err.message });
+  }
+});
+/* ==================== [AKHIR: API PING PELANGGAN DARI SERVER BILLING (OS PING)] ==================== */
 
 // === JALUR PELANGGAN ===
 router.post('/api/customers/:id/cable-path', requireAdminSession, (req, res) => {

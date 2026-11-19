@@ -1282,16 +1282,22 @@
                 </div>
               </td>
             </tr>
-<!-- ==================== [AKHIR: BARIS USER, PASS, & IP DENGAN FITUR SENSOR BINTANG] ==================== -->
-            <tr>
+			<tr>
               <td class="text-muted-auto" style="padding:4px 0;">MAC / Caller-ID</td>
               <td style="padding:4px 0;">
                 <div style="display:flex; align-items:center; justify-content:space-between; gap:4px;">
-                  <code id="v_mac" style="font-weight:700; color:#d97706; font-size:11px;">-</code>
+                  <span id="v_mac_container" onclick="toggleSecretField('v_mac')" style="cursor:pointer; display:inline-flex; align-items:center; gap:4px;" title="Klik untuk menampilkan / menyembunyikan MAC Address">
+                    <code id="v_mac_masked" style="font-weight:700; color:#d97706; font-size:11px; letter-spacing:1px;">••••••••</code>
+                    <i id="v_mac_icon" class="bi bi-eye-slash text-muted-auto" style="font-size:11px;"></i>
+                  </span>
+                  <!-- Nilai asli tersembunyi untuk fungsi copy -->
+                  <span id="v_mac" style="display:none;">-</span>
                   <button type="button" class="btn btn-g btn-sm py-0 px-2" onclick="copyValue('v_mac', this)" title="Salin MAC"><i class="bi bi-copy"></i></button>
                 </div>
               </td>
             </tr>
+<!-- ==================== [AKHIR: BARIS USER, PASS, IP & MAC DENGAN FITUR SENSOR BINTANG] ==================== -->
+			
             <tr>
               <td class="text-muted-auto" style="padding:4px 0;">Router Target</td>
               <td id="v_router_name" style="padding:4px 0; font-weight:700;">-</td>
@@ -1348,6 +1354,16 @@
                 </div>
               </td>
             </tr>
+			<!-- ==================== [AWAL: BARIS PERANGKAT TERSAMBUNG GENIEACS] ==================== -->
+            <tr>
+              <td class="text-muted-auto" style="padding:4px 0;">Perangkat Konek</td>
+              <td style="padding:4px 0;">
+                <span id="v_user_connected_badge" class="badge" style="background:rgba(59,130,246,0.12); color:#2563eb; border:1px solid rgba(59,130,246,0.25); font-size:10.5px; font-weight:800; padding:2px 7px;">
+                  <i class="bi bi-phone"></i> <span id="v_user_connected_val">Memuat...</span>
+                </span>
+              </td>
+            </tr>
+<!-- ==================== [AKHIR: BARIS PERANGKAT TERSAMBUNG GENIEACS] ==================== -->
           </table>
         </div>
       </div>
@@ -1379,11 +1395,11 @@
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; text-align:center;">
               <div class="cust-subbox" style="padding:5px; border-radius:6px;">
-                <div style="font-size:8.5px; color:#0284c7; font-weight:700;"><i class="bi bi-download"></i> TOTAL RX</div>
+                <div style="font-size:8.5px; color:#0284c7; font-weight:700;"><i class="bi bi-download"></i> TOTAL DOWNLOAD RX</div>
                 <strong id="v_rx_fmt" style="font-size:11.5px; font-weight:800;">0 B</strong>
               </div>
               <div class="cust-subbox" style="padding:5px; border-radius:6px;">
-                <div style="font-size:8.5px; color:#db2777; font-weight:700;"><i class="bi bi-upload"></i> TOTAL TX</div>
+                <div style="font-size:8.5px; color:#db2777; font-weight:700;"><i class="bi bi-upload"></i> TOTAL UPLOAD TX</div>
                 <strong id="v_tx_fmt" style="font-size:11.5px; font-weight:800;">0 B</strong>
               </div>
             </div>
@@ -1398,15 +1414,22 @@
         </div>
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px;">
           <table style="width:100%; border-collapse:collapse; font-size:11.5px;">
+            <!-- ==================== [AWAL: BARIS NIK KTP SENSOR BINTANG] ==================== -->
             <tr>
               <td class="text-muted-auto" style="padding:3px 0; width:38%;">NIK / KTP</td>
               <td style="padding:3px 0;">
                 <div style="display:flex; align-items:center; justify-content:space-between; gap:4px;">
-                  <code id="v_nik" style="font-weight:700; font-size:11px;">-</code>
+                  <span id="v_nik_container" onclick="toggleSecretField('v_nik')" style="cursor:pointer; display:inline-flex; align-items:center; gap:4px;" title="Klik untuk menampilkan / menyembunyikan NIK">
+                    <code id="v_nik_masked" style="font-weight:700; color:var(--text); font-size:11px; letter-spacing:1px;">••••••••</code>
+                    <i id="v_nik_icon" class="bi bi-eye-slash text-muted-auto" style="font-size:11px;"></i>
+                  </span>
+                  <!-- Nilai asli tersembunyi untuk fungsi tombol copy -->
+                  <span id="v_nik" style="display:none;">-</span>
                   <button type="button" class="btn btn-g btn-sm py-0 px-2" onclick="copyValue('v_nik', this)" title="Salin NIK"><i class="bi bi-copy"></i></button>
                 </div>
               </td>
             </tr>
+<!-- ==================== [AKHIR: BARIS NIK KTP SENSOR BINTANG] ==================== -->
             <tr>
               <td class="text-muted-auto" style="padding:3px 0;">No. WhatsApp</td>
               <td style="padding:3px 0;">
@@ -1476,6 +1499,11 @@
         <button type="button" class="btn btn-g btn-sm" onclick="triggerRebootOnuViaOLT()" title="Reboot Modem Pelanggan Langsung Lewat OLT (Instan)">
           <i class="bi bi-power text-danger"></i> Reboot ONU
         </button>
+		
+        <!-- 5. Cek Ping Latency dari MikroTik -->
+        <button type="button" id="v_ping_btn" class="btn btn-g btn-sm" onclick="triggerCustomerPing()" title="Uji latency & ping langsung dari Router MikroTik">
+          <i class="bi bi-broadcast text-info"></i> <span id="v_ping_btn_label">Cek Ping</span>
+        </button>
 
         <!-- Form Tersembunyi untuk Eksekusi Tindakan -->
         <form id="v_disconnect_form" method="POST" action="" style="display:none;"></form>
@@ -1492,21 +1520,22 @@
 
 <!-- ==================== DIALOG KONFIRMASI MODERN (POPUP ELEGAN) ==================== -->
 <div class="mo" id="customConfirmModal" style="z-index:99999;">
-  <div class="mb" style="max-width:400px; border-radius:12px; background:var(--bg2, var(--card-bg, #ffffff)); border:1px solid var(--border); box-shadow:0 20px 40px rgba(0,0,0,0.3); padding:0; overflow:hidden;">
+  <div class="mb" style="max-width:420px; border-radius:12px; background:var(--bg2, var(--card-bg, #ffffff)); border:1px solid var(--border); box-shadow:0 20px 40px rgba(0,0,0,0.3); padding:0; overflow:hidden;">
     <div style="padding:12px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px;">
       <i class="bi bi-shield-exclamation text-warning" style="font-size:18px;"></i>
       <h6 id="customConfirmTitle" style="margin:0; font-weight:800; font-size:13.5px; color:var(--text);">Konfirmasi Tindakan</h6>
     </div>
-    <div style="padding:14px 16px;">
-      <p id="customConfirmMessage" style="margin:0; font-size:12.5px; color:var(--muted); line-height:1.5;">Apakah Anda yakin?</p>
+    <!-- Tambahan style white-space: pre-line agar karakter enter (\n) berfungsi turun ke bawah -->
+    <div style="padding:16px 18px;">
+      <p id="customConfirmMessage" style="margin:0; font-size:13px; color:var(--text); line-height:1.6; white-space: pre-line; font-family: monospace;"></p>
     </div>
     <div style="padding:10px 16px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:8px;">
-      <button type="button" class="btn btn-g btn-sm" onclick="closeModal('customConfirmModal')">Batal</button>
-      <button type="button" id="customConfirmOkBtn" class="btn btn-p btn-sm">Ya, Lanjutkan</button>
+      <button type="button" class="btn btn-g btn-sm" onclick="closeModal('customConfirmModal')">Tutup / Batal</button>
+      <button type="button" id="customConfirmOkBtn" class="btn btn-p btn-sm" style="display:none;">Ya, Lanjutkan</button>
     </div>
   </div>
 </div>
-<!-- ==================== [AKHIR: BLOK MODAL DETAIL FIX HEADER RAMPING & TANPA ABU] ==================== -->
+<!-- ==================== [AKHIR: DIALOG KONFIRMASI MODERN] ==================== -->
 <!-- ==================== [AWAL: MODAL INPUT PROMPT KUSTOM UNTUK WIFI & PASSWORD] ==================== -->
 <div class="mo" id="customPromptModal" style="z-index:99999;">
   <div class="mb" style="max-width:420px; border-radius:12px; background:var(--bg2, var(--card-bg, #ffffff)); border:1px solid var(--border); box-shadow:0 20px 45px rgba(0,0,0,0.3); padding:0; overflow:hidden;">
@@ -1785,13 +1814,21 @@ function showModernConfirm(title, message, onOk) {
   if (mEl) mEl.textContent = message || 'Apakah Anda yakin ingin melanjutkan?';
   
   customConfirmCallback = onOk;
+  
   if (okBtn) {
-    okBtn.onclick = function() {
-      closeModal('customConfirmModal');
-      if (typeof customConfirmCallback === 'function') {
-        customConfirmCallback();
-      }
-    };
+    if (typeof onOk === 'function') {
+      okBtn.style.display = 'inline-flex';
+      okBtn.textContent = 'Ya, Lanjutkan';
+      okBtn.onclick = function() {
+        closeModal('customConfirmModal');
+        if (typeof customConfirmCallback === 'function') {
+          customConfirmCallback();
+        }
+      };
+    } else {
+      // Sembunyikan tombol 'Ya, Lanjutkan' jika hanya berupa pesan informasi (seperti Cek Ping)
+      okBtn.style.display = 'none';
+    }
   }
   openModal('customConfirmModal');
 }
@@ -1982,15 +2019,18 @@ async function viewCustDetail(idx) {
     const rawUser = c.pppoe_username || c.hotspot_username || '-';
     const rawPass = c.pppoe_password || c.hotspot_password || '-';
     const rawIp = (session && session.ip) ? session.ip : (c.static_ip || '-');
+    const rawMac = (session && session.callerId) ? session.callerId : (c.mac_address || '-');
 
     if (document.getElementById('v_username')) document.getElementById('v_username').textContent = rawUser;
     if (document.getElementById('v_password')) document.getElementById('v_password').textContent = rawPass;
     if (document.getElementById('v_ip')) document.getElementById('v_ip').textContent = rawIp;
+    if (document.getElementById('v_mac')) document.getElementById('v_mac').textContent = rawMac;
 
-    // Set kondisi awal: SELALU TERTUTUP BINTANG (HIDDEN / MASKED) UNTUK PRIVASI
+    // Reset keempat field kembali disensor bintang
     resetSecretField('v_username', rawUser);
     resetSecretField('v_password', rawPass);
     resetSecretField('v_ip', rawIp);
+    resetSecretField('v_mac', rawMac);
 
     if (document.getElementById('v_mac')) document.getElementById('v_mac').textContent = (session && session.callerId) ? session.callerId : (c.mac_address || '-');
     
@@ -2000,7 +2040,12 @@ async function viewCustDetail(idx) {
 // ==================== [AKHIR: DATA MIKROTIK AUTO-MASKED SENSOR BINTANG] ====================
 
     // Data Kolom Pribadi & Keuangan
-    if (document.getElementById('v_nik')) document.getElementById('v_nik').textContent = c.nik || '-';
+    // ==================== [AWAL: INISIALISASI SENSOR NIK KTP] ====================
+    // Data Kolom Pribadi & Keuangan
+    const rawNik = c.nik || '-';
+    if (document.getElementById('v_nik')) document.getElementById('v_nik').textContent = rawNik;
+    resetSecretField('v_nik', rawNik);
+// ==================== [AKHIR: INISIALISASI SENSOR NIK KTP] ====================
     if (document.getElementById('v_phone')) document.getElementById('v_phone').textContent = c.phone || '-';
     if (document.getElementById('v_address_area')) document.getElementById('v_address_area').textContent = (c.address || '-') + (c.area ? ` [Area: ${c.area}]` : '');
     if (document.getElementById('v_genieacs')) document.getElementById('v_genieacs').textContent = c.genieacs_tag || '-';
@@ -2072,8 +2117,11 @@ async function refreshCustomerDeviceInfo() {
     const odpName = document.getElementById('v_odp_name');
     const wifiSsid = document.getElementById('v_wifi_ssid');
     const wifiPass = document.getElementById('v_wifi_pass');
+    const userConnectedVal = document.getElementById('v_user_connected_val');
+    const userConnectedBadge = document.getElementById('v_user_connected_badge');
 
     if (rxPowerVal) rxPowerVal.textContent = 'Mengecek...';
+    if (userConnectedVal) userConnectedVal.textContent = 'Mengecek...';
 
     const res = await fetch(`/admin/api/customers/${currentActiveCustomerId}/device-info`);
     if (!res.ok) return;
@@ -2081,17 +2129,18 @@ async function refreshCustomerDeviceInfo() {
     if (!json.ok || !json.data) return;
 
     const d = json.data;
+    currentCachedDeviceInfo = d;
 
     if (rxPowerVal) rxPowerVal.textContent = d.rxPower || '-';
     if (rxPowerBadge) {
       if (d.rxStatus === 'good') {
-        rxPowerBadge.style.cssText = 'background:rgba(22,163,74,0.15); color:#16a34a; border:1px solid rgba(22,163,74,0.3); font-weight:800; padding:3px 8px;';
+        rxPowerBadge.style.cssText = 'background:rgba(22,163,74,0.12); color:#16a34a; border:1px solid rgba(22,163,74,0.3); font-weight:800; padding:2px 7px;';
       } else if (d.rxStatus === 'warning') {
-        rxPowerBadge.style.cssText = 'background:rgba(217,119,6,0.15); color:#d97706; border:1px solid rgba(217,119,6,0.3); font-weight:800; padding:3px 8px;';
+        rxPowerBadge.style.cssText = 'background:rgba(217,119,6,0.12); color:#d97706; border:1px solid rgba(217,119,6,0.3); font-weight:800; padding:2px 7px;';
       } else if (d.rxStatus === 'critical') {
-        rxPowerBadge.style.cssText = 'background:rgba(220,38,38,0.15); color:#dc2626; border:1px solid rgba(220,38,38,0.3); font-weight:800; padding:3px 8px;';
+        rxPowerBadge.style.cssText = 'background:rgba(220,38,38,0.12); color:#dc2626; border:1px solid rgba(220,38,38,0.3); font-weight:800; padding:2px 7px;';
       } else {
-        rxPowerBadge.style.cssText = 'background:rgba(148,163,184,0.15); color:var(--text); padding:3px 8px; border:1px solid var(--border);';
+        rxPowerBadge.style.cssText = 'background:transparent; color:var(--text); padding:2px 7px; border:1px solid var(--border);';
       }
     }
 
@@ -2102,10 +2151,23 @@ async function refreshCustomerDeviceInfo() {
     if (wifiSsid) wifiSsid.textContent = d.ssid || '-';
     if (wifiPass) wifiPass.textContent = d.wifiPassword ? d.wifiPassword : '******';
 
+    // Render User Connected dari GenieACS
+    if (userConnectedVal) {
+      const uCount = d.userConnected !== undefined && d.userConnected !== null && d.userConnected !== '-' ? d.userConnected : 0;
+      userConnectedVal.textContent = `${uCount} Perangkat`;
+      if (userConnectedBadge) {
+        if (Number(uCount) > 0) {
+          userConnectedBadge.style.cssText = 'background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.25); font-size:10.5px; font-weight:800; padding:2px 7px;';
+        } else {
+          userConnectedBadge.style.cssText = 'background:rgba(148,163,184,0.12); color:#94a3b8; border:1px solid rgba(148,163,184,0.25); font-size:10.5px; font-weight:800; padding:2px 7px;';
+        }
+      }
+    }
+
   } catch (e) {
     console.warn('Gagal refresh device info:', e);
   }
-}
+};
 
 // 5. Ubah SSID & Password WiFi
 // ==================== [AWAL: JAVASCRIPT POPUP KUSTOM GANTI NAMA WIFI & PASSWORD] ====================
@@ -2309,8 +2371,11 @@ refreshCustomerDeviceInfo = async function() {
     const odpName = document.getElementById('v_odp_name');
     const wifiSsid = document.getElementById('v_wifi_ssid');
     const wifiPass = document.getElementById('v_wifi_pass');
+    const userConnectedVal = document.getElementById('v_user_connected_val');
+    const userConnectedBadge = document.getElementById('v_user_connected_badge');
 
     if (rxPowerVal) rxPowerVal.textContent = 'Mengecek...';
+    if (userConnectedVal) userConnectedVal.textContent = 'Mengecek...';
 
     const res = await fetch(`/admin/api/customers/${currentActiveCustomerId}/device-info`);
     if (!res.ok) return;
@@ -2339,6 +2404,22 @@ refreshCustomerDeviceInfo = async function() {
     if (odpName) odpName.textContent = d.odpName || '-';
     if (wifiSsid) wifiSsid.textContent = d.ssid || '-';
     if (wifiPass) wifiPass.textContent = d.wifiPassword ? d.wifiPassword : '******';
+
+    // Baca d.connectedDevices (yang sudah Anda pasang di adminPortal.js)
+    if (userConnectedVal) {
+      const uCount = (d.connectedDevices !== undefined && d.connectedDevices !== null && d.connectedDevices !== '' && d.connectedDevices !== '-') 
+        ? d.connectedDevices 
+        : (d.userConnected || 0);
+
+      userConnectedVal.textContent = `${uCount} Perangkat`;
+      if (userConnectedBadge) {
+        if (Number(uCount) > 0) {
+          userConnectedBadge.style.cssText = 'background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.25); font-size:10.5px; font-weight:800; padding:2px 7px;';
+        } else {
+          userConnectedBadge.style.cssText = 'background:rgba(148,163,184,0.12); color:#94a3b8; border:1px solid rgba(148,163,184,0.25); font-size:10.5px; font-weight:800; padding:2px 7px;';
+        }
+      }
+    }
 
   } catch (e) {
     console.warn('Gagal refresh device info:', e);
@@ -2381,6 +2462,56 @@ function triggerRebootOnuViaOLT() {
 window.triggerRebootOnuViaOLT = triggerRebootOnuViaOLT;
 window.triggerRebootONU = triggerRebootOnuViaOLT;
 // ==================== [AKHIR: EKSEKUSI REBOOT VIA OLT BAWAAN] ====================
+
+// ==================== [AWAL: JS HANDLER PING DENGAN FORMAT BARIS KE BAWAH] ====================
+async function triggerCustomerPing() {
+  if (!currentActiveCustomerId) return;
+  const currentCust = customersData.find(x => Number(x.id) === Number(currentActiveCustomerId));
+  if (!currentCust) return;
+
+  const pingBtn = document.getElementById('v_ping_btn');
+  const pingBtnLabel = document.getElementById('v_ping_btn_label');
+
+  if (pingBtn && pingBtnLabel) {
+    pingBtn.disabled = true;
+    pingBtnLabel.innerHTML = '<span class="spinner-border spinner-border-sm" style="width:12px;height:12px;"></span> Pinging...';
+  }
+
+  try {
+    const res = await fetch(`/admin/api/customers/${currentCust.id}/ping`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const resJson = await res.json();
+
+    if (resJson.success && resJson.data) {
+      const d = resJson.data;
+      const statusIcon = d.lossPercent === 0 ? '🟢' : (d.lossPercent < 100 ? '🟡' : '🔴');
+      
+      // Menggunakan pemisah baris (\n) agar rapi ke bawah per informasi
+      const pingReport = 
+        `🎯 Target IP       : ${d.targetIp}\n` +
+        `📊 Kualitas Jaringan : ${statusIcon} ${d.quality}\n` +
+        `⏱️ RTT Rata-rata   : ${d.avgRtt}\n` +
+        `📈 Min / Max RTT   : ${d.minRtt} / ${d.maxRtt}\n` +
+        `📦 Paket Ping      : ${d.sent} dikirim, ${d.received} diterima\n` +
+        `⚠️ Packet Loss     : ${d.lossPercent}%`;
+
+      showModernConfirm('Hasil Uji Ping Jaringan', pingReport, null);
+    } else {
+      showModernConfirm('Gagal Ping', resJson.message || 'Gagal mengeksekusi ping.', null);
+    }
+  } catch (err) {
+    showModernConfirm('Error Sistem', 'Terjadi kesalahan saat memproses ping: ' + err.message, null);
+  } finally {
+    if (pingBtn && pingBtnLabel) {
+      pingBtn.disabled = false;
+      pingBtnLabel.textContent = 'Cek Ping';
+    }
+  }
+}
+window.triggerCustomerPing = triggerCustomerPing;
+// ==================== [AKHIR: JS HANDLER PING DENGAN FORMAT BARIS KE BAWAH] ====================
 
 function filterByStatus(statusVal) {
   const url = new URL(window.location.href);
