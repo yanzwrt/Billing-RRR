@@ -24,7 +24,35 @@
       gap: 15px;
       box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
       border: 1px solid #e2e8f0;
-      transition: background 0.3s, border-color 0.3s;
+      transition: all 0.2s ease-in-out;
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+    }
+    .stat-card-v2:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+      border-color: #cbd5e1;
+    }
+    .stat-card-v2.active-filter {
+      border: 2px solid #3b82f6 !important;
+      background: rgba(59, 130, 246, 0.04);
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.25);
+    }
+    .stat-card-v2.active-filter.filter-green {
+      border-color: #10b981 !important;
+      background: rgba(16, 185, 129, 0.04);
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
+    }
+    .stat-card-v2.active-filter.filter-red {
+      border-color: #ef4444 !important;
+      background: rgba(239, 68, 68, 0.04);
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.25);
+    }
+    .stat-card-v2.active-filter.filter-orange {
+      border-color: #f59e0b !important;
+      background: rgba(245, 158, 11, 0.04);
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.25);
     }
     
     .stat-card-v2 .icon-box {
@@ -238,6 +266,85 @@
     [data-theme="dark"] .loading-overlay, body.dark-theme .loading-overlay, body.dark .loading-overlay {
       background: rgba(15, 23, 42, 0.7);
     }
+
+    /* === MULAI PERUBAHAN: CSS MODAL DIALOG CENTER (ALERT, CONFIRM, PROMPT) === */
+    .custom-dialog-overlay {
+      display: none !important;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      background: rgba(15, 23, 42, 0.65) !important;
+      backdrop-filter: blur(4px) !important;
+      -webkit-backdrop-filter: blur(4px) !important;
+      z-index: 99999 !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 16px !important;
+      box-sizing: border-box !important;
+    }
+    .custom-dialog-overlay.active {
+      display: flex !important;
+    }
+    .custom-dialog-box {
+      background: #ffffff !important;
+      color: #1e293b !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 16px !important;
+      width: 100% !important;
+      max-width: 420px !important;
+      padding: 24px !important;
+      text-align: center !important;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35) !important;
+      margin: auto !important;
+      animation: dialogPop 0.2s ease-out;
+    }
+    @keyframes dialogPop {
+      from { transform: scale(0.92); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    [data-theme="dark"] .custom-dialog-box, body.dark-theme .custom-dialog-box {
+      background: #1e293b !important;
+      color: #f8fafc !important;
+      border-color: #334155 !important;
+    }
+    .custom-dialog-icon {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      margin: 0 auto 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    .custom-dialog-icon.success { background: #dcfce7; color: #15803d; }
+    .custom-dialog-icon.danger { background: #fee2e2; color: #b91c1c; }
+    .custom-dialog-icon.warning { background: #fef3c7; color: #b45309; }
+    .custom-dialog-icon.info { background: #dbeafe; color: #1d4ed8; }
+
+    .custom-dialog-title { font-size: 17px; font-weight: 800; margin-bottom: 6px; }
+    .custom-dialog-msg { font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 18px; word-break: break-word; }
+    [data-theme="dark"] .custom-dialog-msg { color: #94a3b8; }
+
+    .custom-dialog-input {
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      margin-bottom: 16px;
+      font-size: 13px;
+      box-sizing: border-box;
+      outline: none;
+    }
+    [data-theme="dark"] .custom-dialog-input {
+      background: #0f172a;
+      border-color: #475569;
+      color: #f8fafc;
+    }
+    .custom-dialog-btns { display: flex; gap: 8px; justify-content: center; }
+    /* === SELESAI PERUBAHAN: CSS MODAL DIALOG CENTER === */
   </style>
 </head>
 <body>
@@ -289,30 +396,38 @@
         </div>
       </div>
 
-      <!-- Summary Cards -->
+      <!-- === MULAI PERUBAHAN: 4 KARTU STATISTIK KLIK OTOMATIS FILTER === -->
+      <!-- Summary Cards (Clickable Filter) -->
       <div class="stats-row">
-        <div class="stat-card-v2">
+        <!-- 1. Total ONU (Semua) -->
+        <div class="stat-card-v2 active-filter" id="card-filter-all" onclick="filterByCardStatus('all')" title="Klik untuk menampilkan SEMUA ONU">
           <div class="icon-box bg-blue"><i class="bi bi-device-hdd"></i></div>
           <div class="details">
             <h3 id="stat-total-onu">-</h3>
             <p><%= t('admin.olts.stats.total_onu', 'Total ONU') %></p>
           </div>
         </div>
-        <div class="stat-card-v2">
+
+        <!-- 2. Online -->
+        <div class="stat-card-v2 filter-green" id="card-filter-online" onclick="filterByCardStatus('online')" title="Klik untuk memfilter ONU ONLINE saja">
           <div class="icon-box bg-green"><i class="bi bi-wifi"></i></div>
           <div class="details">
             <h3 id="stat-online-onu">-</h3>
             <p><%= t('admin.olts.stats.online', 'Online') %></p>
           </div>
         </div>
-        <div class="stat-card-v2">
+
+        <!-- 3. Offline -->
+        <div class="stat-card-v2 filter-red" id="card-filter-offline" onclick="filterByCardStatus('offline')" title="Klik untuk memfilter ONU OFFLINE saja">
           <div class="icon-box bg-red"><i class="bi bi-wifi-off"></i></div>
           <div class="details">
             <h3 id="stat-offline-onu">-</h3>
             <p><%= t('admin.olts.stats.offline', 'Offline') %></p>
           </div>
         </div>
-        <div class="stat-card-v2">
+
+        <!-- 4. Sinyal Lemah -->
+        <div class="stat-card-v2 filter-orange" id="card-filter-weak" onclick="filterByCardStatus('weak')" title="Klik untuk memfilter ONU dengan SINYAL LEMAH">
           <div class="icon-box bg-orange"><i class="bi bi-exclamation-triangle"></i></div>
           <div class="details">
             <h3 id="stat-weak-onu">-</h3>
@@ -320,6 +435,7 @@
           </div>
         </div>
       </div>
+      <!-- === SELESAI PERUBAHAN: 4 KARTU STATISTIK KLIK OTOMATIS FILTER === -->
 
       <!-- System Info Bar -->
       <div class="system-info-bar">
@@ -415,9 +531,11 @@
                 <div class="d-flex gap-2">
                   <button type="button" class="btn btn-g btn-icon btn-sm text-primary" title="Test Koneksi" onclick="testExistingOlt('<%= olt.id %>')"><i class="bi bi-broadcast"></i></button>
                   <button class="btn btn-g btn-icon btn-sm" onclick="editOlt('<%= olt.id %>')"><i class="bi bi-pencil"></i></button>
-                  <form action="/admin/olts/<%= olt.id %>/delete" method="POST" onsubmit="return confirm(I18N.confirmDeleteOlt)">
-                    <button type="submit" class="btn btn-d btn-icon btn-sm"><i class="bi bi-trash"></i></button>
-                  </form>
+                  <!-- === MULAI PERUBAHAN: TOMBOL HAPUS OLT DENGAN DIALOG CENTER === -->
+                  <button type="button" class="btn btn-d btn-icon btn-sm" title="Hapus OLT" onclick="confirmDeleteExistingOlt('<%= olt.id %>', '<%= olt.name %>')">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                  <!-- === SELESAI PERUBAHAN: TOMBOL HAPUS OLT === -->
                 </div>
               </td>
             </tr>
@@ -641,6 +759,26 @@
 </div>
 
 <div id="olt-data-store" data-olts='<%- JSON.stringify(olts || []) %>' style="display:none;"></div>
+
+<!-- === MULAI PENAMBAHAN: POPUP DIALOG CENTER (ALERT, CONFIRM & PROMPT) === -->
+<div id="customDialogOverlay" class="custom-dialog-overlay">
+  <div class="custom-dialog-box">
+    <div id="customDialogIcon" class="custom-dialog-icon info">
+      <i class="bi bi-info-circle-fill"></i>
+    </div>
+    <h5 id="customDialogTitle" class="custom-dialog-title">Pemberitahuan</h5>
+    <p id="customDialogMsg" class="custom-dialog-msg">Pesan dialog...</p>
+    <div id="customDialogInputContainer" style="display:none;">
+      <input type="text" id="customDialogInput" class="custom-dialog-input" placeholder="Masukkan teks...">
+    </div>
+    <div id="customDialogBtns" class="custom-dialog-btns">
+      <!-- Tombol dibuat dinamis lewat JavaScript -->
+    </div>
+  </div>
+</div>
+
+<form id="globalOltDeleteForm" method="POST" style="display:none;"></form>
+<!-- === SELESAI PENAMBAHAN: POPUP DIALOG CENTER === -->
 
 <script>
 // ============================================================================
@@ -897,6 +1035,7 @@ async function loadOltDashboard(id) {
         const statusClass = isOnline ? 'pill-online' : 'pill-offline';
         const rxVal = parseFloat(onu.rx);
         let rxClass = 'power-good';
+        const isWeak = Number.isFinite(rxVal) && rxVal < -24;
         if (!Number.isFinite(rxVal)) rxClass = '';
         else if (rxVal < -27) rxClass = 'power-danger';
         else if (rxVal < -24) rxClass = 'power-warning';
@@ -904,7 +1043,7 @@ async function loadOltDashboard(id) {
         
         const custBadge = onu.customer_name ? `<div class="mt-1" style="font-size:11px;color:#2563eb;font-weight:600;"><i class="bi bi-person-fill"></i> ${onu.customer_name}</div>` : '';
         
-        return `<tr>
+        return `<tr data-status="${isOnline ? 'online' : 'offline'}" data-weak="${isWeak ? 'true' : 'false'}">
           <td>${index + 1}</td>
           <td><code class="sn-mac">${onu.id || '-'}</code></td>
           <td>
@@ -965,56 +1104,272 @@ function refreshCurrentOlt() {
   handleOltChange();
 }
 
+// === MULAI PERUBAHAN: LOGIKA FILTER KARTU STATISTIK & PENCARIAN TEKS ===
+let currentActiveCardFilter = 'all';
+
+function filterByCardStatus(statusType) {
+  currentActiveCardFilter = statusType;
+
+  // 1. Update Tampilan Active Border pada Kartu
+  const cards = {
+    all: document.getElementById('card-filter-all'),
+    online: document.getElementById('card-filter-online'),
+    offline: document.getElementById('card-filter-offline'),
+    weak: document.getElementById('card-filter-weak')
+  };
+
+  Object.keys(cards).forEach(key => {
+    if (cards[key]) {
+      cards[key].classList.toggle('active-filter', key === statusType);
+    }
+  });
+
+  // 2. Jalankan Filter pada Tabel
+  applyCombinedOnuFilter();
+}
+
 function filterOnuTable() {
-  const input = document.getElementById('onu-search');
-  const filter = input.value.toLowerCase().trim();
-  const filterClean = filter.replace(/[:\-\.]/g, '');
+  applyCombinedOnuFilter();
+}
+
+function applyCombinedOnuFilter() {
+  const searchInput = document.getElementById('onu-search');
+  const filterText = (searchInput ? searchInput.value : '').toLowerCase().trim();
+  const filterClean = filterText.replace(/[:\-\.]/g, '');
   const rows = document.querySelectorAll('#onu-table-body tr');
-  
+
   rows.forEach(row => {
-    const text = row.innerText.toLowerCase();
-    const textClean = text.replace(/[:\-\.]/g, '');
-    row.style.display = (text.includes(filter) || (filterClean && textClean.includes(filterClean))) ? '' : 'none';
+    // Abaikan baris empty state / loading yang memiliki colspan
+    if (row.querySelector('td[colspan]')) return;
+
+    const rowStatus = row.getAttribute('data-status') || '';
+    const rowWeak = row.getAttribute('data-weak') === 'true';
+
+    // Cek kecocokan status kartu
+    let matchCard = true;
+    if (currentActiveCardFilter === 'online') {
+      matchCard = (rowStatus === 'online');
+    } else if (currentActiveCardFilter === 'offline') {
+      matchCard = (rowStatus === 'offline');
+    } else if (currentActiveCardFilter === 'weak') {
+      matchCard = rowWeak;
+    }
+
+    // Cek kecocokan teks pencarian
+    const rowText = row.innerText.toLowerCase();
+    const textClean = rowText.replace(/[:\-\.]/g, '');
+    const matchSearch = !filterText || rowText.includes(filterText) || (filterClean && textClean.includes(filterClean));
+
+    // Tampilkan jika cocok dengan kartu status DAN teks pencarian
+    row.style.display = (matchCard && matchSearch) ? '' : 'none';
   });
 }
 
+/* --- FUNGSI CUSTOM ALERT --- */
+function showCustomAlert(message, type = 'info', title = null) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('customDialogOverlay');
+    const iconEl = document.getElementById('customDialogIcon');
+    const titleEl = document.getElementById('customDialogTitle');
+    const msgEl = document.getElementById('customDialogMsg');
+    const inputContainer = document.getElementById('customDialogInputContainer');
+    const btnsEl = document.getElementById('customDialogBtns');
+
+    const icons = {
+      success: '<i class="bi bi-check-circle-fill"></i>',
+      danger: '<i class="bi bi-x-circle-fill"></i>',
+      warning: '<i class="bi bi-exclamation-triangle-fill"></i>',
+      info: '<i class="bi bi-info-circle-fill"></i>'
+    };
+
+    const defaultTitles = {
+      success: 'Berhasil',
+      danger: 'Terjadi Kesalahan',
+      warning: 'Perhatian',
+      info: 'Informasi'
+    };
+
+    inputContainer.style.display = 'none';
+    iconEl.className = 'custom-dialog-icon ' + type;
+    iconEl.innerHTML = icons[type] || icons.info;
+    titleEl.textContent = title || defaultTitles[type] || 'Pemberitahuan';
+    msgEl.innerHTML = message;
+
+    btnsEl.innerHTML = `
+      <button type="button" class="btn btn-p px-4 fw-bold" id="btn-dialog-ok">OK</button>
+    `;
+
+    overlay.classList.add('active');
+
+    document.getElementById('btn-dialog-ok').onclick = () => {
+      overlay.classList.remove('active');
+      resolve(true);
+    };
+  });
+}
+
+/* --- FUNGSI CUSTOM CONFIRM --- */
+function showCustomConfirm(message, title = 'Konfirmasi Tindakan', type = 'warning') {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('customDialogOverlay');
+    const iconEl = document.getElementById('customDialogIcon');
+    const titleEl = document.getElementById('customDialogTitle');
+    const msgEl = document.getElementById('customDialogMsg');
+    const inputContainer = document.getElementById('customDialogInputContainer');
+    const btnsEl = document.getElementById('customDialogBtns');
+
+    const icons = {
+      warning: '<i class="bi bi-question-circle-fill"></i>',
+      danger: '<i class="bi bi-exclamation-octagon-fill"></i>',
+      info: '<i class="bi bi-broadcast"></i>'
+    };
+
+    inputContainer.style.display = 'none';
+    iconEl.className = 'custom-dialog-icon ' + type;
+    iconEl.innerHTML = icons[type] || icons.warning;
+    titleEl.textContent = title;
+    msgEl.innerHTML = message;
+
+    btnsEl.innerHTML = `
+      <button type="button" class="btn btn-g px-3" id="btn-dialog-cancel">Batal</button>
+      <button type="button" class="btn ${type === 'danger' ? 'btn-d' : 'btn-p'} px-4 fw-bold" id="btn-dialog-confirm">Lanjutkan</button>
+    `;
+
+    overlay.classList.add('active');
+
+    document.getElementById('btn-dialog-cancel').onclick = () => {
+      overlay.classList.remove('active');
+      resolve(false);
+    };
+
+    document.getElementById('btn-dialog-confirm').onclick = () => {
+      overlay.classList.remove('active');
+      resolve(true);
+    };
+  });
+}
+
+/* --- FUNGSI CUSTOM PROMPT (UNTUK GANTI NAMA ONU) --- */
+function showCustomPrompt(message, defaultValue = '', title = 'Ubah Data') {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('customDialogOverlay');
+    const iconEl = document.getElementById('customDialogIcon');
+    const titleEl = document.getElementById('customDialogTitle');
+    const msgEl = document.getElementById('customDialogMsg');
+    const inputContainer = document.getElementById('customDialogInputContainer');
+    const inputEl = document.getElementById('customDialogInput');
+    const btnsEl = document.getElementById('customDialogBtns');
+
+    iconEl.className = 'custom-dialog-icon info';
+    iconEl.innerHTML = '<i class="bi bi-pencil-square"></i>';
+    titleEl.textContent = title;
+    msgEl.innerHTML = message;
+    
+    inputContainer.style.display = 'block';
+    inputEl.value = defaultValue;
+
+    btnsEl.innerHTML = `
+      <button type="button" class="btn btn-g px-3" id="btn-dialog-cancel">Batal</button>
+      <button type="button" class="btn btn-p px-4 fw-bold" id="btn-dialog-submit">Simpan</button>
+    `;
+
+    overlay.classList.add('active');
+    setTimeout(() => { inputEl.focus(); inputEl.select(); }, 150);
+
+    const submitAction = () => {
+      const val = inputEl.value;
+      overlay.classList.remove('active');
+      resolve(val);
+    };
+
+    document.getElementById('btn-dialog-cancel').onclick = () => {
+      overlay.classList.remove('active');
+      resolve(null);
+    };
+
+    document.getElementById('btn-dialog-submit').onclick = submitAction;
+    inputEl.onkeydown = (e) => {
+      if (e.key === 'Enter') submitAction();
+    };
+  });
+}
+
+/* --- HAPUS OLT DENGAN DIALOG CENTER --- */
+async function confirmDeleteExistingOlt(id, name) {
+  const confirmed = await showCustomConfirm(
+    `Apakah Anda yakin ingin menghapus perangkat OLT <strong>"${name}"</strong>?<br><span class="text-danger small">Tindakan ini tidak dapat dibatalkan.</span>`,
+    'Hapus Perangkat OLT?',
+    'danger'
+  );
+  if (confirmed) {
+    const form = document.getElementById('globalOltDeleteForm');
+    form.action = '/admin/olts/' + id + '/delete';
+    form.submit();
+  }
+}
+
+/* --- RENAME ONU DENGAN DIALOG CENTER --- */
 async function renameOnuPrompt(oltId, index, oldName) {
-  const newName = prompt(I18N.renamePrompt, oldName);
-  if (!newName || newName === oldName) return;
+  const newName = await showCustomPrompt(I18N.renamePrompt, oldName, I18N.renameTitle || 'Ubah Nama ONU');
+  if (!newName || newName.trim() === '' || newName.trim() === oldName) return;
   try {
     const res = await fetch(`/admin/olts/${oltId}/onu/${index}/rename`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ name: newName })
+      body: new URLSearchParams({ name: newName.trim() })
     });
     const data = await res.json();
-    if (data.success) { refreshCurrentOlt(); } else { alert(I18N.failedPrefix + data.error); }
-  } catch (e) { alert(I18N.errorPrefix + e.message); }
+    if (data.success) { 
+      await showCustomAlert('Nama ONU berhasil diperbarui via MIB SNMP!', 'success', 'Berhasil Diubah');
+      refreshCurrentOlt(); 
+    } else { 
+      await showCustomAlert(I18N.failedPrefix + (data.error || 'Gagal mengubah nama'), 'danger'); 
+    }
+  } catch (e) { 
+    await showCustomAlert(I18N.errorPrefix + e.message, 'danger'); 
+  }
 }
 
+/* --- REBOOT ONU DENGAN DIALOG CENTER --- */
 async function rebootOnu(oltId, index) {
-  if (!confirm(I18N.confirmReboot)) return;
+  const confirmed = await showCustomConfirm(I18N.confirmReboot, I18N.rebootTitle || 'Reboot ONU', 'warning');
+  if (!confirmed) return;
   try {
     const res = await fetch(`/admin/olts/${oltId}/onu/${index}/reboot`, { method: 'POST' });
     const data = await res.json();
-    if (data.success) { alert(I18N.rebootSent); } else { alert(I18N.failedPrefix + data.error); }
-  } catch (e) { alert(I18N.errorPrefix + e.message); }
+    if (data.success) { 
+      await showCustomAlert(I18N.rebootSent, 'success', 'Perintah Terkirim'); 
+    } else { 
+      await showCustomAlert(I18N.failedPrefix + (data.error || 'Gagal mengirim reboot'), 'danger'); 
+    }
+  } catch (e) { 
+    await showCustomAlert(I18N.errorPrefix + e.message, 'danger'); 
+  }
 }
 
+/* --- TEST KONEKSI OLT DENGAN DIALOG CENTER --- */
 async function testExistingOlt(id) {
-  if (!confirm('Uji koneksi SNMP ke OLT ini?')) return;
+  const confirmed = await showCustomConfirm('Uji koneksi SNMP ke OLT ini sekarang?', 'Test Koneksi OLT', 'info');
+  if (!confirmed) return;
+
   const overlay = document.getElementById('loading-overlay');
   if (overlay) overlay.style.display = 'flex';
   try {
     const res = await fetch(`/admin/olts/${id}/test-connection`, { method: 'POST' });
     const data = await res.json();
-    alert((data.success ? '✅ ' : '⚠️ ') + (data.message || 'Hasil tes koneksi selesai.'));
-  } catch (e) {
-    alert('❌ Error: ' + e.message);
-  } finally {
     if (overlay) overlay.style.display = 'none';
+
+    if (data.success) {
+      await showCustomAlert(data.message || 'Koneksi SNMP ke OLT berhasil tersambung!', 'success', 'Koneksi Sukses');
+    } else {
+      await showCustomAlert(data.message || 'Gagal menghubungi OLT via SNMP.', 'warning', 'Hasil Uji Koneksi');
+    }
+  } catch (e) {
+    if (overlay) overlay.style.display = 'none';
+    await showCustomAlert('Gagal tes koneksi: ' + e.message, 'danger');
   }
 }
+// === SELESAI PERUBAHAN: HANDLER DIALOG CENTER (ALERT, CONFIRM, PROMPT) ===
 
 // Timer Trafik Uplink (1 Detik)
 let liveTrafficTimer = null;
@@ -1079,6 +1434,7 @@ async function fetchLiveOnuTableOnly() {
         const statusClass = isOnline ? 'pill-online' : 'pill-offline';
         const rxVal = parseFloat(onu.rx);
         let rxClass = 'power-good';
+        const isWeak = Number.isFinite(rxVal) && rxVal < -24;
         if (!Number.isFinite(rxVal)) rxClass = '';
         else if (rxVal < -27) rxClass = 'power-danger';
         else if (rxVal < -24) rxClass = 'power-warning';
@@ -1086,7 +1442,7 @@ async function fetchLiveOnuTableOnly() {
         
         const custBadge = onu.customer_name ? `<div class="mt-1" style="font-size:11px;color:#2563eb;font-weight:600;"><i class="bi bi-person-fill"></i> ${onu.customer_name}</div>` : '';
         
-        return `<tr>
+        return `<tr data-status="${isOnline ? 'online' : 'offline'}" data-weak="${isWeak ? 'true' : 'false'}">
           <td>${index + 1}</td>
           <td><code class="sn-mac">${onu.id || '-'}</code></td>
           <td>

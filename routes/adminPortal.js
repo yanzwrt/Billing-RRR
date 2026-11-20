@@ -9688,6 +9688,62 @@ router.get('/api/mikrotik/users/:routerId', requireAdmin, async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
+/* ========================================================================= */
+/* [AWAL PENAMBAHAN: API REALTIME MONITORING INTERFACE MULTI-ROUTER]         */
+/* ========================================================================= */
+router.get('/api/traffic/routers', requireAdminSession, (req, res) => {
+  try {
+    const routers = mikrotikService.getAllRouters() || [];
+    const activeRouters = routers.filter(r => (r.is_active === 1 || r.is_active === '1' || r.is_active === true));
+    
+    // Format agar frontend mudah menampilkan nama dan statusnya
+    const result = activeRouters.map(r => ({
+      id: r.id,
+      name: r.name || `Router ${r.id}`,
+      host: r.host,
+      isPppoe: Number(r.is_pppoe) === 1,
+      isHotspot: Number(r.is_hotspot) === 1
+    }));
+
+    return res.json({ ok: true, routers: result });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+router.get('/api/traffic/interfaces', requireAdminSession, async (req, res) => {
+  try {
+    const routerId = req.query.router_id ? Number(req.query.router_id) : null;
+    if (!routerId) {
+      return res.status(400).json({ ok: false, error: 'Router ID wajib dipilih' });
+    }
+
+    const interfaces = await mikrotikService.getRouterInterfaces(routerId);
+    return res.json({ ok: true, interfaces });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+router.get('/api/traffic/monitor', requireAdminSession, async (req, res) => {
+  try {
+    const routerId = req.query.router_id ? Number(req.query.router_id) : null;
+    const iface = String(req.query.interface || '').trim();
+
+    if (!routerId) return res.status(400).json({ ok: false, error: 'Router ID diperlukan' });
+    if (!iface) return res.status(400).json({ ok: false, error: 'Interface diperlukan' });
+
+    const traffic = await mikrotikService.monitorInterfaceTraffic(routerId, iface);
+    return res.json({ ok: true, data: traffic });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+/* ========================================================================= */
+/* [AKHIR PENAMBAHAN: API REALTIME MONITORING INTERFACE MULTI-ROUTER]        */
+/* ========================================================================= */
+
 // ─── ATTENDANCE MANAGEMENT ───────────────────────────────────────────────────
 
 // Attendance dashboard

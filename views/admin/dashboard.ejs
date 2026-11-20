@@ -17,6 +17,7 @@
   <link rel="apple-touch-icon" href="/img/logo.png">
   <link rel="icon" href="/img/logo.png">
   <!-- ===================== AKHIR TAMBAHAN PWA ======================== -->
+  
   <style>
     /* ── ONU STATUS DOT ── */
     .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
@@ -32,7 +33,12 @@
     #dashboard-section{display:block}
 
     /* ── NAV TABS ── */
-    .tab-bar{display:flex;gap:4px;background:var(--bg3);padding:4px;border-radius:10px;margin-bottom:20px;width:fit-content}
+    .tab-bar-container {
+      width: 100%;
+      display: block;
+      margin-bottom: 20px;
+    }
+    .tab-bar{display:flex;gap:4px;background:var(--bg3);padding:4px;border-radius:10px;width:fit-content}
     .tab-btn{padding:8px 20px;border-radius:7px;border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .2s}
     .tab-btn.active{background:var(--bg2);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.3)}
     .tab-btn i{margin-right:6px}
@@ -50,6 +56,121 @@
     .donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
     .donut-num{font-size:28px;font-weight:700;line-height:1}
     .donut-lbl{font-size:11px;color:var(--muted);margin-top:2px}
+	
+    /* ── [TAMBAHAN: MONITORING TRAFIK & MODAL CENTER] ── */
+    .page {
+      display: flex;
+      flex-direction: column !important;
+      width: 100%;
+      min-height: 100vh;
+      overflow-y: visible !important;
+    }
+    #traffic-section { 
+      display: none; 
+      width: 100%;
+      padding-bottom: 80px; /* Jarak scroll bawah agar tabel leluasa dilihat */
+    }
+    .tf-metric-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+    .tf-badge-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+    .tf-chart-wrap {
+      position: relative;
+      width: 100%;
+      height: 350px;
+      margin-top: 10px;
+    }
+
+    /* ── CUSTOM CENTER MODAL (DARK / LIGHT COMPATIBLE) ── */
+    .app-center-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(13, 17, 23, 0.75);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .app-center-overlay.show {
+      display: flex;
+      opacity: 1;
+    }
+    .app-center-dialog {
+      background: var(--bg2, #161b22);
+      color: var(--text, #e6edf3);
+      border: 1px solid var(--border, #30363d);
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5);
+      border-radius: 16px;
+      width: 90%;
+      max-width: 440px;
+      padding: 24px;
+      text-align: center;
+      transform: scale(0.92);
+      transition: transform 0.2s ease;
+    }
+    .app-center-overlay.show .app-center-dialog {
+      transform: scale(1);
+    }
+    .app-center-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      font-size: 28px;
+    }
+    .app-center-icon.warn { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .app-center-icon.danger { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .app-center-icon.info { background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .app-center-icon.success { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .app-center-title {
+      font-size: 17px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      color: var(--text, #f0f6fc);
+    }
+    .app-center-desc {
+      font-size: 13.5px;
+      color: var(--muted, #8b949e);
+      line-height: 1.5;
+      margin-bottom: 22px;
+      word-break: break-word;
+    }
+    .app-center-btns {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+    .app-center-btns button {
+      min-width: 105px;
+      padding: 10px 18px;
+      font-size: 13.5px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -75,7 +196,7 @@
   </div>
 
   <div class="page">
-    <!-- [TAMBAHAN: BANNER AKTIVASI PUSH NOTIFIKASI ADMIN]                         -->
+    <!-- [TAMBAHAN: BANNER AKTIVASI PUSH NOTIFIKASI ADMIN] -->
     <div id="pushPromptAdmin" style="display: none; background: rgba(245, 158, 11, 0.12); border: 1.5px solid rgba(245, 158, 11, 0.35); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; align-items: center; justify-content: space-between; gap: 12px;">
       <div style="display: flex; align-items: center; gap: 10px;">
         <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(245, 158, 11, 0.2); display: flex; align-items: center; justify-content: center; font-size: 18px; color: #fbbf24; flex-shrink: 0;">
@@ -93,21 +214,28 @@
       </div>
     </div>
     <!-- ========================================================================= -->
+	
     <% const isStaffUser = (typeof session !== 'undefined' && session && session.isStaff); %>
-    <!-- TAB NAVIGATION -->
-    <div class="tab-bar">
-      <button class="tab-btn active" id="tab-dash" onclick="showTab('dashboard')">
-        <i class="bi bi-speedometer2"></i><%= t('admin.nav.dashboard', 'Dashboard') %>
-      </button>
-      <% if (!isStaffUser) { %>
-      <button class="tab-btn" id="tab-mon" onclick="showTab('monitoring')">
-        <i class="bi bi-router"></i><%= t('admin.dashboard.monitoring_onu', 'Monitoring ONU') %>
-      </button>
-      <% } %>
+
+    <!-- TAB NAVIGATION (SELALU DI ATAS KONTEN APAPUN) -->
+    <div class="tab-bar-container">
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tab-dash" onclick="showTab('dashboard')">
+          <i class="bi bi-speedometer2"></i><%= t('admin.nav.dashboard', 'Dashboard') %>
+        </button>
+        <% if (!isStaffUser) { %>
+        <button class="tab-btn" id="tab-mon" onclick="showTab('monitoring')">
+          <i class="bi bi-router"></i><%= t('admin.dashboard.monitoring_onu', 'Monitoring ONU') %>
+        </button>
+        <button class="tab-btn" id="tab-traffic" onclick="showTab('traffic')">
+          <i class="bi bi-activity"></i>Monitoring Trafik
+        </button>
+        <% } %>
+      </div>
     </div>
 
     <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- DASHBOARD SECTION                                       -->
+    <!-- 1. DASHBOARD SECTION                                    -->
     <!-- ═══════════════════════════════════════════════════════ -->
     <div id="dashboard-section">
 
@@ -278,7 +406,7 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════ -->
-    <!-- MONITORING ONU SECTION                                  -->
+    <!-- 2. MONITORING ONU SECTION                               -->
     <!-- ═══════════════════════════════════════════════════════ -->
     <div id="monitoring-section" style="display:none">
 
@@ -356,8 +484,136 @@
         </div>
       </div>
     </div>
-  </div>
-</div>
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 3. MONITORING TRAFIK INTERFACE SECTION                  -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <div id="traffic-section" style="display:none">
+      <!-- Toolbar Pemilih Router & Interface -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-bd" style="padding:14px 18px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
+            <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;flex:1;">
+              <!-- Pilihan Router -->
+              <div>
+                <label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">
+                  <i class="bi bi-hdd-network"></i> Pilih Router MikroTik
+                </label>
+                <select class="fs" id="tf-select-router" style="min-width:210px;height:38px;font-weight:700;" onchange="onTrafficRouterChange()">
+                  <option value="" disabled selected>Memuat router...</option>
+                </select>
+              </div>
+
+              <!-- Pilihan Interface -->
+              <div>
+                <label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px;">
+                  <i class="bi bi-ethernet"></i> Pilih Interface
+                </label>
+                <select class="fs" id="tf-select-interface" style="min-width:230px;height:38px;font-weight:700;" onchange="onTrafficInterfaceChange()">
+                  <option value="" disabled selected>Pilih router terlebih dahulu</option>
+                </select>
+              </div>
+
+              <!-- Saklar Polling -->
+              <div style="margin-top:auto;padding-bottom:4px;">
+                <button type="button" class="btn btn-g btn-sm" id="btn-toggle-traffic-polling" onclick="toggleTrafficPolling()" style="height:38px;">
+                  <i class="bi bi-pause-fill" id="btn-poll-icon"></i> <span id="btn-poll-label">Pause Polling</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Live Status Indicator -->
+            <div style="text-align:right;">
+              <div class="realtime-bar" style="justify-content:flex-end;">
+                <span class="live-dot" id="tf-live-indicator"></span> 
+                <span id="tf-live-status-text">Live: Memantau 2.5s</span>
+              </div>
+              <div style="font-size:11px;color:var(--muted);margin-top:4px;" id="tf-clock-last">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Stats Card Interface Terpilih -->
+      <div class="stat-grid" style="margin-bottom:18px;">
+        <!-- Download Rate -->
+        <div class="sc s">
+          <i class="bi bi-arrow-down-circle sc-icon"></i>
+          <div class="sc-label">Download (RX Rate)</div>
+          <div class="sc-val" id="tf-val-rx" style="font-size:22px;color:var(--success);">0.00 <span style="font-size:13px;font-weight:600;">Mbps</span></div>
+          <div class="sc-sub" id="tf-sub-rx">Akumulasi: -</div>
+        </div>
+
+        <!-- Upload Rate -->
+        <div class="sc p">
+          <i class="bi bi-arrow-up-circle sc-icon"></i>
+          <div class="sc-label">Upload (TX Rate)</div>
+          <div class="sc-val" id="tf-val-tx" style="font-size:22px;color:var(--primary);">0.00 <span style="font-size:13px;font-weight:600;">Mbps</span></div>
+          <div class="sc-sub" id="tf-sub-tx">Akumulasi: -</div>
+        </div>
+
+        <!-- Link Status -->
+        <div class="sc i">
+          <i class="bi bi-reception-4 sc-icon"></i>
+          <div class="sc-label">Status Port Interface</div>
+          <div class="sc-val" id="tf-val-status" style="font-size:19px;">-</div>
+          <div class="sc-sub" id="tf-sub-type">Tipe: -</div>
+        </div>
+
+        <!-- MAC & Info -->
+        <div class="sc w">
+          <i class="bi bi-info-circle sc-icon"></i>
+          <div class="sc-label">Hardware MAC</div>
+          <div class="sc-val" id="tf-val-mac" style="font-size:14px;word-break:break-all;font-family:monospace;">-</div>
+          <div class="sc-sub" id="tf-sub-comment">Keterangan: -</div>
+        </div>
+      </div>
+
+      <!-- Live Bandwidth Line Chart -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-hd" style="display:flex;justify-content:space-between;align-items:center;">
+          <h6><i class="bi bi-graph-up-arrow"></i> Grafik Trafik Real-time (<span id="tf-chart-target-label">Memuat...</span>)</h6>
+          <span class="badge bm" id="tf-chart-peak">Puncak: RX 0 Mbps | TX 0 Mbps</span>
+        </div>
+        <div class="card-bd">
+          <div class="tf-chart-wrap">
+            <canvas id="trafficLiveChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabel Semua Interface pada Router Terpilih -->
+      <div class="card">
+        <div class="card-hd">
+          <h6><i class="bi bi-list-columns-reverse"></i> Daftar Seluruh Interface Router Terpilih</h6>
+          <span class="badge bm" id="tf-total-interfaces-badge">0 interface</span>
+        </div>
+        <div class="tbl-wrap">
+          <table class="dtbl">
+            <thead>
+              <tr>
+                <th style="width:40px;">#</th>
+                <th>Interface</th>
+                <th>Tipe</th>
+                <th>Status Link</th>
+                <th>MAC Address</th>
+                <th>Total RX (In)</th>
+                <th>Total TX (Out)</th>
+                <th style="text-align:center;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tf-interfaces-tbody">
+              <tr>
+                <td colspan="8" class="text-center text-muted" style="padding:24px;">Pilih router untuk menampilkan interface</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div> <!-- akhir traffic-section -->
+
+  </div> <!-- akhir .page (TUTUP DI SINI AGAR SEMUA SECTION BERADA DI DALAM CONTAINER UTAMA) -->
+</div> <!-- akhir .mw -->
 
 <!-- ── MODAL DETAIL DEVICE ── -->
 <div class="mo" id="deviceModal">
@@ -471,38 +727,16 @@
 </style>
 
 <script>
-/*
- * ═══════════════════════════════════════════════════════════════════════════
- * DASHBOARD ONU MONITORING - AUTO-REFRESH DISABLED
- * ═══════════════════════════════════════════════════════════════════════════
- * 
- * AUTO-REFRESH INTENTIONALLY DISABLED TO PREVENT CONTINUOUS POLLING
- * 
- * Previously, this dashboard would refresh automatically:
- * - Every 30 seconds (setInterval at the bottom)
- * - Every 5 seconds during sync operations (scheduleFastRefreshIfNeeded)
- * 
- * All auto-refresh mechanisms have been disabled. The dashboard will:
- * - Load data once when the page is first opened
- * - Only refresh when the user manually clicks the "Refresh" button
- * - NOT refresh automatically during operations
- * 
- * If you need to update the data, click the "Refresh" button in the UI.
- * ═══════════════════════════════════════════════════════════════════════════
- */
-
 // ── STATE ──────────────────────────────────────────────────────
 let devicesData = [];
 let donutChart = null;
 let fastRefreshTimer = null;
-let autoRefreshDisabled = true;  // Disable all auto-refresh mechanisms
-let billingCustomersCache = []; // Cache master pelanggan
+let autoRefreshDisabled = true;
+let billingCustomersCache = [];
 
-// Ambil daftar pelanggan dari backend sekali saat halaman dimuat
 async function initCustomerCache() {
   try {
-    const res = await fetch('/admin/customers/export'); // Atau endpoint data pelanggan
-    // Fallback ambil langsung dari API jika ada, atau pencocokan via PPPoE/Phone
+    const res = await fetch('/admin/customers/export');
   } catch(e) {}
 }
 
@@ -510,36 +744,25 @@ function escHtml(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-// Helper cerdas mendeteksi nama asli pelanggan dari data perangkat
 function getDeviceCustomerName(d) {
   if (!d) return 'Perangkat Tanpa Nama';
 
-  // 1. Jika API backend sudah menyertakan customer_name
   if (d.customer_name && d.customer_name !== '-' && d.customer_name !== 'N/A') {
     return d.customer_name;
   }
 
-  // 2. Ambil dari nama SSID (di tabel Anda SSID sering nama pelanggan: ELI WINARTI, DIRA SAPUTRA, IKDMP-BELIA)
   let ssidClean = String(d.ssid || '').trim();
   if (ssidClean && ssidClean !== '-' && !ssidClean.toLowerCase().startsWith('zte') && !ssidClean.toLowerCase().startsWith('huawei')) {
-    // Bersihkan prefix umum seperti "IKDMP-" jika ada
     let candidate = ssidClean.replace(/^IKDMP[-_\s]*/i, '').trim();
-    if (candidate.length > 2) {
-      return candidate;
-    }
+    if (candidate.length > 2) return candidate;
   }
 
-  // 3. Ambil dari PPPoE Username jika ada
   let pppoe = String(d.pppoeUsername || '').trim();
   if (pppoe && pppoe !== '-' && pppoe !== 'N/A') {
-    // Contoh: jeungjing@dirasaputra -> DIRA SAPUTRA
-    if (pppoe.includes('@')) {
-      return pppoe.split('@')[1].toUpperCase();
-    }
+    if (pppoe.includes('@')) return pppoe.split('@')[1].toUpperCase();
     return pppoe;
   }
 
-  // 4. Jika hanya ada Tag
   const rawTags = Array.isArray(d.tags) ? d.tags : [d.tags || ''];
   const cleanTags = rawTags.filter(Boolean).map(t => String(t).trim());
   return cleanTags[0] || d.serialNumber || 'Pelanggan';
@@ -597,12 +820,35 @@ const I18N = {
 // ── TABS ───────────────────────────────────────────────────────
 function showTab(tab) {
   const isDash = tab === 'dashboard';
-  document.getElementById('dashboard-section').style.display = isDash ? 'block' : 'none';
-  document.getElementById('monitoring-section').style.display = isDash ? 'none' : 'block';
-  document.getElementById('tab-dash').classList.toggle('active', isDash);
-  document.getElementById('tab-mon').classList.toggle('active', !isDash);
-  document.getElementById('page-title').textContent = isDash ? I18N.pageDashboard : I18N.pageMonitoring;
-  if (!isDash) loadDevices();
+  const isMon = tab === 'monitoring';
+  const isTf = tab === 'traffic';
+
+  const dashSec = document.getElementById('dashboard-section');
+  const monSec = document.getElementById('monitoring-section');
+  const tfSec = document.getElementById('traffic-section');
+
+  if (dashSec) dashSec.style.display = isDash ? 'block' : 'none';
+  if (monSec) monSec.style.display = isMon ? 'block' : 'none';
+  if (tfSec) tfSec.style.display = isTf ? 'block' : 'none';
+
+  const tabDash = document.getElementById('tab-dash');
+  const tabMon = document.getElementById('tab-mon');
+  const tabTf = document.getElementById('tab-traffic');
+
+  if (tabDash) tabDash.classList.toggle('active', isDash);
+  if (tabMon) tabMon.classList.toggle('active', isMon);
+  if (tabTf) tabTf.classList.toggle('active', isTf);
+
+  const titleEl = document.getElementById('page-title');
+  if (titleEl) {
+    if (isDash) titleEl.textContent = I18N.pageDashboard;
+    else if (isMon) { titleEl.textContent = I18N.pageMonitoring; loadDevices(); }
+    else if (isTf) { titleEl.textContent = 'Monitoring Trafik Interface'; initTrafficSection(); }
+  }
+
+  if (!isTf) {
+    stopTrafficPolling();
+  }
 }
 
 // ── MODAL HELPERS ──────────────────────────────────────────────
@@ -620,19 +866,16 @@ async function loadStats() {
     const offline = d.offline || 0;
     const pct     = total > 0 ? Math.round(online / total * 100) : 0;
 
-    // Dashboard stats
     document.getElementById('stat-total').textContent   = total;
     document.getElementById('stat-online').textContent  = online;
     document.getElementById('stat-offline').textContent = offline;
     document.getElementById('stat-warning').textContent = d.warning || 0;
 
-    // Monitoring mini stats
     document.getElementById('m-total').textContent  = total;
     document.getElementById('m-online').textContent = online;
     document.getElementById('m-offline').textContent= offline;
     document.getElementById('m-pct').textContent    = pct + '%';
 
-    // Donut
     document.getElementById('donut-pct').textContent  = pct + '%';
     document.getElementById('leg-online').textContent  = online;
     document.getElementById('leg-offline').textContent = offline;
@@ -796,7 +1039,6 @@ async function loadDevices() {
         </tr>`;
       }).join('');
 
-      // Bind event listeners for actions to prevent quote escaping HTML issues
       tbody.querySelectorAll('.btn-dev-detail').forEach(btn => {
         btn.addEventListener('click', function() { showDetail(this.getAttribute('data-tag')); });
       });
@@ -817,11 +1059,7 @@ async function loadDevices() {
       });
     }
 
-    // Update offline list on dashboard
     renderOfflineList(devicesData.filter(d => d.status === 'offline').slice(0, 5));
-    // AUTO-REFRESH DISABLED: scheduleFastRefreshIfNeeded() is intentionally removed
-    // Dashboard will not auto-refresh during sync operations
-
   } catch(e) {
     tbody.innerHTML = '<tr><td colspan="7" class="text-center" style="padding:32px;color:var(--danger)"><i class="bi bi-exclamation-circle"></i> ' + I18N.errorLoadData + '</td></tr>';
   } finally {
@@ -937,15 +1175,6 @@ async function showDetail(tag) {
 function editSsid(tag, currentSsid) { document.getElementById('edit-tag').value = tag; document.getElementById('new-ssid').value = (currentSsid && currentSsid !== '-') ? currentSsid : ''; openModal('ssidModal'); }
 function editPassword(tag) { document.getElementById('edit-pass-tag').value = tag; document.getElementById('new-password').value = ''; openModal('passwordModal'); }
 
-async function rebootDevice(tag) {
-  if (!confirm(I18N.rebootConfirmPrefix + ' ' + tag + '?')) return;
-  try {
-    const res  = await fetch('/admin/api/device/' + encodeURIComponent(tag) + '/reboot', { method: 'POST' });
-    const data = await res.json();
-    showToast(data.message || (data.ok ? I18N.rebootSent : I18N.failed), data.ok ? 's' : 'd');
-  } catch(e) { showToast('Error: ' + e.message, 'd'); }
-}
-
 document.getElementById('btn-save-ssid').addEventListener('click', async function() {
   const btn = this;
   const txt = btn.querySelector('.btn-text');
@@ -1048,46 +1277,32 @@ function showToast(msg, type = 's') {
   setTimeout(() => { if(t.parentElement) t.style.animation = 'slideOutRight .3s ease forwards'; setTimeout(() => t.remove(), 300); }, 5000);
 }
 
-// ── REFRESH ALL ────────────────────────────────────────────────
-// DEPRECATED: This function is kept for backward compatibility but is disabled
-// Use manualRefreshAll() for user-initiated refreshes only
 function refreshAll() {
-  // INTENTIONALLY DISABLED - Auto-refresh has been turned off
-  // This function will only be called when user manually clicks "Refresh" button
   loadStats();
   loadDevices();
 }
 
-// This is the proper function to call for auto-refresh (which is now disabled)
 function manualRefreshAll() {
   loadStats();
   loadDevices();
 }
 
 function scheduleFastRefreshIfNeeded() {
-  // Auto-refresh during sync disabled to prevent continuous polling
   if (fastRefreshTimer) {
     clearTimeout(fastRefreshTimer);
     fastRefreshTimer = null;
   }
-  // Commented out: Previously would auto-refresh every 5s when devices were syncing
-  // if (!Array.isArray(devicesData) || !devicesData.some(d => d.syncInProgress)) return;
-  // fastRefreshTimer = setTimeout(() => {
-  //   refreshAll();
-  // }, 5000);
 }
 
 loadStats();
 loadDevices();
-// Auto-refresh disabled: Dashboard akan hanya refresh saat halaman pertama kali dibuka atau saat admin click tombol Refresh
-// setInterval(refreshAll, 30000);
-// NOTE: AUTO-REFRESH HAS BEEN COMPLETELY DISABLED
-// Users must manually click the "Refresh" button to update device list
 
-// ── CHECK IF SHOULD GO TO MONITORING TAB (from sidebar link) ──
 if (window.location.hash === '#monitoring') showTab('monitoring');
+else if (window.location.hash === '#traffic') showTab('traffic');
+
 window.addEventListener('hashchange', () => {
   if (window.location.hash === '#monitoring') showTab('monitoring');
+  else if (window.location.hash === '#traffic') showTab('traffic');
   else if (window.location.hash === '#dashboard' || !window.location.hash) showTab('dashboard');
 });
 
@@ -1104,7 +1319,6 @@ async function saveGenieACSSettings() {
     genieacs_monitoring_enabled: document.getElementById('genieacs_monitoring_enabled').checked
   };
 
-  // Validate
   if (formData.genieacs_timeout < 5000 || formData.genieacs_timeout > 120000) {
     showGenieACSMessage('Timeout harus antara 5000-120000 ms', 'danger');
     return;
@@ -1263,27 +1477,10 @@ async function summonMonDevice(deviceId, acsId) {
     showToast('Gagal mengirim summon: ' + err.message, 'd');
   }
 }
-
-async function deleteMonDevice(deviceId, acsId) {
-  if (!confirm('Hapus perangkat ' + deviceId + ' dari database ACS?')) return;
-  try {
-    const res = await fetch('/admin/acs/api/device/' + encodeURIComponent(deviceId), {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ acsId })
-    });
-    const d = await res.json();
-    showToast(d.message, d.success ? 's' : 'd');
-    if (d.success) setTimeout(refreshAll, 1500);
-  } catch (err) {
-    showToast('Gagal menghapus perangkat: ' + err.message, 'd');
-  }
-}
-
 </script>
-<!-- [TAMBAHAN: LOGIKA REGISTRASI PUSH NOTIFIKASI ADMIN]                       -->
+
+<!-- [TAMBAHAN: LOGIKA REGISTRASI PUSH NOTIFIKASI ADMIN] -->
 <script>
-  // Helper konversi VAPID key
   function urlB64ToUint8(base64String) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
     const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
@@ -1295,10 +1492,8 @@ async function deleteMonDevice(deviceId, acsId) {
     return outputArray;
   }
 
-  // Fungsi saat tombol "Aktifkan" diklik
   async function enablePushAdmin() {
     try {
-      // 1. Minta izin notifikasi sistem Android/Browser
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
         alert('Izin notifikasi ditolak. Harap izinkan notifikasi di setelan browser HP Anda.');
@@ -1308,16 +1503,12 @@ async function deleteMonDevice(deviceId, acsId) {
       const promptEl = document.getElementById('pushPromptAdmin');
       if (promptEl) promptEl.style.display = 'none';
 
-      // 2. Pastikan dukungan Service Worker
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
         throw new Error('Browser ini tidak mendukung Push Notifications.');
       }
 
-      // 3. Daftarkan / Ambil Service Worker yang aktif
-      console.log('Mendaftarkan Service Worker...');
       const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
       
-      // Tunggu hingga Service Worker benar-benar aktif (mengatasi no active Service Worker)
       let activeWorker = registration.active;
       if (!activeWorker) {
         await new Promise((resolve) => {
@@ -1325,20 +1516,16 @@ async function deleteMonDevice(deviceId, acsId) {
             activeWorker = reg.active;
             resolve();
           });
-          // Jaga-jaga jika event ready terlalu lama, beri batas waktu 3 detik
           setTimeout(resolve, 3000);
         });
       }
 
-      // 4. Ambil Public Key VAPID dari server
       const keyRes = await fetch('/api/push/public-key');
       const keyData = await keyRes.json();
       if (!keyData.success || !keyData.publicKey) {
         throw new Error('Gagal mengambil kunci keamanan server.');
       }
 
-      // 5. Buat langganan push (Subscribe)
-      console.log('Membuat langganan PushManager...');
       let subscription = await registration.pushManager.getSubscription();
       if (!subscription) {
         subscription = await registration.pushManager.subscribe({
@@ -1347,7 +1534,6 @@ async function deleteMonDevice(deviceId, acsId) {
         });
       }
 
-      // 6. Kirim token ke database SQLite server
       const saveRes = await fetch('/api/push/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1361,7 +1547,6 @@ async function deleteMonDevice(deviceId, acsId) {
 
       if (saveResult.success) {
         alert('✅ Berhasil! Perangkat Anda kini terdaftar untuk menerima notifikasi.');
-        // Kirim tes notifikasi instan
         fetch('/api/push/test', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1381,17 +1566,12 @@ async function deleteMonDevice(deviceId, acsId) {
     }
   }
 
-  // Cek otomatis saat halaman dimuat (Hanya aktif jika menggunakan HTTPS atau localhost)
   window.addEventListener('DOMContentLoaded', async () => {
-    // Jika diakses via HTTP IP lokal (selain localhost), matikan fitur push agar tidak error/mengganggu
     const isLocalHttp = window.location.protocol === 'http:' && 
                         window.location.hostname !== 'localhost' && 
                         window.location.hostname !== '127.0.0.1';
     
-    if (isLocalHttp) {
-      console.info('[Push] Fitur notifikasi dinonaktifkan otomatis pada akses HTTP IP lokal.');
-      return; // Berhenti di sini, tidak akan memunculkan alert atau banner error apa pun
-    }
+    if (isLocalHttp) return;
 
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
     
@@ -1413,5 +1593,486 @@ async function deleteMonDevice(deviceId, acsId) {
     }
   });
 </script>
+
+<!-- [TAMBAHAN: ENGINE MONITORING TRAFIK & CUSTOM CENTER MODAL] -->
+<script>
+// --- 1. MODAL DIALOG POPUP CENTER SYSTEM ---
+function showCenterAlert(title, message, type = 'info') {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('appCenterModal');
+    const iconWrap = document.getElementById('appCenterIcon');
+    const iconI = document.getElementById('appCenterIconI');
+    const titleEl = document.getElementById('appCenterTitle');
+    const descEl = document.getElementById('appCenterDesc');
+    const btnsWrap = document.getElementById('appCenterBtns');
+
+    iconWrap.className = 'app-center-icon ' + type;
+    if (type === 'warn') iconI.className = 'bi bi-exclamation-triangle-fill';
+    else if (type === 'danger') iconI.className = 'bi bi-x-circle-fill';
+    else if (type === 'success') iconI.className = 'bi bi-check-circle-fill';
+    else iconI.className = 'bi bi-info-circle-fill';
+
+    titleEl.textContent = title;
+    descEl.textContent = message;
+
+    btnsWrap.innerHTML = `
+      <button type="button" class="btn btn-p" id="appCenterBtnOk" style="background:var(--primary);color:#fff;">OK</button>
+    `;
+
+    document.getElementById('appCenterBtnOk').onclick = () => {
+      overlay.classList.remove('show');
+      resolve(true);
+    };
+
+    overlay.classList.add('show');
+  });
+}
+
+function showCenterConfirm(title, message, confirmText = 'Lanjutkan', cancelText = 'Batal', type = 'warn') {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('appCenterModal');
+    const iconWrap = document.getElementById('appCenterIcon');
+    const iconI = document.getElementById('appCenterIconI');
+    const titleEl = document.getElementById('appCenterTitle');
+    const descEl = document.getElementById('appCenterDesc');
+    const btnsWrap = document.getElementById('appCenterBtns');
+
+    iconWrap.className = 'app-center-icon ' + type;
+    if (type === 'danger') iconI.className = 'bi bi-trash-fill';
+    else iconI.className = 'bi bi-exclamation-triangle-fill';
+
+    titleEl.textContent = title;
+    descEl.textContent = message;
+
+    btnsWrap.innerHTML = `
+      <button type="button" class="btn btn-g" id="appCenterBtnCancel">${cancelText}</button>
+      <button type="button" class="btn ${type === 'danger' ? 'btn-d' : 'btn-p'}" id="appCenterBtnConfirm" style="background:${type === 'danger' ? 'var(--danger)' : 'var(--primary)'};color:#fff;">${confirmText}</button>
+    `;
+
+    document.getElementById('appCenterBtnCancel').onclick = () => {
+      overlay.classList.remove('show');
+      resolve(false);
+    };
+
+    document.getElementById('appCenterBtnConfirm').onclick = () => {
+      overlay.classList.remove('show');
+      resolve(true);
+    };
+
+    overlay.classList.add('show');
+  });
+}
+
+async function rebootDevice(tag) {
+  const ok = await showCenterConfirm(
+    'Konfirmasi Reboot',
+    `Apakah Anda yakin ingin me-reboot perangkat ONU dengan tag [${tag}]?`,
+    'Ya, Reboot',
+    'Batal',
+    'warn'
+  );
+  if (!ok) return;
+
+  try {
+    const res = await fetch('/admin/api/device/' + encodeURIComponent(tag) + '/reboot', { method: 'POST' });
+    const data = await res.json();
+    showToast(data.message || (data.ok ? I18N.rebootSent : I18N.failed), data.ok ? 's' : 'd');
+  } catch(e) {
+    showToast('Error: ' + e.message, 'd');
+  }
+}
+
+async function deleteMonDevice(deviceId, acsId) {
+  const ok = await showCenterConfirm(
+    'Konfirmasi Hapus',
+    `Hapus perangkat [${deviceId}] secara permanen dari database ACS?`,
+    'Ya, Hapus',
+    'Batal',
+    'danger'
+  );
+  if (!ok) return;
+
+  try {
+    const res = await fetch('/admin/acs/api/device/' + encodeURIComponent(deviceId), {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ acsId })
+    });
+    const d = await res.json();
+    showToast(d.message, d.success ? 's' : 'd');
+    if (d.success) setTimeout(refreshAll, 1500);
+  } catch (err) {
+    showToast('Gagal menghapus perangkat: ' + err.message, 'd');
+  }
+}
+
+// --- 2. LOGIKA MONITORING TRAFIK REAL-TIME ---
+let trafficChart = null;
+let trafficPollingTimer = null;
+let trafficPollingActive = false;
+let currentRouterId = null;
+let currentInterfaceName = null;
+let currentInterfaceList = [];
+let peakRxMbps = 0;
+let peakTxMbps = 0;
+
+async function initTrafficSection() {
+  initTrafficChart();
+  await loadTrafficRouters();
+}
+
+function initTrafficChart() {
+  const canvas = document.getElementById('trafficLiveChart');
+  if (!canvas) return;
+  if (trafficChart) return;
+
+  const ctx = canvas.getContext('2d');
+  const labels = Array(20).fill('');
+  const initialDataRx = Array(20).fill(0);
+  const initialDataTx = Array(20).fill(0);
+
+  trafficChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Download (RX)',
+          data: initialDataRx,
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16, 185, 129, 0.12)',
+          fill: true,
+          tension: 0.35,
+          borderWidth: 2,
+          pointRadius: 2,
+          pointHoverRadius: 5
+        },
+        {
+          label: 'Upload (TX)',
+          data: initialDataTx,
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59, 130, 246, 0.12)',
+          fill: true,
+          tension: 0.35,
+          borderWidth: 2,
+          pointRadius: 2,
+          pointHoverRadius: 5
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: { color: getComputedStyle(document.body).getPropertyValue('--text') || '#cbd5e1', font: { weight: '600' } }
+        },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)} Mbps`
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { display: false } },
+        y: {
+          beginAtZero: true,
+          grid: { color: 'rgba(148, 163, 184, 0.1)' },
+          ticks: {
+            color: getComputedStyle(document.body).getPropertyValue('--muted') || '#94a3b8',
+            callback: (val) => val + ' Mbps'
+          }
+        }
+      }
+    }
+  });
+}
+
+/* [GANTI: LOAD ROUTER DENGAN MEMORI ROUTER TERAKHIR]                        */
+async function loadTrafficRouters() {
+  const selectRouter = document.getElementById('tf-select-router');
+  try {
+    const res = await fetch('/admin/api/traffic/routers');
+    const json = await res.json();
+
+    if (!json.ok || !Array.isArray(json.routers) || json.routers.length === 0) {
+      selectRouter.innerHTML = '<option value="" disabled selected>Tidak ada router aktif</option>';
+      return;
+    }
+
+    // Ambil riwayat router terakhir yang pernah dibuka dari localStorage
+    const savedLastRouterId = localStorage.getItem('tf_last_selected_router');
+    const isSavedRouterValid = json.routers.some(r => String(r.id) === String(savedLastRouterId));
+    
+    // Gunakan router yang tersimpan jika ada, jika tidak default ke router pertama
+    currentRouterId = isSavedRouterValid ? savedLastRouterId : json.routers[0].id;
+
+    selectRouter.innerHTML = json.routers.map((r) => {
+      const isSelected = String(r.id) === String(currentRouterId);
+      const typeStr = [r.isPppoe ? 'PPPoE' : '', r.isHotspot ? 'Hotspot' : ''].filter(Boolean).join('/');
+      const label = `${r.name} (${r.host}) ${typeStr ? '[' + typeStr + ']' : ''}`;
+      return `<option value="${r.id}" ${isSelected ? 'selected' : ''}>${escHtml(label)}</option>`;
+    }).join('');
+
+    await loadTrafficInterfaces(currentRouterId);
+  } catch (err) {
+    selectRouter.innerHTML = '<option value="" disabled selected>Gagal memuat router</option>';
+  }
+}
+
+/* [GANTI: LOAD INTERFACE DENGAN MEMORI INTERFACE PER ROUTER]                */
+async function loadTrafficInterfaces(routerId) {
+  const selectIface = document.getElementById('tf-select-interface');
+  selectIface.innerHTML = '<option value="" disabled selected>Memuat interface...</option>';
+  stopTrafficPolling();
+
+  try {
+    const res = await fetch('/admin/api/traffic/interfaces?router_id=' + routerId);
+    const json = await res.json();
+
+    if (!json.ok || !Array.isArray(json.interfaces) || json.interfaces.length === 0) {
+      selectIface.innerHTML = '<option value="" disabled selected>Tidak ada interface ditemukan</option>';
+      renderInterfacesTable([]);
+      return;
+    }
+
+    currentInterfaceList = json.interfaces;
+
+    // KUNCI: Cek apakah ada interface yang pernah dipilih khusus untuk router ini
+    const memoryKey = 'tf_saved_iface_router_' + routerId;
+    const savedIfaceForThisRouter = localStorage.getItem(memoryKey);
+
+    // Cek apakah interface yang diingat masih ada di router
+    const matchedSaved = currentInterfaceList.find(i => i.name === savedIfaceForThisRouter);
+    
+    // Jika ada yang tersimpan gunakan itu, jika belum ada default ke interface pertama
+    const defaultTarget = matchedSaved || currentInterfaceList[0];
+    currentInterfaceName = defaultTarget.name;
+
+    // Simpan status aktif
+    localStorage.setItem(memoryKey, currentInterfaceName);
+    localStorage.setItem('tf_last_selected_router', routerId);
+
+    selectIface.innerHTML = currentInterfaceList.map((i) => {
+      const isSelected = i.name === currentInterfaceName;
+      const statusIcon = i.running ? '🟢' : '⚪';
+      const commentStr = i.comment ? ` - ${i.comment}` : '';
+      return `<option value="${escHtml(i.name)}" ${isSelected ? 'selected' : ''}>${statusIcon} ${escHtml(i.name)} (${i.type}${commentStr})</option>`;
+    }).join('');
+
+    renderInterfacesTable(currentInterfaceList);
+    updateInterfaceStaticInfo(defaultTarget);
+
+    // Reset dan atur grafik ke interface yang terpilih
+    peakRxMbps = 0;
+    peakTxMbps = 0;
+    document.getElementById('tf-chart-peak').textContent = 'Puncak: RX 0 Mbps | TX 0 Mbps';
+    document.getElementById('tf-chart-target-label').textContent = `${currentInterfaceName}`;
+
+    if (trafficChart) {
+      trafficChart.data.datasets[0].data = Array(20).fill(0);
+      trafficChart.data.datasets[1].data = Array(20).fill(0);
+      trafficChart.update();
+    }
+
+    startTrafficPolling();
+  } catch (err) {
+    selectIface.innerHTML = '<option value="" disabled selected>Gagal membaca interface</option>';
+  }
+}
+
+function renderInterfacesTable(interfaces) {
+  const tbody = document.getElementById('tf-interfaces-tbody');
+  const badge = document.getElementById('tf-total-interfaces-badge');
+  badge.textContent = `${interfaces.length} interface`;
+
+  if (interfaces.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding:24px;">Tidak ada interface pada router ini</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = interfaces.map((i, idx) => {
+    const isSelected = i.name === currentInterfaceName;
+    const runningBadge = i.running 
+      ? '<span class="badge ds-on"><span class="dot dot-on"></span>Running</span>'
+      : (i.disabled ? '<span class="badge bd">Disabled</span>' : '<span class="badge bm">Link Down</span>');
+    
+    const rxStr = formatBytes(i.rxByte);
+    const txStr = formatBytes(i.txByte);
+
+    return `
+      <tr style="${isSelected ? 'background:rgba(59,130,246,0.08);font-weight:600;' : ''}">
+        <td class="text-muted">${idx + 1}</td>
+        <td>
+          <div style="font-weight:700;">${escHtml(i.name)}</div>
+          <div style="font-size:11px;color:var(--muted);">${escHtml(i.comment || '')}</div>
+        </td>
+        <td><span class="badge bm">${escHtml(i.type)}</span></td>
+        <td>${runningBadge}</td>
+        <td><code>${escHtml(i.macAddress)}</code></td>
+        <td><i class="bi bi-arrow-down" style="color:var(--success)"></i> ${rxStr}</td>
+        <td><i class="bi bi-arrow-up" style="color:var(--primary)"></i> ${txStr}</td>
+        <td style="text-align:center;">
+          <button class="btn btn-g btn-sm" onclick="selectInterfaceFromTable('${escHtml(i.name)}')">
+            <i class="bi bi-activity"></i> Pantau
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function selectInterfaceFromTable(name) {
+  const selectIface = document.getElementById('tf-select-interface');
+  selectIface.value = name;
+  onTrafficInterfaceChange();
+}
+
+function updateInterfaceStaticInfo(iface) {
+  if (!iface) return;
+  const statusEl = document.getElementById('tf-val-status');
+  statusEl.innerHTML = iface.running 
+    ? '<span style="color:var(--success);font-weight:800;"><i class="bi bi-check-circle-fill"></i> Link Aktif (Up)</span>'
+    : (iface.disabled ? '<span style="color:var(--danger);font-weight:800;"><i class="bi bi-dash-circle-fill"></i> Dinonaktifkan</span>' : '<span style="color:var(--muted);font-weight:800;"><i class="bi bi-x-circle"></i> Link Putus (Down)</span>');
+
+  document.getElementById('tf-sub-type').textContent = `Tipe Port: ${iface.type}`;
+  document.getElementById('tf-val-mac').textContent = iface.macAddress || '-';
+  document.getElementById('tf-sub-comment').textContent = `Catatan: ${iface.comment || '-'}`;
+  document.getElementById('tf-sub-rx').textContent = `Akumulasi: ${formatBytes(iface.rxByte)}`;
+  document.getElementById('tf-sub-tx').textContent = `Akumulasi: ${formatBytes(iface.txByte)}`;
+}
+
+function onTrafficRouterChange() {
+  currentRouterId = document.getElementById('tf-select-router').value;
+  loadTrafficInterfaces(currentRouterId);
+}
+
+/* [GANTI: SIMPAN INTERFACE SETIAP KALI USER MEMILIH INTERFACE BARU]         */
+function onTrafficInterfaceChange() {
+  currentInterfaceName = document.getElementById('tf-select-interface').value;
+
+  // SIMPAN KE MEMORI BROWSER SPESIFIK UNTUK ROUTER INI
+  if (currentRouterId && currentInterfaceName) {
+    localStorage.setItem('tf_saved_iface_router_' + currentRouterId, currentInterfaceName);
+  }
+
+  const target = currentInterfaceList.find(i => i.name === currentInterfaceName);
+  if (target) updateInterfaceStaticInfo(target);
+  renderInterfacesTable(currentInterfaceList);
+
+  peakRxMbps = 0;
+  peakTxMbps = 0;
+  document.getElementById('tf-chart-peak').textContent = 'Puncak: RX 0 Mbps | TX 0 Mbps';
+  document.getElementById('tf-chart-target-label').textContent = `${currentInterfaceName}`;
+
+  if (trafficChart) {
+    trafficChart.data.datasets[0].data = Array(20).fill(0);
+    trafficChart.data.datasets[1].data = Array(20).fill(0);
+    trafficChart.update();
+  }
+
+  startTrafficPolling();
+}
+
+function startTrafficPolling() {
+  stopTrafficPolling();
+  trafficPollingActive = true;
+  document.getElementById('btn-poll-icon').className = 'bi bi-pause-fill';
+  document.getElementById('btn-poll-label').textContent = 'Pause Polling';
+  document.getElementById('tf-live-indicator').style.background = 'var(--success)';
+  document.getElementById('tf-live-status-text').textContent = 'Traffic Live';
+
+  pollTrafficSample();
+  trafficPollingTimer = setInterval(pollTrafficSample, 2500);
+}
+
+function stopTrafficPolling() {
+  if (trafficPollingTimer) {
+    clearInterval(trafficPollingTimer);
+    trafficPollingTimer = null;
+  }
+  trafficPollingActive = false;
+  const icon = document.getElementById('btn-poll-icon');
+  const label = document.getElementById('btn-poll-label');
+  const ind = document.getElementById('tf-live-indicator');
+  const txt = document.getElementById('tf-live-status-text');
+  if (icon) icon.className = 'bi bi-play-fill';
+  if (label) label.textContent = 'Mulai Polling';
+  if (ind) ind.style.background = 'var(--muted)';
+  if (txt) txt.textContent = 'Polling Dijeda';
+}
+
+function toggleTrafficPolling() {
+  if (trafficPollingActive) stopTrafficPolling();
+  else startTrafficPolling();
+}
+
+async function pollTrafficSample() {
+  if (!currentRouterId || !currentInterfaceName) return;
+
+  try {
+    const url = `/admin/api/traffic/monitor?router_id=${encodeURIComponent(currentRouterId)}&interface=${encodeURIComponent(currentInterfaceName)}`;
+    const res = await fetch(url);
+    const json = await res.json();
+
+    if (!json.ok || !json.data) return;
+
+    const d = json.data;
+    const rx = Number(d.rxMbps || 0);
+    const tx = Number(d.txMbps || 0);
+
+    document.getElementById('tf-val-rx').innerHTML = `${rx.toFixed(2)} <span style="font-size:13px;font-weight:600;">Mbps</span>`;
+    document.getElementById('tf-val-tx').innerHTML = `${tx.toFixed(2)} <span style="font-size:13px;font-weight:600;">Mbps</span>`;
+
+    if (rx > peakRxMbps) peakRxMbps = rx;
+    if (tx > peakTxMbps) peakTxMbps = tx;
+    document.getElementById('tf-chart-peak').textContent = `Puncak: RX ${peakRxMbps.toFixed(2)} Mbps | TX ${peakTxMbps.toFixed(2)} Mbps`;
+
+    const now = new Date();
+    document.getElementById('tf-clock-last').textContent = 'Pembaruan: ' + now.toLocaleTimeString('id-ID');
+
+    if (trafficChart) {
+      const timeLabel = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0') + ':' + now.getSeconds().toString().padStart(2, '0');
+      
+      trafficChart.data.labels.shift();
+      trafficChart.data.labels.push(timeLabel);
+
+      trafficChart.data.datasets[0].data.shift();
+      trafficChart.data.datasets[0].data.push(rx);
+
+      trafficChart.data.datasets[1].data.shift();
+      trafficChart.data.datasets[1].data.push(tx);
+
+      trafficChart.update('none');
+    }
+  } catch (err) {}
+}
+
+function formatBytes(bytes) {
+  const b = Number(bytes || 0);
+  if (b === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(b) / Math.log(k));
+  return parseFloat((b / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+</script>
+
+<!-- ── [TAMBAHAN: MODAL DIALOG NOTIFIKASI CENTER TERANG/GELAP AMAN] ── -->
+<div class="app-center-overlay" id="appCenterModal">
+  <div class="app-center-dialog">
+    <div class="app-center-icon info" id="appCenterIcon">
+      <i class="bi bi-info-circle-fill" id="appCenterIconI"></i>
+    </div>
+    <div class="app-center-title" id="appCenterTitle">Pemberitahuan</div>
+    <div class="app-center-desc" id="appCenterDesc">Pesan notifikasi</div>
+    <div class="app-center-btns" id="appCenterBtns">
+      <button type="button" class="btn btn-p" id="appCenterBtnOk">OK</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

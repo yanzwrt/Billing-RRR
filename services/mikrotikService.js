@@ -2053,6 +2053,103 @@ async function removeStaticIp(ip, routerId = null) {
   }
 }
 
+/* ========================================================================= */
+/* [AWAL PENAMBAHAN: MONITORING INTERFACE TRAFFIC MULTI-ROUTER]              */
+/* ========================================================================= */
+async function getRouterInterfaces(routerId = null) {
+  let conn = null;
+  try {
+    conn = await getConnection(routerId);
+    let rows = await withTimeout(
+      conn.client.menu('/interface').get(),
+      6000,
+      'getRouterInterfaces'
+    ).catch(() => []);
+
+    const mapped = (Array.isArray(rows) ? rows : []).map(i => {
+      const isRunning = i.running === true || i.running === 'true' || i.running === 'yes';
+      const isDisabled = i.disabled === true || i.disabled === 'true' || i.disabled === 'yes';
+      return {
+        id: i['.id'] || i.id,
+        name: String(i.name || i['name'] || '-').trim(),
+        type: String(i.type || i['type'] || 'ether').trim(),
+        running: isRunning,
+        disabled: isDisabled,
+        macAddress: String(i['mac-address'] || i.macAddress || '-').trim(),
+        comment: String(i.comment || i['comment'] || '').trim(),
+        rxByte: Number(i['rx-byte'] || i['rxBytes'] || i['bytes-in'] || 0),
+        txByte: Number(i['tx-byte'] || i['txBytes'] || i['bytes-out'] || 0)
+      };
+    });
+
+    // Urutkan: Interface running di atas, lalu abjad nama
+    mapped.sort((a, b) => {
+      if (a.running !== b.running) return a.running ? -1 : 1;
+      return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+    });
+
+    return mapped;
+  } catch (err) {
+    logger.error(`[MikroTik] Gagal ambil list interface router ${routerId || 'default'}: ${err.message}`);
+    throw err;
+  } finally {
+    if (conn && conn.api) {
+      try { conn.api.close(); } catch {}
+    }
+  }
+}
+
+async function monitorInterfaceTraffic(routerId = null, interfaceName) {
+  const iface = String(interfaceName || '').trim();
+  if (!iface) throw new Error('Nama interface wajib diisi');
+
+  let conn = null;
+  try {
+    conn = await getConnection(routerId);
+    // Jalankan /interface/monitor-traffic interface=... once
+    const raw = await withTimeout(
+      conn.api.send([
+        '/interface/monitor-traffic',
+        `=interface=${iface}`,
+        '=once='
+      ]),
+      4000,
+      'monitorInterfaceTraffic'
+    );
+
+    const row = Array.isArray(raw) && raw.length > 0 ? raw[0] : {};
+    const rxBps = Number(row['rx-bits-per-second'] || row['rxBitsPerSecond'] || 0);
+    const txBps = Number(row['tx-bits-per-second'] || row['txBitsPerSecond'] || 0);
+
+    return {
+      name: iface,
+      rxBps,
+      txBps,
+      rxMbps: Number((rxBps / 1000000).toFixed(3)),
+      txMbps: Number((txBps / 1000000).toFixed(3)),
+      timestamp: Date.now()
+    };
+  } catch (err) {
+    logger.warn(`[MikroTik] Monitor traffic error (${iface} on router ${routerId || 'default'}): ${err.message}`);
+    return {
+      name: iface,
+      rxBps: 0,
+      txBps: 0,
+      rxMbps: 0,
+      txMbps: 0,
+      error: err.message,
+      timestamp: Date.now()
+    };
+  } finally {
+    if (conn && conn.api) {
+      try { conn.api.close(); } catch {}
+    }
+  }
+}
+/* ========================================================================= */
+/* [AKHIR PENAMBAHAN: MONITORING INTERFACE TRAFFIC MULTI-ROUTER]             */
+/* ========================================================================= */
+
 function stripAnsi(str) {
   if (!str || typeof str !== 'string') return '';
   return str.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
@@ -2317,5 +2414,7 @@ module.exports = {
   ensurePppProfileIsolirAddressListHook,
   generateIsolirPortalScript,
   manageStaticIp,
-  removeStaticIp
+  removeStaticIp,
+  getRouterInterfaces,
+  monitorInterfaceTraffic
 };
