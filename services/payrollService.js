@@ -20,28 +20,57 @@ function getAllPayrollSettings() {
   return db.prepare('SELECT * FROM payroll_settings ORDER BY employee_type, employee_id').all();
 }
 
+/* [AWAL PERUBAHAN]: UPSERT PAYROLL SETTING MULTI-SITE                      */
 function upsertPayrollSetting(data) {
   const existing = getPayrollSetting(data.employee_type, data.employee_id);
+
+  // Parsing gaji per site (site-1, site-2, site-3)
+  let siteSalariesObj = {};
+  if (typeof data.site_salaries === 'object' && data.site_salaries !== null) {
+    siteSalariesObj = data.site_salaries;
+  } else if (typeof data.site_salaries === 'string' && data.site_salaries.trim().startsWith('{')) {
+    try { siteSalariesObj = JSON.parse(data.site_salaries); } catch(e) { siteSalariesObj = {}; }
+  } else {
+    siteSalariesObj = {
+      'site-1': parseInt(data.site_1_salary, 10) || 0,
+      'site-2': parseInt(data.site_2_salary, 10) || 0,
+      'site-3': parseInt(data.site_3_salary, 10) || 0
+    };
+  }
+
+  const s1 = parseInt(siteSalariesObj['site-1'], 10) || 0;
+  const s2 = parseInt(siteSalariesObj['site-2'], 10) || 0;
+  const s3 = parseInt(siteSalariesObj['site-3'], 10) || 0;
+  const calculatedTotal = s1 + s2 + s3;
+  const totalBase = calculatedTotal > 0 ? calculatedTotal : (parseInt(data.base_salary, 10) || 0);
+
+  // Jika semua 0 tapi base_salary ada, taruh di site-1 sebagai default
+  if (s1 === 0 && s2 === 0 && s3 === 0 && totalBase > 0) {
+    siteSalariesObj['site-1'] = totalBase;
+  }
+  const siteSalariesJson = JSON.stringify(siteSalariesObj);
+
   if (existing) {
     return db.prepare(`
       UPDATE payroll_settings SET
-        base_salary = ?, transport_allowance = ?, meal_allowance = ?,
+        base_salary = ?, site_salaries = ?, transport_allowance = ?, meal_allowance = ?,
         phone_allowance = ?, other_allowance = ?, other_allowance_note = ?,
         absence_deduction_per_day = ?, bonus_per_ticket = ?,
         commission_percentage = ?, working_days_per_month = ?,
         updated_at = (NOW_LOCAL())
       WHERE employee_type = ? AND employee_id = ?
     `).run(
-      parseInt(data.base_salary) || 0,
-      parseInt(data.transport_allowance) || 0,
-      parseInt(data.meal_allowance) || 0,
-      parseInt(data.phone_allowance) || 0,
-      parseInt(data.other_allowance) || 0,
+      totalBase,
+      siteSalariesJson,
+      parseInt(data.transport_allowance, 10) || 0,
+      parseInt(data.meal_allowance, 10) || 0,
+      parseInt(data.phone_allowance, 10) || 0,
+      parseInt(data.other_allowance, 10) || 0,
       data.other_allowance_note || '',
-      parseInt(data.absence_deduction_per_day) || 0,
-      parseInt(data.bonus_per_ticket) || 0,
+      parseInt(data.absence_deduction_per_day, 10) || 0,
+      parseInt(data.bonus_per_ticket, 10) || 0,
       parseFloat(data.commission_percentage) || 0,
-      parseInt(data.working_days_per_month) || 26,
+      parseInt(data.working_days_per_month, 10) || 26,
       data.employee_type,
       data.employee_id
     );
@@ -49,27 +78,29 @@ function upsertPayrollSetting(data) {
     return db.prepare(`
       INSERT INTO payroll_settings (
         employee_type, employee_id,
-        base_salary, transport_allowance, meal_allowance,
+        base_salary, site_salaries, transport_allowance, meal_allowance,
         phone_allowance, other_allowance, other_allowance_note,
         absence_deduction_per_day, bonus_per_ticket,
         commission_percentage, working_days_per_month
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       data.employee_type,
-      parseInt(data.employee_id),
-      parseInt(data.base_salary) || 0,
-      parseInt(data.transport_allowance) || 0,
-      parseInt(data.meal_allowance) || 0,
-      parseInt(data.phone_allowance) || 0,
-      parseInt(data.other_allowance) || 0,
+      parseInt(data.employee_id, 10),
+      totalBase,
+      siteSalariesJson,
+      parseInt(data.transport_allowance, 10) || 0,
+      parseInt(data.meal_allowance, 10) || 0,
+      parseInt(data.phone_allowance, 10) || 0,
+      parseInt(data.other_allowance, 10) || 0,
       data.other_allowance_note || '',
-      parseInt(data.absence_deduction_per_day) || 0,
-      parseInt(data.bonus_per_ticket) || 0,
+      parseInt(data.absence_deduction_per_day, 10) || 0,
+      parseInt(data.bonus_per_ticket, 10) || 0,
       parseFloat(data.commission_percentage) || 0,
-      parseInt(data.working_days_per_month) || 26
+      parseInt(data.working_days_per_month, 10) || 26
     );
   }
 }
+/* ========================================================================= */
 
 function deletePayrollSetting(employeeType, employeeId) {
   return db.prepare(
@@ -272,28 +303,73 @@ function generateSlip(employeeType, employeeId, month, year) {
   // Gaji bersih
   const netSalary = Math.max(0, grossSalary - totalDeductions);
 
+  /* ==================== [AWAL BLOK YANG BENAR] ==================== */
+  let siteBreakdownJson = '{}';
+  try {
+    let sMap = JSON.parse(setting.site_salaries || '{}');
+    const s1 = parseInt(sMap['site-1'], 10) || 0;
+    const s2 = parseInt(sMap['site-2'], 10) || 0;
+    const s3 = parseInt(sMap['site-3'], 10) || 0;
+    if (s1 === 0 && s2 === 0 && s3 === 0) {
+      sMap = { 'site-1': setting.base_salary, 'site-2': 0, 'site-3': 0 };
+    }
+    siteBreakdownJson = JSON.stringify(sMap);
+  } catch(e) {
+    siteBreakdownJson = JSON.stringify({ 'site-1': setting.base_salary, 'site-2': 0, 'site-3': 0 });
+  }
+
   const result = db.prepare(`
     INSERT INTO payroll_slips (
       employee_type, employee_id, employee_name, period_month, period_year,
-      base_salary, transport_allowance, meal_allowance, phone_allowance,
+      base_salary, site_breakdown, transport_allowance, meal_allowance, phone_allowance,
       other_allowance, other_allowance_note,
       working_days, absent_days, late_days, overtime_hours,
       total_tickets_resolved, total_collection_amount,
       ticket_bonus, collection_commission, overtime_bonus,
       absence_deduction, late_deduction, other_deduction, other_deduction_note,
       gross_salary, total_deductions, net_salary, status, notes
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?)
+    ) VALUES (
+      ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?,
+      ?, ?,
+      ?, ?, ?, ?,
+      ?, ?,
+      ?, ?, ?,
+      ?, ?, ?, ?,
+      ?, ?, ?, 'draft', ?
+    )
   `).run(
-    employeeType, employeeId, employeeName, month, year,
-    setting.base_salary, setting.transport_allowance, setting.meal_allowance,
-    setting.phone_allowance, setting.other_allowance, setting.other_allowance_note || '',
-    actualWorkingDays, absentDays, attendance.lateDays, overtimeHours,
-    ticketsResolved, collectionAmount,
-    ticketBonus, collectionCommission, overtimeBonus,
-    absenceDeduction, lateDeduction, 0, '',
-    grossSalary, totalDeductions, netSalary,
+    employeeType,
+    employeeId,
+    employeeName,
+    month,
+    year,
+    setting.base_salary,
+    siteBreakdownJson,
+    setting.transport_allowance,
+    setting.meal_allowance,
+    setting.phone_allowance,
+    setting.other_allowance,
+    setting.other_allowance_note || '',
+    actualWorkingDays,
+    absentDays,
+    attendance.lateDays,
+    overtimeHours,
+    ticketsResolved,
+    collectionAmount,
+    ticketBonus,
+    collectionCommission,
+    overtimeBonus,
+    absenceDeduction,
+    lateDeduction,
+    0,
+    '',
+    grossSalary,
+    totalDeductions,
+    netSalary,
     initialNote
   );
+  /* ==================== [AKHIR BLOK YANG BENAR] ==================== */
 
   return result.lastInsertRowid;
 }
@@ -430,6 +506,52 @@ function approveSlip(id) {
   `).run(id);
 }
 
+/* ========================================================================= */
+/* [AWAL PERBAIKAN]: OTOMATIS CATAT GAJI KE TABEL EXPENSES SAAT PAID         */
+/* ========================================================================= */
+function recordPayrollExpenseForSlip(slip) {
+  let siteMap = {};
+  try {
+    siteMap = JSON.parse(slip.site_breakdown || '{}');
+  } catch(e) { siteMap = {}; }
+
+  const s1 = parseInt(siteMap['site-1'], 10) || 0;
+  const s2 = parseInt(siteMap['site-2'], 10) || 0;
+  const s3 = parseInt(siteMap['site-3'], 10) || 0;
+  const totalAlloc = s1 + s2 + s3;
+
+  const siteEntries = [
+    { site: 'site-1', name: 'Site 1 (Rakha)', amount: s1 },
+    { site: 'site-2', name: 'Site 2 (Ikdmp)', amount: s2 },
+    { site: 'site-3', name: 'Site 3 (Rayna)', amount: s3 }
+  ];
+
+  // Query insert langsung ke tabel expenses dengan kolom site
+  const stmt = db.prepare(`
+    INSERT INTO expenses (date, category, amount, description, payment_method, recorded_by_name, site)
+    VALUES (date('now', 'localtime'), 'Gaji & Tunjangan', ?, ?, 'transfer', 'Sistem (Payroll)', ?)
+  `);
+
+  const monthNames = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  const periodLabel = `${monthNames[slip.period_month] || slip.period_month} ${slip.period_year}`;
+
+  if (totalAlloc > 0) {
+    // Bagikan gaji bersih secara proporsional sesuai nominal alokasi per site
+    for (const item of siteEntries) {
+      if (item.amount > 0) {
+        const portionRatio = item.amount / totalAlloc;
+        const siteAmount = Math.round(slip.net_salary * portionRatio);
+        const desc = `Gaji ${slip.employee_name} [${item.name}] (Periode ${periodLabel})`;
+        stmt.run(siteAmount, desc, item.site);
+      }
+    }
+  } else {
+    // Fallback jika site breakdown kosong: masukkan ke site-1
+    const desc = `Gaji ${slip.employee_name} (Periode ${periodLabel})`;
+    stmt.run(slip.net_salary, desc, 'site-1');
+  }
+}
+
 function markSlipPaid(id) {
   const slip = getSlipById(id);
   if (!slip) throw new Error('Slip tidak ditemukan');
@@ -439,24 +561,14 @@ function markSlipPaid(id) {
     UPDATE payroll_slips SET status = 'paid', paid_at = (NOW_LOCAL()) WHERE id = ?
   `).run(id);
 
-  // Auto Insert ke Tabel Pengeluaran (Expenses)
   try {
-    db.prepare(`
-      INSERT INTO expenses (date, category, amount, description, payment_method, recorded_by_name)
-      VALUES (date('now', 'localtime'), 'Gaji & Tunjangan', ?, ?, 'transfer', 'Sistem (Payroll)')
-    `).run(slip.net_salary, `Gaji ${slip.employee_name} (Periode ${slip.period_month}/${slip.period_year})`);
+    recordPayrollExpenseForSlip(slip);
+    logger.info(`[Payroll] Slip #${id} (${slip.employee_name}) sukses dicatat ke tabel expenses.`);
   } catch (e) {
-    logger.error('Gagal mencatat expense dari slip gaji: ' + e.message);
+    logger.error('[Payroll] Gagal mencatat expense dari slip gaji: ' + e.message);
   }
 
   return result;
-}
-
-function bulkApprove(month, year) {
-  return db.prepare(`
-    UPDATE payroll_slips SET status = 'approved', approved_at = (NOW_LOCAL())
-    WHERE period_month = ? AND period_year = ? AND status = 'draft'
-  `).run(month, year);
 }
 
 function bulkMarkPaid(month, year) {
@@ -467,29 +579,43 @@ function bulkMarkPaid(month, year) {
     WHERE period_month = ? AND period_year = ? AND status = 'approved'
   `).run(month, year);
 
-  // Auto Insert ke Tabel Pengeluaran (Expenses) untuk semua slip
   try {
-    const stmt = db.prepare(`
-      INSERT INTO expenses (date, category, amount, description, payment_method, recorded_by_name)
-      VALUES (date('now', 'localtime'), 'Gaji & Tunjangan', ?, ?, 'transfer', 'Sistem (Payroll)')
-    `);
-    
     for (const slip of slipsToPay) {
-      stmt.run(slip.net_salary, `Gaji ${slip.employee_name} (Periode ${slip.period_month}/${slip.period_year})`);
+      recordPayrollExpenseForSlip(slip);
     }
+    logger.info(`[Payroll] Bulk paid ${slipsToPay.length} slip berhasil dicatat ke tabel expenses.`);
   } catch (e) {
-    logger.error('Gagal mencatat expense bulk slip gaji: ' + e.message);
+    logger.error('[Payroll] Gagal mencatat expense bulk slip gaji: ' + e.message);
   }
 
   return result;
 }
+/* ========================================================================= */
+/* [AKHIR PERUBAHAN]: OTOMATIS CATAT GAJI KE TABEL EXPENSES SAAT PAID        */
+/* ========================================================================= */
 
+function bulkApprove(month, year) {
+  return db.prepare(`
+    UPDATE payroll_slips SET status = 'approved', approved_at = (NOW_LOCAL())
+    WHERE period_month = ? AND period_year = ? AND status = 'draft'
+  `).run(month, year);
+}
+
+
+/* [AWAL PERUBAHAN]: IZINKAN HAPUS SLIP MESKIPUN SUDAH APPROVED              */
 function deleteSlip(id) {
   const slip = getSlipById(id);
   if (!slip) throw new Error('Slip tidak ditemukan');
-  if (slip.status === 'paid') throw new Error('Slip yang sudah paid tidak bisa dihapus');
+  
+  // Slip yang sudah benar-benar LUNAS (paid) dan tercatat sebagai pengeluaran kas dilarang dihapus
+  if (slip.status === 'paid') {
+    throw new Error('Slip yang sudah berstatus LUNAS (Paid) tidak dapat dihapus karena sudah masuk ke Laporan Keuangan. Batalkan atau sesuaikan secara manual jika diperlukan.');
+  }
+  
+  // Slip berstatus 'draft' maupun 'approved' sekarang DIIZINKAN untuk dihapus
   return db.prepare('DELETE FROM payroll_slips WHERE id = ?').run(id);
 }
+/* ========================================================================= */
 
 function deleteSlipsByPeriod(month, year) {
   return db.prepare(`

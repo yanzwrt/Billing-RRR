@@ -1,9 +1,31 @@
 <%- include('partials/header') %>
 
+<!-- ================= [AWAL PERUBAHAN: POSISI IKON SETELAH HALO] ================= -->
+<%
+  // Mengambil jam zona WIB (Asia/Jakarta)
+  const hourWIB = parseInt(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', timeZone: 'Asia/Jakarta' }));
+  
+  let timeGreeting = 'Selamat Pagi';
+  let timeIcon = 'bi-sunrise-fill text-warning'; // Pagi
+
+  if (hourWIB >= 11 && hourWIB < 15) {
+    timeGreeting = 'Selamat Siang';
+    timeIcon = 'bi-brightness-high-fill text-warning'; // Siang
+  } else if (hourWIB >= 15 && hourWIB < 18) {
+    timeGreeting = 'Selamat Sore';
+    timeIcon = 'bi-sunset-fill text-danger'; // Sore
+  } else if (hourWIB >= 18 || hourWIB < 4) {
+    timeGreeting = 'Selamat Malam';
+    timeIcon = 'bi-moon-stars-fill text-info'; // Malam
+  }
+%>
 <div class="mb-4">
-  <div class="text-secondary small"><%= t('tech.dashboard.greeting', 'Halo, Selamat Bekerja!') %></div>
+  <div class="text-secondary small">
+    Halo, <i class="bi <%= timeIcon %> mx-1"></i><%= timeGreeting %>!
+  </div>
   <div class="fs-5 fw-bold"><i class="bi bi-person-badge text-primary me-2"></i><%= techName %></div>
 </div>
+<!-- ================= [AKHIR PERUBAHAN: POSISI IKON SETELAH HALO] ================ -->
 
 <div class="stat-grid">
   <div class="stat-box" style="border-left: 3px solid #f59e0b;">

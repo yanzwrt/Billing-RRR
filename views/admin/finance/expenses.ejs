@@ -60,28 +60,34 @@
           <thead>
             <tr>
               <th>Tanggal</th>
+              <th>Site / Cabang</th>
               <th>Kategori</th>
               <th>Deskripsi / Catatan</th>
               <th>Vendor/Toko</th>
               <th>Metode</th>
               <th class="num">Jumlah</th>
               <th>Pencatat</th>
-              <th>Aksi</th>
+              <th style="text-align:center">Aksi</th>
             </tr>
           </thead>
           <tbody>
           <% if (expenses.length===0) { %>
-            <tr><td colspan="8" class="text-center text-muted" style="padding:32px">Belum ada data pengeluaran.</td></tr>
+            <tr><td colspan="9" class="text-center text-muted" style="padding:32px">Belum ada data pengeluaran.</td></tr>
           <% } %>
           <% expenses.forEach((item)=>{ %>
             <tr>
               <td style="white-space:nowrap"><%= formatDateLocal(item.date) %></td>
               <td>
+                <span class="badge" style="background:rgba(59,130,246,0.1);color:#3b82f6;border:1px solid rgba(59,130,246,0.3)">
+                  <%= item.site === 'site-2' ? 'Site 2 (Ikdmp)' : (item.site === 'site-3' ? 'Site 3 (Rayna)' : 'Site 1 (Rakha)') %>
+                </span>
+              </td>
+              <td>
                 <span class="badge" <%- 'style="background: ' + (item.category_color ? item.category_color+'20' : 'rgba(255,255,255,0.1)') + '; color: ' + (item.category_color || 'white') + '; border: 1px solid ' + (item.category_color ? item.category_color+'50' : 'rgba(255,255,255,0.2)') + ';"' %>>
                   <i class="<%= item.category_icon || 'bi bi-tag' %>"></i> <%= item.category %>
                 </span>
               </td>
-              <td style="max-width:300px;white-space:normal">
+              <td style="max-width:280px;white-space:normal">
                 <strong><%= item.description %></strong>
                 <% if(item.receipt_number){ %><div style="font-size:11px;color:var(--muted);margin-top:2px"><i class="bi bi-receipt"></i> <%= item.receipt_number %></div><% } %>
               </td>
@@ -91,7 +97,8 @@
               </td>
               <td class="num fw6" style="color:#ef4444">- Rp <%= Number(item.amount).toLocaleString('id-ID') %></td>
               <td style="font-size:12px"><%= item.recorded_by_name || 'Admin' %></td>
-              <td>
+              <td style="text-align:center;white-space:nowrap">
+                <button type="button" class="btn btn-p btn-icon btn-sm" title="Edit" onclick='openEditModal(<%- JSON.stringify(item) %>)' style="margin-right:4px"><i class="bi bi-pencil"></i></button>
                 <form method="POST" action="/admin/finance/expenses/<%= item.id %>/delete" style="display:inline" onsubmit="return confirm('Hapus data pengeluaran ini?')">
                   <button class="btn btn-d btn-icon btn-sm" title="Hapus"><i class="bi bi-trash"></i></button>
                 </form>
@@ -126,6 +133,16 @@
             </select>
           </div>
         </div>
+
+        <div class="fg">
+          <label class="fl"><i class="bi bi-geo-alt"></i> Alokasi Cabang / Site <span class="text-danger">*</span></label>
+          <select class="fc" name="site" required style="font-weight:600">
+            <option value="site-1">Site 1 (Rakha)</option>
+            <option value="site-2">Site 2 (Ikdmp)</option>
+            <option value="site-3">Site 3 (Rayna)</option>
+          </select>
+        </div>
+
         <div class="fg">
           <label class="fl">Jumlah / Nominal (Rp) <span class="text-danger">*</span></label>
           <input type="text" class="fc" name="amount" id="amountInput" required placeholder="Contoh: 150.000" style="font-size:16px;font-weight:bold" autocomplete="off">
@@ -162,13 +179,80 @@
   </div>
 </div>
 
+<!-- Modal Edit -->
+<div class="mo" id="editModal">
+  <div class="mb">
+    <div class="mh"><span class="mt"><i class="bi bi-pencil-square"></i> Edit Data Pengeluaran</span><button type="button" class="mc" onclick="closeModal('editModal')">&times;</button></div>
+    <form method="POST" id="editForm">
+      <div class="mbody">
+        <div class="form-row">
+          <div class="fg">
+            <label class="fl">Tanggal Pengeluaran <span class="text-danger">*</span></label>
+            <input type="date" class="fc" name="date" id="edit_date" required>
+          </div>
+          <div class="fg">
+            <label class="fl">Kategori <span class="text-danger">*</span></label>
+            <select class="fc" name="category" id="edit_category" required>
+              <option value="">-- Pilih Kategori --</option>
+              <% categories.forEach(c => { %>
+                <option value="<%= c.name %>"><%= c.name %></option>
+              <% }) %>
+            </select>
+          </div>
+        </div>
+
+        <div class="fg">
+          <label class="fl"><i class="bi bi-geo-alt"></i> Alokasi Cabang / Site <span class="text-danger">*</span></label>
+          <select class="fc" name="site" id="edit_site" required style="font-weight:600">
+            <option value="site-1">Site 1 (Rakha)</option>
+            <option value="site-2">Site 2 (Ikdmp)</option>
+            <option value="site-3">Site 3 (Rayna)</option>
+          </select>
+        </div>
+
+        <div class="fg">
+          <label class="fl">Jumlah / Nominal (Rp) <span class="text-danger">*</span></label>
+          <input type="text" class="fc" name="amount" id="edit_amount" required style="font-size:16px;font-weight:bold" autocomplete="off">
+        </div>
+        <div class="fg">
+          <label class="fl">Deskripsi / Keterangan <span class="text-danger">*</span></label>
+          <textarea class="fc" name="description" id="edit_description" required></textarea>
+        </div>
+        <div class="form-row">
+          <div class="fg">
+            <label class="fl">Nama Toko/Vendor (Opsional)</label>
+            <input type="text" class="fc" name="vendor" id="edit_vendor">
+          </div>
+          <div class="fg">
+            <label class="fl">No. Nota / Kwitansi (Opsional)</label>
+            <input type="text" class="fc" name="receipt_number" id="edit_receipt">
+          </div>
+        </div>
+        <div class="fg">
+          <label class="fl">Metode Pembayaran</label>
+          <select class="fc" name="payment_method" id="edit_payment_method">
+            <option value="cash">Tunai (Cash)</option>
+            <option value="transfer">Transfer Bank</option>
+            <option value="ewallet">E-Wallet (OVO/Dana/Gopay)</option>
+            <option value="credit">Kredit / Paylater</option>
+          </select>
+        </div>
+      </div>
+      <div class="mf">
+        <button type="button" class="btn btn-g" onclick="closeModal('editModal')">Batal</button>
+        <button type="submit" class="btn btn-p"><i class="bi bi-save"></i> Perbarui Pengeluaran</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
 function openModal(id){document.getElementById(id).classList.add('show')}
 function closeModal(id){document.getElementById(id).classList.remove('show')}
 document.querySelectorAll('.mo').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show')}));
 setTimeout(()=>document.querySelectorAll('.alert').forEach(a=>a.style.display='none'),5000);
 
-// Format Rupiah Input
+// Format Rupiah Input Tambah
 const amtInput = document.getElementById('amountInput');
 if(amtInput){
   amtInput.addEventListener('keyup', function(e) {
@@ -179,6 +263,34 @@ if(amtInput){
       this.value = '';
     }
   });
+}
+
+// Format Rupiah Input Edit
+const editAmtInput = document.getElementById('edit_amount');
+if(editAmtInput){
+  editAmtInput.addEventListener('keyup', function(e) {
+    let val = this.value.replace(/[^0-9]/g, '');
+    if(val){
+      this.value = parseInt(val, 10).toLocaleString('id-ID');
+    } else {
+      this.value = '';
+    }
+  });
+}
+
+// Buka Modal Edit & Isi Data
+function openEditModal(item) {
+  document.getElementById('editForm').action = '/admin/finance/expenses/' + item.id + '/update';
+  document.getElementById('edit_date').value = item.date ? item.date.substring(0, 10) : '';
+  document.getElementById('edit_category').value = item.category || '';
+  document.getElementById('edit_site').value = item.site || 'site-1';
+  document.getElementById('edit_amount').value = Number(item.amount || 0).toLocaleString('id-ID');
+  document.getElementById('edit_description').value = item.description || '';
+  document.getElementById('edit_vendor').value = item.vendor || '';
+  document.getElementById('edit_receipt').value = item.receipt_number || '';
+  document.getElementById('edit_payment_method').value = item.payment_method || 'cash';
+  
+  openModal('editModal');
 }
 </script>
 </body>

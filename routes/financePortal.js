@@ -85,21 +85,59 @@ router.get('/expenses', (req, res) => {
 
 router.post('/expenses', express.urlencoded({ extended: true }), (req, res) => {
   try {
-    const { date, category, amount, description, payment_method, receipt_number, vendor } = req.body;
+    // [AWAL PERUBAHAN]: Tangkap input site dari form
+    const { date, category, amount, description, payment_method, receipt_number, vendor, site } = req.body;
     const cleanAmount = String(amount).replace(/[^0-9]/g, ''); // bersihkan format rupiah
     const recorded_by_name = req.session.cashierName ? `Kasir ${req.session.cashierName}` : 'Admin';
+    const targetSite = site ? String(site).trim() : 'site-1'; // Default ke site-1 jika kosong
     
     db.prepare(`
-      INSERT INTO expenses (date, category, amount, description, payment_method, receipt_number, vendor, recorded_by_name) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(date, category, cleanAmount, description, payment_method, receipt_number, vendor, recorded_by_name);
-    
+      INSERT INTO expenses (date, category, amount, description, payment_method, receipt_number, vendor, recorded_by_name, site) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(date, category, cleanAmount, description, payment_method, receipt_number, vendor, recorded_by_name, targetSite);
+    // [AKHIR PERUBAHAN]
+
     req.session._msg = { type: 'success', text: 'Pengeluaran berhasil dicatat' };
   } catch(e) {
     req.session._msg = { type: 'error', text: 'Gagal mencatat pengeluaran: ' + e.message };
   }
   res.redirect('/admin/finance/expenses');
 });
+
+/* [AWAL PENAMBAHAN]: ROUTE EDIT PENGELUARAN                                 */
+router.post('/expenses/:id/update', express.urlencoded({ extended: true }), (req, res) => {
+  try {
+    const expenseId = Number(req.params.id);
+    const { date, category, amount, description, payment_method, receipt_number, vendor, site } = req.body;
+    
+    if (!expenseId) throw new Error('ID pengeluaran tidak valid');
+
+    const cleanAmount = String(amount || '0').replace(/[^0-9]/g, '');
+    const targetSite = site ? String(site).trim() : 'site-1';
+
+    db.prepare(`
+      UPDATE expenses 
+      SET date = ?, category = ?, amount = ?, description = ?, payment_method = ?, receipt_number = ?, vendor = ?, site = ?
+      WHERE id = ?
+    `).run(
+      date, 
+      category, 
+      cleanAmount, 
+      description, 
+      payment_method, 
+      receipt_number || '', 
+      vendor || '', 
+      targetSite, 
+      expenseId
+    );
+
+    req.session._msg = { type: 'success', text: 'Data pengeluaran berhasil diperbarui.' };
+  } catch (e) {
+    req.session._msg = { type: 'error', text: 'Gagal memperbarui pengeluaran: ' + e.message };
+  }
+  res.redirect('/admin/finance/expenses');
+});
+/* ========================================================================= */
 
 router.post('/expenses/:id/delete', (req, res) => {
   try {

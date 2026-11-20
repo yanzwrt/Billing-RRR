@@ -200,6 +200,148 @@ function generateInvoicePdfBuffer(invoice, customer, settings = {}) {
   });
 }
 
+/**
+ * Generate PDF Payslip Buffer (Slip Gaji Karyawan)
+ * @param {Object} slip
+ * @param {Object} settings
+ * @returns {Promise<Buffer>}
+ */
+function generatePayslipPdfBuffer(slip, settings = {}) {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        size: 'A4',
+        margin: 0,
+        info: {
+          Title: `Slip Gaji #${slip.id} - ${slip.employee_name}`,
+          Author: settings.company_header || 'ISP SYSTEM',
+          Subject: 'Slip Gaji Karyawan'
+        }
+      });
+
+      const buffers = [];
+      doc.on('data', b => buffers.push(b));
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+      doc.on('error', err => reject(err));
+
+      const companyName = settings.company_header || 'ALIJAYA DIGITAL NETWORK';
+      const companyAddress = settings.company_address || 'Pusat Layanan Internet Terpercaya';
+      const companyPhone = (settings.whatsapp_admin_numbers && settings.whatsapp_admin_numbers.length > 0)
+        ? '+' + settings.whatsapp_admin_numbers[0]
+        : (settings.company_phone || '-');
+
+      const primaryColor = '#4f46e5';
+      const darkText = '#0f172a';
+      const mutedText = '#64748b';
+      const lightBg = '#f8fafc';
+      const borderColor = '#e2e8f0';
+
+      const monthNames = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+      const periodStr = `${monthNames[slip.period_month] || slip.period_month} ${slip.period_year}`;
+
+      // 1. Top Accent Bar
+      doc.rect(0, 0, 595.28, 8).fill(primaryColor);
+
+      // 2. Header Area (Logo + Company Info)
+      let y = 35;
+      const logoPath = path.join(__dirname, '../public/img/logo.png');
+      let logoDrawn = false;
+      if (fs.existsSync(logoPath)) {
+        try {
+          doc.image(logoPath, 40, y, { fit: [140, 42] });
+          logoDrawn = true;
+        } catch (e) {}
+      }
+
+      if (!logoDrawn) {
+        doc.circle(60, y + 20, 20).fill(primaryColor);
+        doc.fillColor('#ffffff').fontSize(18).font('Helvetica-Bold')
+           .text(companyName.charAt(0).toUpperCase(), 40, y + 12, { width: 40, align: 'center' });
+      }
+
+      const compX = logoDrawn ? 190 : 90;
+      doc.fillColor(darkText).fontSize(16).font('Helvetica-Bold').text(companyName, compX, y);
+      doc.fillColor(mutedText).fontSize(9).font('Helvetica').text(companyAddress, compX, y + 20);
+      doc.fillColor(mutedText).fontSize(9).text(`Telp/WA: ${companyPhone}`, compX, y + 33);
+
+      doc.fillColor(primaryColor).fontSize(18).font('Helvetica-Bold').text('SLIP GAJI', 380, y, { align: 'right', width: 175 });
+      doc.fillColor(darkText).fontSize(10).font('Helvetica-Bold').text(`Periode: ${periodStr}`, 380, y + 22, { align: 'right', width: 175 });
+
+      // Divider
+      y = 90;
+      doc.moveTo(40, y).lineTo(555, y).dash(4, { space: 3 }).strokeColor(borderColor).stroke().undash();
+
+      // 3. Employee Info Card
+      y += 15;
+      doc.roundedRect(40, y, 515, 62, 6).fillAndStroke(lightBg, borderColor);
+      doc.fillColor(mutedText).fontSize(8).font('Helvetica-Bold').text('INFORMASI KARYAWAN', 52, y + 10);
+      doc.fillColor(darkText).fontSize(12).font('Helvetica-Bold').text(slip.employee_name, 52, y + 22);
+      doc.fillColor(mutedText).fontSize(9).font('Helvetica').text(`Jabatan: ${slip.employee_type.toUpperCase()}  |  ID Karyawan: #${slip.employee_id}`, 52, y + 38);
+      
+      const statusText = slip.status === 'paid' ? 'LUNAS (PAID)' : slip.status.toUpperCase();
+      doc.fillColor(primaryColor).fontSize(10).font('Helvetica-Bold').text(`Status: ${statusText}`, 370, y + 22, { align: 'right', width: 175 });
+
+      // 4. Rincian Tabel Komponen Gaji
+      y += 80;
+      doc.fillColor(mutedText).fontSize(8).font('Helvetica-Bold').text('RINCIAN PENDAPATAN & POTONGAN', 40, y);
+      y += 12;
+
+      // Table Header
+      doc.roundedRect(40, y, 515, 22, 4).fill(lightBg);
+      doc.rect(40, y, 515, 22).strokeColor(borderColor).stroke();
+
+      doc.fillColor(mutedText).fontSize(8.5).font('Helvetica-Bold');
+      doc.text('Keterangan Komponen', 50, y + 6, { width: 350 });
+      doc.text('Jumlah (IDR)', 410, y + 6, { width: 135, align: 'right' });
+      y += 22;
+
+      const addRow = (label, amount, isPlus = true) => {
+        doc.rect(40, y, 515, 22).strokeColor(borderColor).stroke();
+        doc.fillColor(darkText).fontSize(9).font('Helvetica').text(label, 50, y + 6, { width: 350 });
+        const prefix = isPlus ? '' : '- ';
+        const color = isPlus ? darkText : '#ef4444';
+        doc.fillColor(color).font('Helvetica-Bold').text(`${prefix}Rp ${Number(amount || 0).toLocaleString('id-ID')}`, 410, y + 6, { width: 135, align: 'right' });
+        y += 22;
+      };
+
+      addRow('Gaji Pokok', slip.base_salary, true);
+      if (slip.transport_allowance) addRow('Tunjangan Transport', slip.transport_allowance, true);
+      if (slip.meal_allowance) addRow('Tunjangan Makan', slip.meal_allowance, true);
+      if (slip.phone_allowance) addRow('Tunjangan Pulsa', slip.phone_allowance, true);
+      if (slip.other_allowance) addRow(`Tunjangan Lain (${slip.other_allowance_note || '-'})`, slip.other_allowance, true);
+      if (slip.ticket_bonus) addRow(`Bonus Tiket (${slip.total_tickets_resolved || 0} Tiket)`, slip.ticket_bonus, true);
+      if (slip.collection_commission) addRow('Komisi Penagihan', slip.collection_commission, true);
+      if (slip.overtime_bonus) addRow(`Lembur (${slip.overtime_hours || 0} Jam)`, slip.overtime_bonus, true);
+
+      if (slip.absence_deduction) addRow(`Potongan Absen (${slip.absent_days || 0} Hari)`, slip.absence_deduction, false);
+      if (slip.late_deduction) addRow(`Potongan Terlambat (${slip.late_days || 0} Hari)`, slip.late_deduction, false);
+      if (slip.other_deduction) addRow(`Potongan Lain / Kasbon (${slip.other_deduction_note || '-'})`, slip.other_deduction, false);
+
+      // 5. Total Net Salary Box
+      y += 10;
+      doc.roundedRect(40, y, 515, 34, 6).fillAndStroke(primaryColor, primaryColor);
+      doc.fillColor('#ffffff').fontSize(10).font('Helvetica-Bold').text('GAJI BERSIH (TAKE HOME PAY)', 52, y + 11);
+      doc.fillColor('#ffffff').fontSize(13).font('Helvetica-Bold').text(`Rp ${Number(slip.net_salary || 0).toLocaleString('id-ID')}`, 350, y + 10, { width: 195, align: 'right' });
+
+      // 6. Footer Tanda Tangan
+      y += 65;
+      doc.fillColor(mutedText).fontSize(8).font('Helvetica').text('Penerima,', 80, y);
+      doc.fillColor(mutedText).fontSize(8).font('Helvetica').text('Disetujui Oleh,', 400, y);
+
+      doc.moveTo(60, y + 40).lineTo(180, y + 40).strokeColor(darkText).stroke();
+      doc.moveTo(380, y + 40).lineTo(500, y + 40).strokeColor(darkText).stroke();
+
+      doc.fillColor(darkText).fontSize(9).font('Helvetica-Bold').text(slip.employee_name, 60, y + 45, { width: 120, align: 'center' });
+      doc.fillColor(darkText).fontSize(9).font('Helvetica-Bold').text('Manajemen / Admin', 380, y + 45, { width: 120, align: 'center' });
+
+      doc.end();
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
 module.exports = {
-  generateInvoicePdfBuffer
+  generateInvoicePdfBuffer,
+  generatePayslipPdfBuffer
 };

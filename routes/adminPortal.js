@@ -5222,15 +5222,26 @@ router.get('/reports', requireAdminSession, requireSidebarMenuAccess('reports'),
   const cashInThisMonth = revenueThisMonthAll + (filterSite ? 0 : customCashInMonth) + (filterSite ? 0 : voucherMonth);
 
   // D. PENGELUARAN (Expenses)
+  // [AWAL PERUBAHAN]: PENGELUARAN MENDUKUNG FILTER SITE (STAF IKDMP HANYA MELIHAT SITE IKDMP)
   let expensesRegularYear = 0;
   let expensesRegularMonth = 0;
   try {
-    const expY = db.prepare("SELECT COALESCE(SUM(amount), 0) as t FROM expenses WHERE date LIKE ?").get(`${strYear}%`);
-    expensesRegularYear = Number(expY?.t || 0);
+    if (filterSite) {
+      const expY = db.prepare("SELECT COALESCE(SUM(amount), 0) as t FROM expenses WHERE date LIKE ? AND site = ?").get(`${strYear}%`, filterSite);
+      expensesRegularYear = Number(expY?.t || 0);
 
-    const expM = db.prepare("SELECT COALESCE(SUM(amount), 0) as t FROM expenses WHERE date LIKE ?").get(`${strYear}-${strMonth}%`);
-    expensesRegularMonth = Number(expM?.t || 0);
-  } catch (e) {}
+      const expM = db.prepare("SELECT COALESCE(SUM(amount), 0) as t FROM expenses WHERE date LIKE ? AND site = ?").get(`${strYear}-${strMonth}%`, filterSite);
+      expensesRegularMonth = Number(expM?.t || 0);
+    } else {
+      const expY = db.prepare("SELECT COALESCE(SUM(amount), 0) as t FROM expenses WHERE date LIKE ?").get(`${strYear}%`);
+      expensesRegularYear = Number(expY?.t || 0);
+
+      const expM = db.prepare("SELECT COALESCE(SUM(amount), 0) as t FROM expenses WHERE date LIKE ?").get(`${strYear}-${strMonth}%`);
+      expensesRegularMonth = Number(expM?.t || 0);
+    }
+  } catch (e) {
+    logger.error('[Reports] Error reading expenses with site filter: ' + e.message);
+  }
 
   let digiflazzCostYear = 0;
   let digiflazzCostMonth = 0;
@@ -5252,7 +5263,11 @@ router.get('/reports', requireAdminSession, requireSidebarMenuAccess('reports'),
   // Rincian Pengeluaran berdasarkan kategori
   let expensesByCategory = [];
   try {
-    expensesByCategory = db.prepare("SELECT category, COALESCE(SUM(amount), 0) as total FROM expenses WHERE date LIKE ? GROUP BY category").all(`${strYear}%`);
+    if (filterSite) {
+      expensesByCategory = db.prepare("SELECT category, COALESCE(SUM(amount), 0) as total FROM expenses WHERE date LIKE ? AND site = ? GROUP BY category").all(`${strYear}%`, filterSite);
+    } else {
+      expensesByCategory = db.prepare("SELECT category, COALESCE(SUM(amount), 0) as total FROM expenses WHERE date LIKE ? GROUP BY category").all(`${strYear}%`);
+    }
     if (digiflazzCostYear > 0) {
       expensesByCategory.push({ category: 'Modal PPOB (Digiflazz)', total: digiflazzCostYear });
     }
@@ -5278,9 +5293,16 @@ router.get('/reports', requireAdminSession, requireSidebarMenuAccess('reports'),
     `).get(...invParams) || { total_invoices: 0, paid_count: 0, income: 0 };
 
     // Pengeluaran di bulan tersebut
-    const expRow = db.prepare(
-      "SELECT SUM(amount) as t FROM expenses WHERE (strftime('%Y', date) = ? AND strftime('%m', date) = ?) OR date LIKE ?"
-    ).get(yStr, padM, `${yStr}-${padM}%`);
+    let expRow;
+    if (filterSite) {
+      expRow = db.prepare(
+        "SELECT SUM(amount) as t FROM expenses WHERE ((strftime('%Y', date) = ? AND strftime('%m', date) = ?) OR date LIKE ?) AND site = ?"
+      ).get(yStr, padM, `${yStr}-${padM}%`, filterSite);
+    } else {
+      expRow = db.prepare(
+        "SELECT SUM(amount) as t FROM expenses WHERE (strftime('%Y', date) = ? AND strftime('%m', date) = ?) OR date LIKE ?"
+      ).get(yStr, padM, `${yStr}-${padM}%`);
+    }
     const digiMonth = Number(db.prepare("SELECT SUM(digi_price) as t FROM agent_transactions WHERE type='pulsa' AND digi_status='sukses' AND (strftime('%Y-%m', created_at) = ? OR created_at LIKE ?)").get(`${yStr}-${padM}`, `${yStr}-${padM}-%`)?.t || 0);
     const mExpense = Number(expRow?.t || 0) + digiMonth;
 
@@ -9952,9 +9974,15 @@ router.get('/payroll/slip/:id/print', requireAdmin, (req, res) => {
   const slip = payrollSvc.getSlipById(req.params.id);
   if (!slip) return res.status(404).send('Slip tidak ditemukan');
   
+  const fs = require('fs');
+  const path = require('path');
+  const logoFullPath = path.join(__dirname, '../public/img/logo.png');
+  const hasLogo = fs.existsSync(logoFullPath);
+
   res.render('admin/print_payslip', {
     company: company(),
-    slip
+    slip,
+    hasLogo
   });
 });
 
@@ -9970,14 +9998,20 @@ router.post('/payroll/slip/:id/send-wa', requireAdmin, async (req, res) => {
     const settings = getSettingsWithCache();
     if (!settings.whatsapp_enabled) throw new Error('WhatsApp bot tidak aktif');
 
-    const { sendWA, whatsappStatus } = await import('../services/whatsappBot.mjs');
+    const { sendWA, sendWADocument, whatsappStatus } = await import('../services/whatsappBot.mjs');
     if (!whatsappStatus || whatsappStatus.connection !== 'open') {
       throw new Error('WhatsApp bot tidak terkoneksi');
     }
 
+    // Ambil opsi centang dari request frontend
+    const sendTextWa = req.body.send_wa === 'true' || req.body.send_wa === true || req.body.send_wa === '1';
+    const sendPdfDoc = req.body.send_pdf === 'true' || req.body.send_pdf === true || req.body.send_pdf === '1';
+
+    if (!sendTextWa && !sendPdfDoc) {
+      throw new Error('Pilih minimal salah satu opsi pengiriman (Kirim Pesan WA atau Kirim Dokumen PDF)');
+    }
+
     const monthNames = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-    
-	//Ambil Pesan Dari Template
     const { formatPayrollSlip } = require('../services/whatsappService');
 
     let incomeDetails = '';
@@ -9994,20 +10028,37 @@ router.post('/payroll/slip/:id/send-wa', requireAdmin, async (req, res) => {
     if (slip.late_deduction) deductionDetails += `\n- Potongan Terlambat: -Rp ${slip.late_deduction.toLocaleString('id-ID')}`;
     if (slip.other_deduction) deductionDetails += `\n- Potongan Lain: -Rp ${slip.other_deduction.toLocaleString('id-ID')}`;
 
-    const msg = formatPayrollSlip({
-      name: slip.employee_name,
-      period: `${monthNames[slip.period_month]} ${slip.period_year}`,
-      status: slip.status.toUpperCase(),
-      baseSalary: slip.base_salary.toLocaleString('id-ID'),
-      incomeDetails,
-      grossSalary: slip.gross_salary.toLocaleString('id-ID'),
-      deductionDetails,
-      totalDeductions: slip.total_deductions.toLocaleString('id-ID'),
-      netSalary: slip.net_salary.toLocaleString('id-ID')
-    });
+    const periodLabel = `${monthNames[slip.period_month]} ${slip.period_year}`;
 
-    await sendWA(phone, msg);
-    res.json({ success: true, message: 'Terkirim' });
+    // 1. Kirim Pesan Teks WA jika dicentang
+    if (sendTextWa) {
+      const msg = formatPayrollSlip({
+        name: slip.employee_name,
+        period: periodLabel,
+        status: slip.status.toUpperCase(),
+        baseSalary: slip.base_salary.toLocaleString('id-ID'),
+        incomeDetails,
+        grossSalary: slip.gross_salary.toLocaleString('id-ID'),
+        deductionDetails,
+        totalDeductions: slip.total_deductions.toLocaleString('id-ID'),
+        netSalary: slip.net_salary.toLocaleString('id-ID')
+      });
+      await sendWA(phone, msg);
+    }
+
+    // 2. Kirim Dokumen PDF Slip Gaji jika dicentang
+    if (sendPdfDoc) {
+      const pdfSvc = require('../services/pdfInvoiceService'); // Menggunakan service PDF yang sama
+      const pdfBuffer = await pdfSvc.generatePayslipPdfBuffer(slip, settings);
+      
+      const safeName = (slip.employee_name || 'Karyawan').replace(/[^a-zA-Z0-9]/g, '_');
+      const filename = `Slip_Gaji_${slip.period_month}_${slip.period_year}_${safeName}.pdf`;
+      const caption = `📄 *DOKUMEN SLIP GAJI RESMI*\n\nHalo *${slip.employee_name}*,\nBerikut terlampir dokumen PDF slip gaji untuk periode *${periodLabel}*.\n\nTerima kasih atas dedikasi Anda! 🙏`;
+      
+      await sendWADocument(phone, pdfBuffer, filename, caption);
+    }
+
+    res.json({ success: true, message: 'Slip gaji berhasil dikirim!' });
   } catch (e) {
     res.json({ success: false, message: e.message });
   }

@@ -691,6 +691,13 @@ db.exec(`
 `);
 /* === AKHIR PERUBAHAN === */
 
+/* [AWAL PENAMBAHAN]: MIGRASI MULTI-SITE UNTUK EXPENSES & PAYROLL           */
+try { db.exec("ALTER TABLE expenses ADD COLUMN site TEXT DEFAULT ''"); } catch (e) {}
+try { db.exec("ALTER TABLE cash_in ADD COLUMN site TEXT DEFAULT ''"); } catch (e) {}
+try { db.exec("ALTER TABLE payroll_settings ADD COLUMN site_salaries TEXT DEFAULT '{}'"); } catch (e) {}
+try { db.exec("ALTER TABLE payroll_slips ADD COLUMN site_breakdown TEXT DEFAULT '{}'"); } catch (e) {}
+/* ========================================================================= */
+
 module.exports = db;
 module.exports.getAppSetting = getAppSetting;
 module.exports.saveAppSetting = saveAppSetting;

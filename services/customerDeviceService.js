@@ -743,84 +743,118 @@ function mapDeviceData(device, tag, isPppoeActive = false) {
     status = 'Online';
   }
 
+  // =========================================================================
+  // [AWAL GANTI: DETEKSI KLIEN TERSAMBUNG CEPAT & AKURAT]
+  // =========================================================================
   let connectedUsers = [];
   try {
-    const hosts = device?.InternetGatewayDevice?.LANDevice?.['1']?.Hosts?.Host || device?.Device?.Hosts?.Host;
-    if (hosts && typeof hosts === 'object') {
-      for (const key in hosts) {
-        if (!isNaN(key)) {
-          const entry = hosts[key];
+    // 1. Ambil dari Asosiasi WiFi (Pasti Online)
+    const activeWifiMacs = new Set();
+    const assocCandidates = [
+      { obj: device?.InternetGatewayDevice?.LANDevice?.['1']?.WLANConfiguration?.['1']?.AssociatedDevice, label: 'WiFi 2.4G' },
+      { obj: device?.InternetGatewayDevice?.LANDevice?.['1']?.WLANConfiguration?.['5']?.AssociatedDevice, label: 'WiFi 5G' },
+      { obj: device?.Device?.WiFi?.AccessPoint?.['1']?.AssociatedDevice, label: 'WiFi 2.4G' },
+      { obj: device?.Device?.WiFi?.AccessPoint?.['2']?.AssociatedDevice, label: 'WiFi 5G' }
+    ];
+
+    for (const cand of assocCandidates) {
+      if (!cand.obj || typeof cand.obj !== 'object') continue;
+      for (const key in cand.obj) {
+        if (key.startsWith('_') || isNaN(key)) continue;
+        const entry = cand.obj[key];
+        const mac = (typeof entry?.MACAddress === 'object' ? entry?.MACAddress?._value : entry?.MACAddress) ||
+                    (typeof entry?.AssociatedDeviceMACAddress === 'object' ? entry?.AssociatedDeviceMACAddress?._value : entry?.AssociatedDeviceMACAddress) || '';
+        const ip = (typeof entry?.IPAddress === 'object' ? entry?.IPAddress?._value : entry?.IPAddress) || '-';
+        const hostname = (typeof entry?.HostName === 'object' ? entry?.HostName?._value : entry?.HostName) ||
+                         (typeof entry?.DeviceName === 'object' ? entry?.DeviceName?._value : entry?.DeviceName) || '-';
+        
+        const cleanMac = String(mac || '').toUpperCase().trim();
+        if (cleanMac && cleanMac !== '-' && cleanMac.includes(':')) {
+          activeWifiMacs.add(cleanMac);
           connectedUsers.push({
-            hostname: typeof entry?.HostName === 'object' ? entry?.HostName?._value || '-' : entry?.HostName || '-',
-            ip: typeof entry?.IPAddress === 'object' ? entry?.IPAddress?._value || '-' : entry?.IPAddress || '-',
-            mac: typeof entry?.MACAddress === 'object' ? entry?.MACAddress?._value || '-' : entry?.MACAddress || '-',
-            iface: typeof entry?.InterfaceType === 'object' ? entry?.InterfaceType?._value || '-' : entry?.InterfaceType || entry?.Interface || '-',
-            status: (
-              entry?.Active?._value === 'true' || 
-              entry?.Active?._value === '1' || 
-              entry?.Active?._value === 1 || 
-              entry?.Active === true || 
-              entry?.Active === '1' || 
-              entry?.Active === 1 || 
-              String(entry?.Active || '').toLowerCase() === 'online'
-            ) ? 'Online' : 'Offline'
+            hostname: hostname && hostname !== '-' ? hostname : cleanMac,
+            ip: ip || '-',
+            mac: cleanMac,
+            iface: cand.label,
+            status: 'Online'
           });
         }
       }
     }
 
-    const assocCandidates = [
-      device?.InternetGatewayDevice?.LANDevice?.['1']?.WLANConfiguration?.['1']?.AssociatedDevice,
-      device?.InternetGatewayDevice?.LANDevice?.['1']?.WLANConfiguration?.['5']?.AssociatedDevice,
-      device?.Device?.WiFi?.AccessPoint?.['1']?.AssociatedDevice,
-      device?.Device?.WiFi?.AccessPoint?.['2']?.AssociatedDevice
-    ];
-    for (const assoc of assocCandidates) {
-      if (!assoc || typeof assoc !== 'object') continue;
-      for (const key in assoc) {
-        if (key === '_value' || key === '_type' || key === '_timestamp') continue;
+    // 2. Ambil dari Tabel DHCP Hosts Modem (LAN & WiFi)
+    const hosts = device?.InternetGatewayDevice?.LANDevice?.['1']?.Hosts?.Host || device?.Device?.Hosts?.Host;
+    if (hosts && typeof hosts === 'object') {
+      for (const key in hosts) {
         if (isNaN(key)) continue;
-        const entry = assoc[key];
-        const mac =
-          (typeof entry?.MACAddress === 'object' ? entry?.MACAddress?._value : entry?.MACAddress) ||
-          (typeof entry?.AssociatedDeviceMACAddress === 'object' ? entry?.AssociatedDeviceMACAddress?._value : entry?.AssociatedDeviceMACAddress) ||
-          '-';
-        const ip =
-          (typeof entry?.IPAddress === 'object' ? entry?.IPAddress?._value : entry?.IPAddress) ||
-          (typeof entry?.IP === 'object' ? entry?.IP?._value : entry?.IP) ||
-          '-';
-        const hostname =
-          (typeof entry?.HostName === 'object' ? entry?.HostName?._value : entry?.HostName) ||
-          (typeof entry?.DeviceName === 'object' ? entry?.DeviceName?._value : entry?.DeviceName) ||
-          '-';
-        const ssidName =
-          (typeof entry?.SSID === 'object' ? entry?.SSID?._value : entry?.SSID) ||
-          (typeof entry?.WLANConfiguration === 'object' ? entry?.WLANConfiguration?._value : entry?.WLANConfiguration) ||
-          '';
-        if (!mac || mac === '-') continue;
+        const entry = hosts[key];
+
+        const rawHost = typeof entry?.HostName === 'object' ? entry?.HostName?._value : entry?.HostName;
+        const rawIp = typeof entry?.IPAddress === 'object' ? entry?.IPAddress?._value : entry?.IPAddress;
+        const rawMac = typeof entry?.MACAddress === 'object' ? entry?.MACAddress?._value : entry?.MACAddress;
+        const rawIface = typeof entry?.InterfaceType === 'object' ? entry?.InterfaceType?._value : (entry?.InterfaceType || entry?.Interface);
+        
+        const cleanMac = String(rawMac || '').toUpperCase().trim();
+        const cleanIp = String(rawIp || '').trim();
+        const hostname = String(rawHost || '').trim();
+
+        // Abaikan data kosong
+        if (!cleanIp || cleanIp === '-' || cleanIp === '0.0.0.0' || !cleanMac || cleanMac === '-') continue;
+
+        // Cek apakah aktif di WiFi atau punya sisa sewa DHCP
+        const activeVal = typeof entry?.Active === 'object' ? entry?.Active?._value : entry?.Active;
+        const leaseRem = typeof entry?.LeaseTimeRemaining === 'object' ? entry?.LeaseTimeRemaining?._value : entry?.LeaseTimeRemaining;
+
+        const isMarkedActive = (
+          activeVal === true || activeVal === 'true' || activeVal === 1 || activeVal === '1' ||
+          String(activeVal || '').toLowerCase() === 'online' ||
+          (leaseRem !== undefined && leaseRem !== null && Number(leaseRem) > 0)
+        );
+
+        // Jika terdaftar di WiFi atau ada sewa DHCP aktif, anggap Online
+        const isOnline = activeWifiMacs.has(cleanMac) || isMarkedActive;
+
+        let ifaceType = 'WiFi';
+        const ifaceLower = String(rawIface || '').toLowerCase();
+        if (ifaceLower.includes('ethernet') || ifaceLower.includes('lan')) {
+          ifaceType = 'LAN';
+        }
+
         connectedUsers.push({
-          hostname: hostname || '-',
-          ip: ip || '-',
-          mac: mac || '-',
-          iface: ssidName ? `WiFi ${ssidName}` : 'WiFi',
-          status: 'Online'
+          hostname: hostname && hostname !== '-' ? hostname : cleanMac,
+          ip: cleanIp,
+          mac: cleanMac,
+          iface: ifaceType,
+          status: isOnline ? 'Online' : 'Offline'
         });
       }
     }
-  } catch (e) {}
+  } catch (e) {
+    logger.debug('[mapDeviceData] Error parsing connectedUsers: ' + e.message);
+  }
 
+  // Hilangkan duplikat MAC, dahulukan data yang Online
   try {
-    const seen = new Set();
-    connectedUsers = connectedUsers.filter((u) => {
-      const mac = String(u?.mac || '').toUpperCase();
-      const ip = String(u?.ip || '');
-      const key = mac ? `${mac}|${ip}` : ip;
-      if (!key) return false;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  } catch {}
+    const mapByMac = new Map();
+    for (const u of connectedUsers) {
+      const key = String(u.mac || u.ip).toUpperCase();
+      if (!mapByMac.has(key)) {
+        mapByMac.set(key, u);
+      } else {
+        const existing = mapByMac.get(key);
+        if (u.status === 'Online' && existing.status !== 'Online') {
+          mapByMac.set(key, u);
+        } else if (existing.hostname.includes(':') && !u.hostname.includes(':') && u.hostname !== '-') {
+          existing.hostname = u.hostname;
+          if (u.status === 'Online') existing.status = 'Online';
+        }
+      }
+    }
+    connectedUsers = Array.from(mapByMac.values());
+  } catch (_) {}
+  // =========================================================================
+  // [AKHIR GANTI: DETEKSI KLIEN TERSAMBUNG CEPAT & AKURAT]
+  // =========================================================================
 
   let rxPower = getParameterWithPaths(device, parameterPaths.rxPower);
   if (rxPower !== 'N/A' && rxPower !== '-' && rxPower !== '' && rxPower !== null && rxPower !== undefined) {
@@ -1413,7 +1447,7 @@ async function listAllDevices(limit = 999999, acsId = null) {
       const instance = genieacsApi.createAxiosInstance(server);
       const params = {
         limit,
-        projection: '_id,_tags,_lastInform,DeviceID.SerialNumber,VirtualParameters,InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.1.Username,InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.2.Username,InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.1.ExternalIPAddress,Device.PPP.Interface.1.Username,Device.PPP.Interface.1.ExternalIPAddress,InternetGatewayDevice.DeviceInfo.ModelName,InternetGatewayDevice.DeviceInfo.SoftwareVersion,InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID,InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.TotalAssociations,InternetGatewayDevice.LANDevice.1.WLANConfiguration.5.TotalAssociations,InternetGatewayDevice.LANDevice.1.Hosts.HostNumberOfEntries,Device.WiFi.AccessPoint.1.AssociatedDeviceNumberOfEntries,Device.Hosts.HostNumberOfEntries,InternetGatewayDevice.LANDevice.1.Hosts.Host,Device.Hosts.Host'
+        projection: '_id,_tags,_lastInform,DeviceID.SerialNumber,VirtualParameters,InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.1.Username,InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.2.Username,InternetGatewayDevice.WANDevice.1.WANConnectionDevice.1.WANPPPConnection.1.ExternalIPAddress,Device.PPP.Interface.1.Username,Device.PPP.Interface.1.ExternalIPAddress,InternetGatewayDevice.DeviceInfo.ModelName,InternetGatewayDevice.DeviceInfo.SoftwareVersion,InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID,InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.TotalAssociations,InternetGatewayDevice.LANDevice.1.WLANConfiguration.5.TotalAssociations,InternetGatewayDevice.LANDevice.1.Hosts.HostNumberOfEntries,Device.WiFi.AccessPoint.1.AssociatedDeviceNumberOfEntries,Device.Hosts.HostNumberOfEntries,InternetGatewayDevice.LANDevice.1.Hosts.Host,Device.Hosts.Host,InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.AssociatedDevice,InternetGatewayDevice.LANDevice.1.WLANConfiguration.5.AssociatedDevice,Device.WiFi.AccessPoint.1.AssociatedDevice,Device.WiFi.AccessPoint.2.AssociatedDevice'
       };
       let response;
       try {

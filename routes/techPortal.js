@@ -744,6 +744,11 @@ router.get('/api/devices', requireTechSession, async (req, res) => {
         model: mapped.model,
         softwareVersion: mapped.softwareVersion,
         userConnected: mapped.totalAssociations,
+        // =========================================================================
+        // [TAMBAHAN: MENERUSKAN DAFTAR PERANGKAT KLIEN/HOSTS KE TEKNISI]
+        // =========================================================================
+        connectedUsers: mapped.connectedUsers || [],
+        // =========================================================================
         ssid: mapped.ssid,
         customerId: customer ? customer.id : null,
         customerName: customer ? customer.name : '',

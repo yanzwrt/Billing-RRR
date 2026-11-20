@@ -4,6 +4,30 @@
   .bind-tag { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 8px 4px; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; background: rgba(255,255,255,0.02); font-size: 11px; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.2s; color: #ced4da; }
   .bind-tag:hover { border-color: #10b981; background: rgba(16,185,129,0.05); }
   .bind-tag.active { background: #10b981 !important; color: white !important; border-color: #10b981 !important; box-shadow: 0 4px 12px rgba(16,185,129,0.2); }
+  
+  /* ================= [TAMBAHAN: STYLE MODAL KLIEN MOBILE FRIENDLY] ================= */
+.client-device-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px;
+  transition: all 0.2s ease;
+}
+.client-device-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(56, 189, 248, 0.3);
+}
+.client-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+/* ================================================================================= */
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -47,6 +71,48 @@
     <p class="text-secondary mt-2 small">Memuat data perangkat...</p>
   </div>
 </div>
+
+<!-- ================= [AWAL GANTI: MODAL DETAIL PERANGKAT MOBILE RAPI] ================= -->
+<div class="modal fade" id="clientsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable mx-auto" style="max-width: 580px;">
+    <div class="modal-content bg-dark border-secondary text-white" style="border-radius: 16px; overflow: hidden;">
+      
+      <!-- Header Modal -->
+      <div class="modal-header border-secondary px-3 py-2" style="background: rgba(15, 23, 42, 0.7);">
+        <div class="d-flex align-items-center gap-2">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(56, 189, 248, 0.15); display: flex; align-items: center; justify-content: center; color: #38bdf8;">
+            <i class="bi bi-people-fill"></i>
+          </div>
+          <div>
+            <h6 class="modal-title fw-bold mb-0" style="font-size: 14px;" id="clientsModalTitle">Perangkat Tersambung</h6>
+            <div class="text-secondary" style="font-size: 11px;" id="clientsModalSubtitle">Memuat data...</div>
+          </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <!-- Ringkasan Stats Singkat -->
+      <div class="p-2 border-bottom border-secondary border-opacity-50" style="background: rgba(255,255,255,0.02);">
+        <div class="d-flex justify-content-around text-center" id="clientsModalCounters">
+          <!-- Diisi via JavaScript -->
+        </div>
+      </div>
+
+      <!-- Body Modal (Daftar Kartu Perangkat) -->
+      <div class="modal-body p-3" id="clientsListContainer" style="max-height: 65vh; overflow-y: auto;">
+        <!-- Daftar HP / Laptop yang tersambung akan dimuat di sini -->
+      </div>
+
+      <!-- Footer Modal -->
+      <div class="modal-footer border-secondary py-2 justify-content-center">
+        <button type="button" class="btn btn-secondary btn-sm px-4 fw-semibold" style="border-radius: 8px;" data-bs-dismiss="modal">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ================= [AKHIR GANTI: MODAL DETAIL PERANGKAT MOBILE RAPI] ================= -->
 
 <!-- Modal Edit SSID/Password -->
 <div class="modal fade" id="actionModal" tabindex="-1" aria-hidden="true">
@@ -273,6 +339,7 @@
 <script>
 let allDevices = [];
 const actionModal = new bootstrap.Modal(document.getElementById('actionModal'));
+const clientsModal = new bootstrap.Modal(document.getElementById('clientsModal'));
 
 async function loadDevices() {
   const container = document.getElementById('device-list');
@@ -299,6 +366,25 @@ function renderDevices(devices) {
     const isOn = d.status === 'online';
     const title = d.customerName ? d.customerName : (d.tags.join(', ') || 'Tanpa Tag');
     const sub = d.customerName ? `${d.tags.join(', ') || 'Tanpa Tag'} | SN: ${d.serialNumber}` : `${d.model || 'ONU'} | SN: ${d.serialNumber}`;
+    
+    // =========================================================================
+    // [GANTI: HITUNG PERANGKAT TERSAMBUNG SECARA CERDAS]
+    // =========================================================================
+    const onlineList = (d.connectedUsers && d.connectedUsers.length > 0) 
+      ? d.connectedUsers.filter(u => String(u.status || '').toLowerCase() === 'online') 
+      : [];
+    
+    let connectedCount = onlineList.length;
+    // Jika filter online 0 tapi ada totalAssociations dari modem, pakai nilai modem
+    if (connectedCount === 0 && d.userConnected && d.userConnected !== 'N/A' && d.userConnected !== '-') {
+      connectedCount = Number(d.userConnected) || 0;
+    }
+    // Jika masih 0 tapi ada daftar perangkat yang terdata di modem, pakai jumlah perangkat tersebut
+    if (connectedCount === 0 && d.connectedUsers && d.connectedUsers.length > 0) {
+      connectedCount = d.connectedUsers.length;
+    }
+    // =========================================================================
+
     return `
       <div class="t-card mb-3 p-3" style="border-left: 4px solid ${isOn ? '#10b981' : '#ef4444'}">
         <div class="d-flex justify-content-between align-items-start mb-2">
@@ -312,9 +398,12 @@ function renderDevices(devices) {
           </span>
         </div>
         
-        <div class="mb-2">
+        <div class="d-flex gap-2 mb-2">
           <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style="font-size: 10px; padding: 3px 8px;">
             <i class="bi bi-server me-1"></i>${d.acsServerName || 'Default ACS'}
+          </span>
+          <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25" style="font-size: 10px; padding: 3px 8px;">
+            <i class="bi bi-phone me-1"></i>${connectedCount} User Konek
           </span>
         </div>
         
@@ -338,16 +427,21 @@ function renderDevices(devices) {
         </div>
 
         <div class="d-flex gap-2">
-          <button class="btn btn-sm btn-outline-primary flex-fill" style="font-size: 11px;" onclick="openActionModal('${d.tags[0]}', 'ssid', '${d.ssid}')">
+          <!-- ================= [TOMBOL BARU: LIHAT KLIEN TERSAMBUNG] ================= -->
+          <button class="btn btn-sm btn-outline-info flex-fill" style="font-size: 11px;" onclick="openClientsModal('${d.id}')" title="Lihat daftar HP/perangkat yang tersambung">
+            <i class="bi bi-people-fill"></i> Klien (${connectedCount})
+          </button>
+          <!-- ========================================================================= -->
+          <button class="btn btn-sm btn-outline-primary flex-fill" style="font-size: 11px;" onclick="openActionModal('${d.tags[0] || d.id}', 'ssid', '${d.ssid}')">
             <i class="bi bi-wifi"></i> SSID
           </button>
-          <button class="btn btn-sm btn-outline-primary flex-fill" style="font-size: 11px;" onclick="openActionModal('${d.tags[0]}', 'pass')">
+          <button class="btn btn-sm btn-outline-primary flex-fill" style="font-size: 11px;" onclick="openActionModal('${d.tags[0] || d.id}', 'pass')">
             <i class="bi bi-key"></i> Pass
           </button>
           <button class="btn btn-sm btn-outline-success flex-fill" style="font-size: 11px;" onclick="openAddWanModal('${d.id}', '${d.acsServerId}', '${d.serialNumber}', '${d.manufacturer || ""}', '${d.model || ""}')">
             <i class="bi bi-gear-fill"></i> WAN
           </button>
-          <button class="btn btn-sm btn-outline-danger" style="font-size: 11px;" onclick="openActionModal('${d.tags[0]}', 'reboot')">
+          <button class="btn btn-sm btn-outline-danger" style="font-size: 11px;" onclick="openActionModal('${d.tags[0] || d.id}', 'reboot')" title="Reboot Perangkat">
             <i class="bi bi-power"></i>
           </button>
         </div>
@@ -355,6 +449,124 @@ function renderDevices(devices) {
     `;
   }).join('');
 }
+
+// =========================================================================
+// [AWAL GANTI: FUNGSI BUKA MODAL PERANGKAT KLIEN MOBILE FRIENDLY & CENTER]
+// =========================================================================
+function openClientsModal(deviceId) {
+  const d = allDevices.find(x => x.id === deviceId);
+  if (!d) return;
+
+  const title = d.customerName ? d.customerName : (d.tags.join(', ') || d.serialNumber);
+  document.getElementById('clientsModalTitle').innerText = title;
+  document.getElementById('clientsModalSubtitle').innerText = `SSID: ${d.ssid || '-'} • PPPoE: ${d.pppoeUsername || '-'}`;
+
+  // =========================================================================
+  // [GANTI: NORMALISASI STATUS ONLINE / OFFLINE DI MODAL]
+  // =========================================================================
+  const rawUsers = d.connectedUsers || [];
+  
+  // Jika semua terdeteksi offline tapi di kartu depan ada user konek > 0 atau modem online,
+  // maka perangkat-perangkat ini sedang aktif di rumah pelanggan
+  let forceAllActive = false;
+  const rawOnlineCount = rawUsers.filter(u => String(u.status || '').toLowerCase() === 'online').length;
+  if (rawOnlineCount === 0 && rawUsers.length > 0 && (Number(d.userConnected) > 0 || d.status === 'online')) {
+    forceAllActive = true;
+  }
+
+  const users = rawUsers.map(u => ({
+    ...u,
+    status: (forceAllActive || String(u.status || '').toLowerCase() === 'online') ? 'Online' : 'Offline'
+  }));
+
+  const onlineCount = users.filter(u => u.status === 'Online').length;
+  const offlineCount = users.length - onlineCount;
+  // =========================================================================
+
+  // Render Bar Ringkasan Cepat
+  document.getElementById('clientsModalCounters').innerHTML = `
+    <div>
+      <div class="text-secondary" style="font-size: 10px;">TOTAL KLIEN</div>
+      <div class="fw-bold fs-6 text-light">${users.length}</div>
+    </div>
+    <div class="border-end border-secondary border-opacity-50"></div>
+    <div>
+      <div class="text-secondary" style="font-size: 10px;">AKTIF (ONLINE)</div>
+      <div class="fw-bold fs-6 text-success">${onlineCount}</div>
+    </div>
+    <div class="border-end border-secondary border-opacity-50"></div>
+    <div>
+      <div class="text-secondary" style="font-size: 10px;">RIWAYAT OFFLINE</div>
+      <div class="fw-bold fs-6 text-muted">${offlineCount}</div>
+    </div>
+  `;
+
+  const container = document.getElementById('clientsListContainer');
+
+  if (users.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-5">
+        <i class="bi bi-wifi-off text-secondary fs-1 d-block mb-2"></i>
+        <div class="fw-bold text-light" style="font-size: 13px;">Tidak Ada Perangkat Terdeteksi</div>
+        <div class="text-secondary small mt-1">Belum ada perangkat yang terhubung atau ONU belum mengirimkan tabel Hosts ke server.</div>
+      </div>
+    `;
+  } else {
+    container.innerHTML = users.map((u, i) => {
+      const isOnline = String(u.status || '').toLowerCase() === 'online';
+      const ifaceStr = String(u.iface || '').toLowerCase();
+      const isWifi = ifaceStr.includes('wifi') || ifaceStr.includes('802.11') || ifaceStr.includes('wlan');
+      
+      // Deteksi ikon perangkat dari nama host
+      const hostLower = String(u.hostname || '').toLowerCase();
+      let icon = isWifi ? 'bi-phone' : 'bi-pc-display';
+      if (hostLower.includes('laptop') || hostLower.includes('thinkpad') || hostLower.includes('macbook')) {
+        icon = 'bi-laptop';
+      } else if (hostLower.includes('tv') || hostLower.includes('box') || hostLower.includes('stb')) {
+        icon = 'bi-tv';
+      }
+
+      return `
+        <div class="client-device-card mb-2">
+          <div class="d-flex align-items-center gap-3">
+            <!-- Avatar Ikon -->
+            <div class="client-avatar" style="background: ${isOnline ? 'rgba(16, 185, 129, 0.12)' : 'rgba(148, 163, 184, 0.1)'}; color: ${isOnline ? '#10b981' : '#64748b'};">
+              <i class="bi ${icon}"></i>
+            </div>
+            
+            <!-- Detail Nama & Info -->
+            <div class="flex-grow-1 min-w-0">
+              <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+                <span class="fw-bold text-truncate text-white" style="font-size: 13px;">
+                  ${u.hostname && u.hostname !== '-' ? u.hostname : 'Perangkat Tanpa Nama'}
+                </span>
+                <span class="badge ${isOnline ? 'bg-success' : 'bg-secondary'} bg-opacity-25 text-${isOnline ? 'success' : 'muted'} border border-${isOnline ? 'success' : 'secondary'} border-opacity-25" style="font-size: 9.5px; padding: 2px 7px;">
+                  <i class="bi bi-circle-fill me-1" style="font-size: 7px;"></i>${isOnline ? 'Online' : 'Offline'}
+                </span>
+              </div>
+
+              <!-- Baris IP, MAC, & Interface -->
+              <div class="d-flex flex-wrap align-items-center gap-2 text-secondary" style="font-size: 11px;">
+                <span class="text-info fw-semibold font-monospace"><i class="bi bi-globe me-1"></i>${u.ip || '-'}</span>
+                <span>•</span>
+                <span class="font-monospace">${u.mac || '-'}</span>
+                <span>•</span>
+                <span class="badge bg-dark border border-secondary text-light py-0 px-1" style="font-size: 9.5px;">
+                  <i class="bi bi-${isWifi ? 'wifi' : 'ethernet'} me-1 text-primary"></i>${u.iface && u.iface !== '-' ? u.iface : (isWifi ? 'WiFi' : 'LAN')}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  clientsModal.show();
+}
+// =========================================================================
+// [AKHIR GANTI: FUNGSI BUKA MODAL PERANGKAT KLIEN MOBILE FRIENDLY & CENTER]
+// =========================================================================
 
 function filterDevices() {
   const q = document.getElementById('search-input').value.toLowerCase();

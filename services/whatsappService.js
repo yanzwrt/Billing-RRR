@@ -561,7 +561,7 @@ Keluhan Anda telah selesai dikerjakan. Terima kasih atas kesabarannya.`;
 
 // 6. Slip Gaji Karyawan
 const DEFAULT_PAYROLL_SLIP_TEMPLATE =
-`🧾 *SLIP GAJI KARYAWAN*
+`🧾 *SLIP GAJI IKDMP-CINTA*
 
 👤 *Nama:* {{nama}}
 📅 *Periode:* {{periode}}
@@ -574,9 +574,24 @@ const DEFAULT_PAYROLL_SLIP_TEMPLATE =
 *POTONGAN:*{{rincian_potongan}}
 *Total Potongan: Rp {{total_potongan}}*
 
-💰 *GAJI BERSIH: Rp {{gaji_bersih}}*
+💰 *GAJI BERSIH (TAKE HOME PAY): Rp {{gaji_bersih}}*
 
-Terima kasih atas kerja keras Anda! 🙏`;
+Terima kasih atas kerja keras dan dedikasi Anda! 🙏`;
+
+function formatPayrollSlip(data) {
+  let template = String(db.getAppSetting('whatsapp_payroll_slip_template', DEFAULT_PAYROLL_SLIP_TEMPLATE) || DEFAULT_PAYROLL_SLIP_TEMPLATE).trim();
+  return template
+    .replace(/{{nama}}/gi, data.name || '')
+    .replace(/{{periode}}/gi, data.period || '')
+    .replace(/{{status}}/gi, data.status || '')
+    .replace(/{{gaji_pokok}}/gi, data.baseSalary || '0')
+    .replace(/{{rincian_pendapatan}}/gi, data.incomeDetails || '')
+    .replace(/{{total_pendapatan}}/gi, data.grossSalary || '0')
+    .replace(/{{rincian_potongan}}/gi, data.deductionDetails || '')
+    .replace(/{{total_potongan}}/gi, data.totalDeductions || '0')
+    .replace(/{{gaji_bersih}}/gi, data.netSalary || '0');
+}
+/* ========================================================================= */
 
 // 7. Pesan Uji Coba WhatsApp
 const DEFAULT_TEST_NOTIF_TEMPLATE =
