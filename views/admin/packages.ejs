@@ -273,8 +273,8 @@
           </div>
         </div>
 
-        <div class="form-row">
-          <div class="fg"><label class="fl"><%= t('admin.packages.form.speed_up', 'Kecepatan Upload (Mbps)') %></label><input class="fc" name="speed_up" type="number" step="any" min="0" placeholder="5"></div>
+ <!--        <div class="form-row">
+ <!--          <div class="fg"><label class="fl"><%= t('admin.packages.form.speed_up', 'Kecepatan Upload (Mbps)') %></label><input class="fc" name="speed_up" type="number" step="any" min="0" placeholder="5"></div>
           <div class="fg"><label class="fl"><%= t('admin.packages.form.status', 'Status') %></label>
             <select class="fs" name="is_active"><option value="1"><%= t('common.active', 'Aktif') %></option><option value="0"><%= t('common.inactive', 'Nonaktif') %></option></select>
           </div>
@@ -606,7 +606,6 @@ function parseMikrotikRateLimit(rateStr) {
 }
 
 // Handler saat salah satu profil dipilih di dropdown
-// Handler saat salah satu profil dipilih di dropdown
 function onProfileSelected(mode, profileName) {
   if (!profileName) return;
   const nameInput = document.getElementById(mode === 'add' ? 'add_name' : 'e_name');
@@ -631,7 +630,7 @@ function onProfileSelected(mode, profileName) {
   }
 }
 
-// FUNGSI EDIT PAKET (RESPONSIF, LANGSUNG TAMPIL & NAMA TIDAK AKAN HILANG)
+// FUNGSI EDIT PAKET (RESPONSIF, LANGSUNG TAMPIL)
 async function editPkg(idx) {
   try {
     const p = packagesData[idx];

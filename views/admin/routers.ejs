@@ -5,7 +5,7 @@
   <title><%= t('admin.nav.router_management', 'Manajemen Router') %> | <%= company %></title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="/css/admin.css">
-  <style>
+  <!-- === MULAI PERUBAHAN: STYLE DETAIL LIVE & CENTER MODAL DIALOG === -->
   <style>
     /* 1. Definisikan Variabel Tema Default (Dark Mode) */
     :root, body {
@@ -23,6 +23,7 @@
       --modal-text: #f8fafc;
       --modal-table-bg: #0f172a;
       --modal-border: rgba(255, 255, 255, 0.08);
+      --modal-box-bg: rgba(15, 23, 42, 0.7);
     }
 
     /* 2. Definisikan Variabel Tema Terang (Light Mode) */
@@ -42,6 +43,7 @@
       --modal-text: #1e293b;
       --modal-table-bg: #f8fafc;
       --modal-border: rgba(0, 0, 0, 0.1);
+      --modal-box-bg: #f1f5f9;
     }
 
     .mtabs { display: flex; gap: 10px; margin-bottom: 18px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
@@ -270,7 +272,7 @@
       border-color: var(--primary);
     }
 
-    /* Modal Styling Adaptif Tema */
+    <!-- === MULAI PERUBAHAN: CSS MODAL LIVE DETAIL SUPER RAPI & MODERN === -->
     .modal-content-adaptive {
       background: var(--modal-bg) !important;
       color: var(--modal-text) !important;
@@ -281,9 +283,138 @@
       color: var(--modal-text) !important;
     }
 
+    /* Modal Router Live Box Width */
+    #routerLiveModal .mb {
+      max-width: 880px !important;
+      width: 95% !important;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+    }
+
+    /* Header Banner */
+    .live-top-banner {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(59, 130, 246, 0.04) 100%);
+      border: 1px solid var(--modal-border);
+      border-radius: 14px;
+      padding: 14px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    /* Metric Grid (CPU, RAM, DISK) - Pasti Sejajar 3 Kolom */
+    .live-metric-grid {
+      display: grid !important;
+      grid-template-columns: repeat(3, 1fr) !important;
+      gap: 14px !important;
+      margin-bottom: 16px !important;
+    }
+
+    .live-metric-card {
+      background: var(--modal-box-bg);
+      border: 1px solid var(--modal-border);
+      border-radius: 12px;
+      padding: 14px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+    }
+
+    .live-metric-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--card-host);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      margin-bottom: 6px;
+    }
+
+    .live-metric-val {
+      font-size: 26px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    /* Grid Spesifikasi & Detail Pelanggan (2 Kolom Bersih) */
+    .live-specs-grid {
+      display: grid;
+      grid-template-columns: 3fr 2fr;
+      gap: 14px;
+      margin-bottom: 10px;
+    }
+
+    @media (max-width: 768px) {
+      .live-metric-grid { grid-template-columns: 1fr !important; }
+      .live-specs-grid { grid-template-columns: 1fr !important; }
+    }
+
+    .live-card-section {
+      background: var(--modal-box-bg);
+      border: 1px solid var(--modal-border);
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+
+    .live-section-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--modal-text);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Spec List Rows */
+    .spec-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 7px 0;
+      font-size: 12px;
+      border-bottom: 1px solid var(--modal-border);
+    }
+    .spec-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .spec-lbl { color: var(--card-host); display: flex; align-items: center; gap: 6px; }
+    .spec-val { font-weight: 700; color: var(--modal-text); font-family: ui-monospace, monospace; }
+
+    /* Counter Mini Cards */
+    .counter-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      height: 100%;
+      justify-content: center;
+    }
+
+    .counter-pill {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--modal-border);
+      border-radius: 10px;
+      padding: 9px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    <!-- === SELESAI PERUBAHAN: CSS MODAL LIVE DETAIL SUPER RAPI === -->
+
     .modal-tab-btn {
-      padding: 8px 14px;
-      border-radius: 8px;
+      padding: 9px 18px;
+      border-radius: 10px;
       border: 1px solid var(--modal-border);
       background: var(--metrics-bg);
       color: var(--card-host);
@@ -291,6 +422,9 @@
       font-weight: 700;
       cursor: pointer;
       transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
     .modal-tab-btn:hover {
       opacity: 0.9;
@@ -300,9 +434,63 @@
       background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
       color: white;
       border-color: #6366f1;
-      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
     }
+
+    /* Modal Center Dialog (Pengganti alert & confirm bawaan browser) */
+    .custom-dialog-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(5px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.25s ease;
+      padding: 15px;
+    }
+    .custom-dialog-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    .custom-dialog-box {
+      background: var(--modal-bg);
+      color: var(--modal-text);
+      border: 1px solid var(--modal-border);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 420px;
+      padding: 26px;
+      text-align: center;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+      transform: scale(0.92);
+      transition: transform 0.25s ease;
+    }
+    .custom-dialog-overlay.active .custom-dialog-box {
+      transform: scale(1);
+    }
+    .custom-dialog-icon {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+    }
+    .custom-dialog-icon.success { background: rgba(34, 197, 94, 0.15); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.3); }
+    .custom-dialog-icon.danger { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .custom-dialog-icon.warning { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .custom-dialog-icon.info { background: rgba(99, 102, 241, 0.15); color: #6366f1; border: 1px solid rgba(99, 102, 241, 0.3); }
+    .custom-dialog-title { font-size: 18px; font-weight: 800; margin-bottom: 8px; color: var(--modal-text); }
+    .custom-dialog-msg { font-size: 13.5px; color: var(--card-host); line-height: 1.5; margin-bottom: 22px; }
+    .custom-dialog-btns { display: flex; gap: 10px; justify-content: center; }
   </style>
+  <!-- === SELESAI PERUBAHAN: STYLE DETAIL LIVE & CENTER MODAL DIALOG === -->
 </head>
 <body>
 <%- include('partials/sidebar', { activePage: 'mikrotik', company }) %>
@@ -432,9 +620,11 @@
             <button type="button" class="btn btn-g btn-sm" title="<%= t('common.edit', 'Edit') %>" onclick="editRouter(<%= i %>)">
               <i class="bi bi-pencil"></i>
             </button>
-            <form method="POST" action="/admin/routers/<%= r.id %>/delete" style="display:inline" onsubmit="return confirm('<%= t('admin.routers.confirm.delete', 'Hapus router ini?') %>')">
-              <button class="btn btn-d btn-sm" title="<%= t('common.delete', 'Hapus') %>"><i class="bi bi-trash"></i></button>
-            </form>
+            <!-- === MULAI PERUBAHAN: TOMBOL HAPUS GRID DENGAN MODAL CENTER === -->
+            <button type="button" class="btn btn-d btn-sm" title="<%= t('common.delete', 'Hapus') %>" onclick="confirmDeleteRouter(<%= r.id %>, '<%= r.name %>')">
+              <i class="bi bi-trash"></i>
+            </button>
+            <!-- === SELESAI PERUBAHAN: TOMBOL HAPUS GRID === -->
           </div>
         </div>
       <% }) %>
@@ -474,9 +664,11 @@
                 <button class="btn btn-g btn-icon btn-sm" title="<%= t('admin.routers.actions.test', 'Test Koneksi') %>" onclick="testConn(<%= r.id %>)"><i class="bi bi-plug"></i></button>
                 <button class="btn btn-g btn-icon btn-sm" title="Setup Firewall Isolir" onclick="setupFirewall(<%= r.id %>)"><i class="bi bi-shield-lock"></i></button>
                 <button class="btn btn-g btn-icon btn-sm" title="<%= t('common.edit', 'Edit') %>" onclick="editRouter(<%= i %>)"><i class="bi bi-pencil"></i></button>
-                <form method="POST" action="/admin/routers/<%= r.id %>/delete" style="display:inline" onsubmit="return confirm('<%= t('admin.routers.confirm.delete', 'Hapus router ini?') %>')">
-                  <button class="btn btn-d btn-icon btn-sm" title="<%= t('common.delete', 'Hapus') %>"><i class="bi bi-trash"></i></button>
-                </form>
+                <!-- === MULAI PERUBAHAN: TOMBOL HAPUS TABEL DENGAN MODAL CENTER === -->
+                <button type="button" class="btn btn-d btn-icon btn-sm" title="<%= t('common.delete', 'Hapus') %>" onclick="confirmDeleteRouter(<%= r.id %>, '<%= r.name %>')">
+                  <i class="bi bi-trash"></i>
+                </button>
+                <!-- === SELESAI PERUBAHAN: TOMBOL HAPUS TABEL === -->
               </td>
             </tr>
           <% }) %>
@@ -487,14 +679,19 @@
   </div>
 </div>
 
+<!-- === MULAI PERUBAHAN: HEADER & CONTAINER MODAL LIVE === -->
 <!-- Modal Live Detail Router -->
 <div class="mo" id="routerLiveModal">
-  <div class="mb" style="max-width: 740px;">
-    <div class="mh">
-      <span class="mt"><i class="bi bi-cpu-fill text-primary me-2"></i> <span id="modal-router-name">Detail Live Router</span></span>
-      <button class="mc" onclick="closeModal('routerLiveModal')">&times;</button>
+  <div class="mb" style="max-width: 880px;">
+    <div class="mh" style="display:flex; justify-content:space-between; align-items:center; padding: 14px 20px;">
+      <span class="mt" style="font-size: 16px; font-weight: 800; display:flex; align-items:center;">
+        <i class="bi bi-cpu-fill text-primary me-2 fs-5"></i> 
+        <span id="modal-router-name">Detail Live Router</span>
+      </span>
+      <button class="mc" onclick="closeModal('routerLiveModal')" style="cursor:pointer; font-size:22px; background:none; border:none; color:var(--muted);">&times;</button>
     </div>
-    <div class="mbody" id="modal-router-body" style="min-height:360px;">
+    <div class="mbody" id="modal-router-body" style="min-height:360px; padding: 20px;">
+<!-- === SELESAI PERUBAHAN: HEADER & CONTAINER MODAL LIVE === -->
       <div class="text-center py-5 text-muted">
         <i class="bi bi-arrow-repeat spin fs-2 mb-2 d-block text-primary"></i>
         <span>Memuat metrik sistem & data live router...</span>
@@ -668,8 +865,26 @@
   </div>
 </div>
 
+<!-- === MULAI PENAMBAHAN: POPUP DIALOG CENTER (ALERT & CONFIRM) === -->
+<div id="customDialogOverlay" class="custom-dialog-overlay">
+  <div class="custom-dialog-box">
+    <div id="customDialogIcon" class="custom-dialog-icon info">
+      <i class="bi bi-info-circle-fill"></i>
+    </div>
+    <h5 id="customDialogTitle" class="custom-dialog-title">Pemberitahuan</h5>
+    <p id="customDialogMsg" class="custom-dialog-msg">Pesan dialog...</p>
+    <div id="customDialogBtns" class="custom-dialog-btns">
+      <!-- Tombol aksi akan disuntikkan secara dinamis oleh JavaScript -->
+    </div>
+  </div>
+</div>
+
+<form id="globalDeleteForm" method="POST" style="display:none;"></form>
+<!-- === SELESAI PENAMBAHAN: POPUP DIALOG CENTER === -->
+
 <script id="routers-data" type="application/json"><%- JSON.stringify(routers) %></script>
 <script>
+// === MULAI PERUBAHAN: SCRIPT DETAIL LIVE RAPI & DIALOG CENTER ===
 const routersData = JSON.parse(document.getElementById('routers-data').textContent);
 let currentModalRouterId = null;
 let currentModalData = null;
@@ -678,6 +893,99 @@ const I18N = {
   testConfirm: "<%= t('admin.routers.confirm.test', 'Test koneksi ke router ini?') %>",
   systemError: "<%= t('admin.routers.js.system_error', 'Terjadi kesalahan sistem.') %>"
 };
+
+/* --- FUNGSI DIALOG CENTER KUSTOM (ALERT & CONFIRM) --- */
+function showCustomAlert(message, type = 'info', title = null) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('customDialogOverlay');
+    const iconEl = document.getElementById('customDialogIcon');
+    const titleEl = document.getElementById('customDialogTitle');
+    const msgEl = document.getElementById('customDialogMsg');
+    const btnsEl = document.getElementById('customDialogBtns');
+
+    const icons = {
+      success: '<i class="bi bi-check-circle-fill"></i>',
+      danger: '<i class="bi bi-x-circle-fill"></i>',
+      warning: '<i class="bi bi-exclamation-triangle-fill"></i>',
+      info: '<i class="bi bi-info-circle-fill"></i>'
+    };
+
+    const defaultTitles = {
+      success: 'Berhasil',
+      danger: 'Terjadi Kesalahan',
+      warning: 'Perhatian',
+      info: 'Informasi'
+    };
+
+    iconEl.className = 'custom-dialog-icon ' + type;
+    iconEl.innerHTML = icons[type] || icons.info;
+    titleEl.textContent = title || defaultTitles[type] || 'Pemberitahuan';
+    msgEl.innerHTML = message;
+
+    btnsEl.innerHTML = `
+      <button type="button" class="btn btn-p px-4 fw-bold" id="btn-dialog-ok">OK</button>
+    `;
+
+    overlay.classList.add('active');
+
+    document.getElementById('btn-dialog-ok').onclick = () => {
+      overlay.classList.remove('active');
+      resolve(true);
+    };
+  });
+}
+
+function showCustomConfirm(message, title = 'Konfirmasi Tindakan', type = 'warning') {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('customDialogOverlay');
+    const iconEl = document.getElementById('customDialogIcon');
+    const titleEl = document.getElementById('customDialogTitle');
+    const msgEl = document.getElementById('customDialogMsg');
+    const btnsEl = document.getElementById('customDialogBtns');
+
+    const icons = {
+      warning: '<i class="bi bi-question-circle-fill"></i>',
+      danger: '<i class="bi bi-exclamation-octagon-fill"></i>',
+      info: '<i class="bi bi-shield-lock-fill"></i>'
+    };
+
+    iconEl.className = 'custom-dialog-icon ' + type;
+    iconEl.innerHTML = icons[type] || icons.warning;
+    titleEl.textContent = title;
+    msgEl.innerHTML = message;
+
+    btnsEl.innerHTML = `
+      <button type="button" class="btn btn-g px-3" id="btn-dialog-cancel">Batal</button>
+      <button type="button" class="btn ${type === 'danger' ? 'btn-d' : 'btn-p'} px-4 fw-bold" id="btn-dialog-confirm">Lanjutkan</button>
+    `;
+
+    overlay.classList.add('active');
+
+    document.getElementById('btn-dialog-cancel').onclick = () => {
+      overlay.classList.remove('active');
+      resolve(false);
+    };
+
+    document.getElementById('btn-dialog-confirm').onclick = () => {
+      overlay.classList.remove('active');
+      resolve(true);
+    };
+  });
+}
+
+async function confirmDeleteRouter(id, name) {
+  const confirmed = await showCustomConfirm(
+    `Apakah Anda yakin ingin menghapus router <strong>"${name}"</strong>?<br><span class="text-danger small">Tindakan ini tidak dapat dibatalkan.</span>`,
+    'Hapus Router?',
+    'danger'
+  );
+
+  if (confirmed) {
+    const form = document.getElementById('globalDeleteForm');
+    form.action = '/admin/routers/' + id + '/delete';
+    form.submit();
+  }
+}
 
 function openModal(id){document.getElementById(id).classList.add('show')}
 function closeModal(id){document.getElementById(id).classList.remove('show')}
@@ -768,17 +1076,18 @@ function switchModalTab(tabName) {
   });
 }
 
+/* --- TAMPILAN DETAIL LIVE YANG LEBIH RAPI & TERSTRUKTUR --- */
 async function openLiveDetailModal(id) {
   currentModalRouterId = id;
   const router = routersData.find(r => r.id === id);
   const nameEl = document.getElementById('modal-router-name');
   const bodyEl = document.getElementById('modal-router-body');
 
-  if (nameEl) nameEl.textContent = 'Detail Router: ' + (router ? router.name : '#' + id);
+  if (nameEl) nameEl.textContent = 'Detail Live: ' + (router ? router.name : '#' + id);
   bodyEl.innerHTML = `
     <div class="text-center py-5 text-muted">
-      <i class="bi bi-arrow-repeat spin fs-2 mb-2 d-block text-primary"></i>
-      <span>Mengambil metrik sistem & sesi live dari MikroTik...</span>
+      <i class="bi bi-arrow-repeat spin fs-1 mb-2 d-block text-primary"></i>
+      <span class="fw-bold">Mengambil data telemetri MikroTik...</span>
     </div>
   `;
   openModal('routerLiveModal');
@@ -797,173 +1106,195 @@ async function openLiveDetailModal(id) {
     const usedHdd = l.totalHdd - l.freeHdd;
     const hddPercent = l.totalHdd > 0 ? Math.round((usedHdd / l.totalHdd) * 100) : 0;
 
-    const pppoeRows = (l.activePppoeList || []).map((p, idx) => `
+    const pppoeRows = (l.activePppoeList && l.activePppoeList.length > 0) ? l.activePppoeList.map((p, idx) => `
       <tr>
-        <td class="text-muted">${idx + 1}</td>
-        <td class="fw-bold" style="color:var(--modal-text);">${p.name}</td>
-        <td class="text-info font-monospace">${p.address}</td>
-        <td class="text-warning">${p.uptime}</td>
-        <td class="text-muted font-monospace">${p.callerId}</td>
+        <td class="text-muted ps-3">${idx + 1}</td>
+        <td class="fw-bold text-primary">${p.name}</td>
+        <td class="font-monospace text-info">${p.address || '-'}</td>
+        <td><span class="badge" style="background:rgba(245,158,11,0.15); color:#f59e0b;"><i class="bi bi-clock me-1"></i>${p.uptime || '-'}</span></td>
+        <td class="text-muted font-monospace pe-3">${p.callerId || '-'}</td>
       </tr>
-    `).join('');
+    `).join('') : `<tr><td colspan="5" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-1"></i>Tidak ada sesi PPPoE aktif saat ini</td></tr>`;
 
-    const hsRows = (l.activeHotspotList || []).map((h, idx) => `
+    const hsRows = (l.activeHotspotList && l.activeHotspotList.length > 0) ? l.activeHotspotList.map((h, idx) => `
       <tr>
-        <td class="text-muted">${idx + 1}</td>
-        <td class="fw-bold" style="color:var(--modal-text);">${h.user}</td>
-        <td class="text-info font-monospace">${h.address}</td>
-        <td class="text-muted font-monospace">${h.mac}</td>
-        <td class="text-warning">${h.uptime}</td>
+        <td class="text-muted ps-3">${idx + 1}</td>
+        <td class="fw-bold text-success">${h.user}</td>
+        <td class="font-monospace text-info">${h.address || '-'}</td>
+        <td class="text-muted font-monospace">${h.mac || '-'}</td>
+        <td class="pe-3"><span class="badge" style="background:rgba(245,158,11,0.15); color:#f59e0b;"><i class="bi bi-clock me-1"></i>${h.uptime || '-'}</span></td>
       </tr>
-    `).join('');
+    `).join('') : `<tr><td colspan="5" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-1"></i>Tidak ada user hotspot aktif saat ini</td></tr>`;
 
+    // === MULAI PERUBAHAN: INNERHTML DETAIL LIVE YANG SANGAT RAPI & PRESISI ===
     bodyEl.innerHTML = `
-      <!-- Top Overview Header -->
-      <div class="d-flex justify-content-between align-items-center mb-3 p-3 rounded-3 modal-content-adaptive" style="border:1px solid var(--modal-border); box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
-        <div>
-          <h5 class="fw-bold mb-1 d-flex align-items-center gap-2" style="color:var(--modal-text);">
-            <i class="bi bi-hdd-network text-info"></i> ${r.name}
-          </h5>
-          <span class="small text-muted font-monospace">${r.host}:${r.port} | User: ${r.user}</span>
+      <!-- 1. Top Header Bar -->
+      <div class="live-top-banner">
+        <div class="d-flex align-items-center gap-3">
+          <div style="width:42px; height:42px; border-radius:10px; background:rgba(99,102,241,0.15); display:flex; align-items:center; justify-content:center; color:#6366f1; font-size:20px;">
+            <i class="bi bi-router"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-0" style="color:var(--modal-text); font-size:16px;">${r.name}</h6>
+            <div class="small text-muted font-monospace mt-1" style="font-size:11.5px;">
+              <span><i class="bi bi-hdd-network me-1"></i>${r.host}:${r.port}</span>
+              <span class="mx-2">•</span>
+              <span><i class="bi bi-person me-1"></i>${r.user}</span>
+            </div>
+          </div>
         </div>
         <div>
           ${l.connected 
-            ? '<span class="rc-status-pill online"><span class="rc-status-dot"></span> Online / Connected</span>' 
-            : '<span class="rc-status-pill offline"><span class="rc-status-dot"></span> Disconnected</span>'}
+            ? '<span class="rc-status-pill online"><span class="rc-status-dot"></span> Online</span>' 
+            : '<span class="rc-status-pill offline"><span class="rc-status-dot"></span> Terputus</span>'}
         </div>
       </div>
 
-      ${l.error ? `<div class="alert alert-danger mb-3"><i class="bi bi-exclamation-triangle"></i> Error: ${l.error}</div>` : ''}
+      ${l.error ? `<div class="alert alert-danger mb-3 p-3 small"><i class="bi bi-exclamation-triangle-fill me-2"></i><strong>MikroTik Error:</strong> ${l.error}</div>` : ''}
 
-      <!-- Modal Internal Tabs Navigation -->
+      <!-- 2. Modal Tabs Switcher -->
       <div class="d-flex gap-2 mb-3 pb-2" style="border-bottom: 1px solid var(--modal-border);">
         <button type="button" class="modal-tab-btn active" id="mtab-btn-sys" onclick="switchModalTab('sys')">
-          <i class="bi bi-cpu me-1"></i> Sistem & Metrik
+          <i class="bi bi-speedometer2"></i> Ringkasan Sistem
         </button>
         <button type="button" class="modal-tab-btn" id="mtab-btn-pppoe" onclick="switchModalTab('pppoe')">
-          <i class="bi bi-plug me-1"></i> PPPoE Aktif (${l.activePppoe})
+          <i class="bi bi-plug"></i> PPPoE Aktif (${l.activePppoe || 0})
         </button>
         <button type="button" class="modal-tab-btn" id="mtab-btn-hs" onclick="switchModalTab('hs')">
-          <i class="bi bi-wifi me-1"></i> Hotspot Aktif (${l.activeHotspot})
+          <i class="bi bi-wifi"></i> Hotspot Aktif (${l.activeHotspot || 0})
         </button>
       </div>
 
-      <!-- Tab 1: System Metrics & Specs -->
+      <!-- TAB 1: System & Metrics Grid -->
       <div id="mtab-content-sys">
-        <div class="row g-2 mb-3">
-          <div class="col-4">
-            <div class="p-3 text-center rounded-3 modal-content-adaptive" style="border:1px solid var(--modal-border);">
-              <small class="text-muted d-block uppercase fw-bold mb-1" style="font-size:10px;">CPU Load</small>
-              <h4 class="fw-extrabold mb-0 ${l.cpuLoad > 80 ? 'text-danger' : (l.cpuLoad > 50 ? 'text-warning' : 'text-success')}">${l.cpuLoad}%</h4>
+        <!-- 3 Cards Sejajar: CPU, RAM, DISK -->
+        <div class="live-metric-grid">
+          <div class="live-metric-card">
+            <span class="live-metric-title"><i class="bi bi-cpu"></i> CPU Load</span>
+            <span class="live-metric-val ${l.cpuLoad > 80 ? 'text-danger' : (l.cpuLoad > 50 ? 'text-warning' : 'text-success')}">
+              ${l.cpuLoad ?? 0}%
+            </span>
+            <div class="rc-progress">
+              <div class="rc-progress-bar ${l.cpuLoad > 80 ? 'bg-red' : (l.cpuLoad > 50 ? 'bg-yellow' : 'bg-green')}" style="width: ${l.cpuLoad || 0}%;"></div>
             </div>
           </div>
-          <div class="col-4">
-            <div class="p-3 text-center rounded-3 modal-content-adaptive" style="border:1px solid var(--modal-border);">
-              <small class="text-muted d-block uppercase fw-bold mb-1" style="font-size:10px;">RAM Used</small>
-              <h4 class="fw-extrabold mb-0 text-info">${memPercent}%</h4>
-              <small class="text-muted" style="font-size:10px;">${formatBytes(usedMem)} / ${formatBytes(l.totalMemory)}</small>
+
+          <div class="live-metric-card">
+            <span class="live-metric-title"><i class="bi bi-memory"></i> RAM Terpakai</span>
+            <span class="live-metric-val text-info">${memPercent}%</span>
+            <div class="rc-progress mb-1">
+              <div class="rc-progress-bar ${memPercent > 85 ? 'bg-red' : (memPercent > 65 ? 'bg-yellow' : 'bg-green')}" style="width: ${memPercent}%;"></div>
             </div>
+            <small class="text-muted" style="font-size:10px;">${formatBytes(usedMem)} / ${formatBytes(l.totalMemory)}</small>
           </div>
-          <div class="col-4">
-            <div class="p-3 text-center rounded-3 modal-content-adaptive" style="border:1px solid var(--modal-border);">
-              <small class="text-muted d-block uppercase fw-bold mb-1" style="font-size:10px;">Disk Storage</small>
-              <h4 class="fw-extrabold mb-0 text-warning">${hddPercent}%</h4>
-              <small class="text-muted" style="font-size:10px;">${formatBytes(usedHdd)} / ${formatBytes(l.totalHdd)}</small>
+
+          <div class="live-metric-card">
+            <span class="live-metric-title"><i class="bi bi-hdd"></i> Penyimpanan</span>
+            <span class="live-metric-val text-warning">${hddPercent}%</span>
+            <div class="rc-progress mb-1">
+              <div class="rc-progress-bar ${hddPercent > 85 ? 'bg-red' : (hddPercent > 65 ? 'bg-yellow' : 'bg-green')}" style="width: ${hddPercent}%;"></div>
             </div>
+            <small class="text-muted" style="font-size:10px;">${formatBytes(usedHdd)} / ${formatBytes(l.totalHdd)}</small>
           </div>
         </div>
 
-        <div class="table-responsive rounded-3 mb-3 modal-content-adaptive" style="border:1px solid var(--modal-border);">
-          <table class="table modal-table-adaptive table-sm table-borderless mb-0 small">
-            <tbody>
-              <tr>
-                <td class="text-muted ps-3 py-2" style="width:35%;">Identity RouterOS:</td>
-                <td class="fw-bold py-2" style="color:var(--modal-text);">${l.identity}</td>
-              </tr>
-              <tr>
-                <td class="text-muted ps-3 py-2">Board / Tipe Model:</td>
-                <td class="fw-bold text-info py-2">${l.boardName}</td>
-              </tr>
-              <tr>
-                <td class="text-muted ps-3 py-2">RouterOS Version:</td>
-                <td class="fw-bold text-success py-2">${l.version}</td>
-              </tr>
-              <tr>
-                <td class="text-muted ps-3 py-2">Spesifikasi CPU:</td>
-                <td class="py-2" style="color:var(--modal-text);">${l.architecture} (${l.cpuCount} Core @ ${l.cpuFrequency} MHz)</td>
-              </tr>
-              <tr>
-                <td class="text-muted ps-3 py-2">Router Uptime:</td>
-                <td class="fw-bold text-warning py-2">${l.uptime}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <!-- 2 Kolom: Kiri Spesifikasi Board, Kanan Status Pelanggan -->
+        <div class="live-specs-grid">
+          <!-- Kiri: Spesifikasi RouterOS -->
+          <div class="live-card-section">
+            <div class="live-section-title"><i class="bi bi-info-circle text-primary"></i> Informasi Perangkat</div>
+            <div class="spec-item">
+              <span class="spec-lbl"><i class="bi bi-tag"></i> Identity:</span>
+              <span class="spec-val">${l.identity || '-'}</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-lbl"><i class="bi bi-motherboard"></i> Model / Board:</span>
+              <span class="spec-val text-info">${l.boardName || '-'}</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-lbl"><i class="bi bi-patch-check"></i> RouterOS:</span>
+              <span class="spec-val text-success">${l.version || '-'}</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-lbl"><i class="bi bi-cpu"></i> Arsitektur:</span>
+              <span class="spec-val">${l.architecture || '-'} (${l.cpuCount || 1} Core)</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-lbl"><i class="bi bi-clock-history"></i> Uptime:</span>
+              <span class="spec-val text-warning">${l.uptime || '-'}</span>
+            </div>
+          </div>
 
-        <div class="row g-2">
-          <div class="col-4">
-            <div class="p-2 rounded-3 text-center modal-content-adaptive" style="border:1px solid var(--modal-border);">
-              <span class="d-block text-muted" style="font-size:11px;">Pelanggan DB</span>
-              <span class="fw-bold fs-5" style="color:var(--modal-text);">${l.customersCount}</span>
-            </div>
-          </div>
-          <div class="col-4">
-            <div class="p-2 rounded-3 text-center modal-content-adaptive" style="border:1px solid var(--modal-border);">
-              <span class="d-block text-muted" style="font-size:11px;">PPPoE Sesi Aktif</span>
-              <span class="fw-bold fs-5 text-success">${l.activePppoe}</span>
-            </div>
-          </div>
-          <div class="col-4">
-            <div class="p-2 rounded-3 text-center modal-content-adaptive" style="border:1px solid var(--modal-border);">
-              <span class="d-block text-muted" style="font-size:11px;">Hotspot User Aktif</span>
-              <span class="fw-bold fs-5 text-warning">${l.activeHotspot}</span>
+          <!-- Kanan: Status Koneksi Pelanggan -->
+          <div class="live-card-section">
+            <div class="live-section-title"><i class="bi bi-people text-success"></i> Status Sesi Pelanggan</div>
+            <div class="counter-stack">
+              <div class="counter-pill">
+                <span class="spec-lbl"><i class="bi bi-person-lines-fill"></i> Total Pelanggan DB</span>
+                <span class="fw-bold fs-6 text-primary">${l.customersCount || 0}</span>
+              </div>
+              <div class="counter-pill">
+                <span class="spec-lbl"><i class="bi bi-plug-fill text-success"></i> Sesi PPPoE Aktif</span>
+                <span class="fw-bold fs-6 text-success">${l.activePppoe || 0}</span>
+              </div>
+              <div class="counter-pill">
+                <span class="spec-lbl"><i class="bi bi-wifi text-warning"></i> Sesi Hotspot Aktif</span>
+                <span class="fw-bold fs-6 text-warning">${l.activeHotspot || 0}</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Tab 2: PPPoE Active Sessions List -->
+      <!-- TAB 2: PPPoE Sessions Table -->
       <div id="mtab-content-pppoe" style="display:none;">
-        <div class="table-responsive rounded-3 modal-content-adaptive" style="max-height: 280px; overflow-y: auto; border:1px solid var(--modal-border);">
-          <table class="table modal-table-adaptive table-hover table-sm mb-0 small">
+        <div class="table-responsive rounded-3" style="max-height: 340px; overflow-y: auto; border: 1px solid var(--modal-border);">
+          <table class="table modal-table-adaptive table-hover table-sm mb-0 align-middle small">
             <thead class="sticky-top" style="background:var(--modal-table-bg);">
               <tr>
-                <th>#</th>
-                <th>Username</th>
-                <th>IP Address</th>
-                <th>Uptime</th>
-                <th>Caller ID / MAC</th>
+                <th class="ps-3 py-2">#</th>
+                <th class="py-2">Username</th>
+                <th class="py-2">IP Address</th>
+                <th class="py-2">Uptime</th>
+                <th class="pe-3 py-2">Caller ID / MAC</th>
               </tr>
             </thead>
             <tbody>
-              ${pppoeRows || '<tr><td colspan="5" class="text-center text-muted py-4">Tidak ada sesi PPPoE aktif di router ini</td></tr>'}
+              ${pppoeRows}
             </tbody>
           </table>
         </div>
       </div>
 
-      <!-- Tab 3: Hotspot Active Sessions List -->
+      <!-- TAB 3: Hotspot Sessions Table -->
       <div id="mtab-content-hs" style="display:none;">
-        <div class="table-responsive rounded-3 modal-content-adaptive" style="max-height: 280px; overflow-y: auto; border:1px solid var(--modal-border);">
-          <table class="table modal-table-adaptive table-hover table-sm mb-0 small">
+        <div class="table-responsive rounded-3" style="max-height: 340px; overflow-y: auto; border: 1px solid var(--modal-border);">
+          <table class="table modal-table-adaptive table-hover table-sm mb-0 align-middle small">
             <thead class="sticky-top" style="background:var(--modal-table-bg);">
               <tr>
-                <th>#</th>
-                <th>User / Voucher</th>
-                <th>IP Address</th>
-                <th>MAC Address</th>
-                <th>Uptime</th>
+                <th class="ps-3 py-2">#</th>
+                <th class="py-2">User / Voucher</th>
+                <th class="py-2">IP Address</th>
+                <th class="py-2">MAC Address</th>
+                <th class="pe-3 py-2">Uptime</th>
               </tr>
             </thead>
             <tbody>
-              ${hsRows || '<tr><td colspan="5" class="text-center text-muted py-4">Tidak ada pengguna Hotspot aktif di router ini</td></tr>'}
+              ${hsRows}
             </tbody>
           </table>
         </div>
       </div>
     `;
+    // === SELESAI PERUBAHAN: INNERHTML DETAIL LIVE RAPI & PRESISI ===
   } catch (e) {
-    bodyEl.innerHTML = `<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> ${e.message}</div>`;
+    bodyEl.innerHTML = `
+      <div class="alert alert-danger p-4 text-center">
+        <i class="bi bi-exclamation-triangle-fill fs-2 mb-2 d-block"></i>
+        <h6 class="fw-bold">Gagal Mengambil Data Live</h6>
+        <p class="small mb-0">${e.message}</p>
+      </div>
+    `;
   }
 }
 
@@ -981,7 +1312,6 @@ function editRouter(idx) {
   document.getElementById('e_active').value = r.is_active;
   document.getElementById('e_desc').value = r.description || '';
   
-  // PERBAIKAN: Pastikan mencentang berdasarkan data database (1 = true, 0 = false)
   document.getElementById('e_is_pppoe').checked = (Number(r.is_pppoe) === 1);
   document.getElementById('e_is_hotspot').checked = (Number(r.is_hotspot) === 1);
 
@@ -989,95 +1319,19 @@ function editRouter(idx) {
 }
 
 async function testConn(id) {
-  if(!confirm(I18N.testConfirm)) return;
+  const confirmed = await showCustomConfirm(I18N.testConfirm, 'Test Koneksi Router', 'info');
+  if(!confirmed) return;
   try {
     const res = await fetch('/admin/api/routers/' + id + '/test');
     const data = await res.json();
-    alert(data.success ? '✅ ' + data.message : '❌ ' + data.error);
-    loadRouterLiveSummary({ id });
-  } catch (e) { alert(I18N.systemError); }
-}
-
-function switchIsolirTab(tab) {
-  const autoTab = document.getElementById('isolir-tab-auto');
-  const scriptTab = document.getElementById('isolir-tab-script');
-  const autoBtn = document.getElementById('tab-btn-auto');
-  const scriptBtn = document.getElementById('tab-btn-script');
-  const copyBtn = document.getElementById('btn-copy-script-modal');
-
-  if (tab === 'auto') {
-    autoTab.style.display = 'block';
-    scriptTab.style.display = 'none';
-    autoBtn.className = 'btn btn-sm btn-p';
-    scriptBtn.className = 'btn btn-sm btn-g';
-    if (copyBtn) copyBtn.style.display = 'none';
-  } else {
-    autoTab.style.display = 'none';
-    scriptTab.style.display = 'block';
-    autoBtn.className = 'btn btn-sm btn-g';
-    scriptBtn.className = 'btn btn-sm btn-p';
-    if (copyBtn) copyBtn.style.display = 'inline-block';
-  }
-}
-
-async function setupFirewall(routerId) {
-  openIsolirScriptModal(routerId);
-  switchIsolirTab('auto');
-}
-
-async function openIsolirScriptModal(routerId = null) {
-  const ta = document.getElementById('isolir-script-body');
-  const meta = document.getElementById('isolir-script-meta');
-  const routerSel = document.getElementById('isolir-modal-router-select');
-  const statusBox = document.getElementById('isolir-auto-setup-result');
-  if (statusBox) statusBox.style.display = 'none';
-
-  if (routerSel && routerId) {
-    routerSel.value = String(routerId);
-  }
-
-  ta.value = '<%= t('common.loading', 'Memuat...') %>';
-  meta.textContent = '';
-  openModal('isolirScriptModal');
-
-  try {
-    const res = await fetch('/admin/api/isolir-portal-script');
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error || 'Gagal');
-    ta.value = data.script || '';
-    meta.textContent = (data.appUrl ? ('app_url: ' + data.appUrl + ' | ') : '') + 'IP Server: ' + (data.billingIp || '-') + ' | NAT → HTTP:' + (data.httpNatPort ?? '-') + ' HTTPS:' + (data.httpsNatPort ?? '-');
-  } catch (e) {
-    ta.value = '';
-    meta.textContent = e.message || 'Error';
-  }
-}
-
-async function runAutoSetupFirewallFromModal() {
-  const routerSel = document.getElementById('isolir-modal-router-select');
-  const routerId = routerSel ? routerSel.value : null;
-  const statusBox = document.getElementById('isolir-auto-setup-result');
-  if (!routerId) {
-    alert('Pilih router terlebih dahulu!');
-    return;
-  }
-  
-  statusBox.style.display = 'block';
-  statusBox.className = 'alert alert-info p-3 small mt-3';
-  statusBox.innerHTML = '<i class="bi bi-arrow-repeat spin me-1"></i> Sedang menghubungkan dan memasang rule Firewall/NAT isolir di MikroTik...';
-
-  try {
-    const res = await fetch('/admin/api/routers/' + routerId + '/setup-firewall', { method: 'POST' });
-    const data = await res.json();
-    if (data.success) {
-      statusBox.className = 'alert alert-success p-3 small mt-3';
-      statusBox.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> <strong>BERHASIL:</strong> ' + data.message;
+    if(data.success) {
+      await showCustomAlert(data.message, 'success', 'Koneksi Berhasil');
     } else {
-      statusBox.className = 'alert alert-danger p-3 small mt-3';
-      statusBox.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> <strong>GAGAL:</strong> ' + (data.error || data.message || 'Terjadi kesalahan');
+      await showCustomAlert(data.error || 'Gagal terhubung ke router.', 'danger', 'Koneksi Gagal');
     }
-  } catch (e) {
-    statusBox.className = 'alert alert-danger p-3 small mt-3';
-    statusBox.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> <strong>ERROR:</strong> ' + e.message;
+    loadRouterLiveSummary({ id });
+  } catch (e) { 
+    showCustomAlert(I18N.systemError, 'danger'); 
   }
 }
 
@@ -1086,8 +1340,9 @@ function copyIsolirScript() {
   if (!ta || !ta.value) return;
   ta.select();
   document.execCommand('copy');
-  alert('<%= t('admin.routers.isolir_script_copied', 'Script disalin ke clipboard.') %>');
+  showCustomAlert('<%= t('admin.routers.isolir_script_copied', 'Script berhasil disalin ke clipboard.') %>', 'success', 'Berhasil Menyalin');
 }
+// === SELESAI PERUBAHAN: SCRIPT DETAIL LIVE RAPI & DIALOG CENTER ===
 
 // Auto load metrics for all routers on page load
 window.addEventListener('DOMContentLoaded', () => {
