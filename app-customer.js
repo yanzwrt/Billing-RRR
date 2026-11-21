@@ -867,11 +867,12 @@ app.post('/api/webhook/v1/payment-notif', multer().any(), async (req, res) => {
     req.get('x-webhook-key') ??
     bearerToken;
 
-  const serverSecret = getSettingsWithCache().webhook_secret || process.env.MY_WEBHOOK_SECRET || 'billing-rtrw-secret-key';
-  const expectedTrim = typeof serverSecret === 'string' ? serverSecret.trim() : 'billing-rtrw-secret-key';
+  const serverSecret = getSettingsWithCache().webhook_secret || process.env.MY_WEBHOOK_SECRET || 'rakharayna21093004';
+  const expectedTrim = typeof serverSecret === 'string' ? serverSecret.trim() : 'rakharayna21093004';
   const gotTrim = String(secret_key || '').trim();
 
-  const isSecretValid = (gotTrim === expectedTrim) || (gotTrim === 'billing-rtrw-secret-key');
+  // Validasi: hanya kunci resmi Anda yang diterima, kunci publik lama ditolak
+  const isSecretValid = Boolean(expectedTrim && gotTrim && (gotTrim === expectedTrim));
 
   if (!isSecretValid) {
     logger.warn(`[WEBHOOK][payment-notif] Forbidden: secret_key mismatch. service=${String(service || '-')} (got: ${gotTrim ? '***' + gotTrim.slice(-3) : 'empty'}, expected: ***${expectedTrim.slice(-3)})`);
@@ -2046,7 +2047,7 @@ app.post(['/donasi/confirm', '/api/donasi/confirm'], async (req, res) => {
 
 const acsServerService = require('./services/acsServerService');
 app.post('/acs', express.raw({ type: ['text/xml', 'application/soap+xml', 'application/xml', 'text/plain'], limit: '2mb' }), acsServerService.handleCwmpRequest);
-
+//Landing page untuk scan QR stiker modem ONU pelanggan
 app.get('/app/connect', (req, res) => {
   const settings = getSettingsWithCache();
   const cid = String(req.query.cid || '').trim();
@@ -2054,6 +2055,32 @@ app.get('/app/connect', (req, res) => {
   const companyName = settings.company_header || 'IKDMP-CINTA';
   const companyPhone = settings.company_phone || '';
   res.render('app_connect', { companyName, companyPhone, serverUrl, cid, settings });
+});
+
+// Mount Public & Kiosk NOC Wallboard Display (Read-Only)
+const nocService = require('./services/nocService');
+app.get(['/noc', '/display/noc'], (req, res) => {
+  const settings = getSettingsWithCache();
+  const routers = nocService.getNocRouters();
+  const companyName = settings.company_header || settings.company_name || 'ALIJAYA NET';
+  res.render('admin/mikrotik_display', {
+    title: 'NOC Live Wallboard',
+    company: companyName,
+    routers,
+    settings,
+    isPublicNoc: !(req.session?.isAdmin || req.session?.isCashier),
+    lang: req.session?.lang || 'id'
+  });
+});
+
+app.get(['/api/noc/data', '/noc/data'], async (req, res) => {
+  try {
+    const routerId = req.query.routerId || null;
+    const data = await nocService.getNocData(routerId);
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 const customerPortal = require('./routes/customerPortal');

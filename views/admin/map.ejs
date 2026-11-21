@@ -3412,16 +3412,19 @@ document.addEventListener('DOMContentLoaded', () => {
                   </div>
                   <div class="cp-line-item">
                     <span>Panjang Kabel:</span>
-                    <span><strong>${custDistanceM} m</strong> <small style="color:#64748b;">(-${fiberLoss} dB)</small></span>
+                    <span><strong>${custDistanceM} m</strong> 
+					<small style="color:#dc2626; font-family:monospace;">(-${fiberLoss} dB)</small>
+					</strong>
                   </div>
 				  
+                  <!-- === AWAL PERUBAHAN: KONEKTOR 1 BARIS, TOTAL SUSUT NAIK, DAN PERANGKAT TERSAMBUNG === -->
                   <div class="cp-line-item">
-                    <span>1. Konektor (ODP):</span>
-                    <strong style="color:#2563eb;">${nearLabel}</strong>
-                  </div>
-                  <div class="cp-line-item">
-                    <span>2. Konektor (ONU):</span>
-                    <strong style="color:#16a34a;">${farLabel}</strong>
+                    <span>Konektor (In/Out):</span>
+                    <strong>
+                      <span style="color:#2563eb;">${dbConnNear === 'FASTCON' ? 'Fastcon' : 'Pigtail'}</span> / 
+                      <span style="color:#16a34a;">${dbConnFar === 'FASTCON' ? 'Fastcon' : 'Pigtail'}</span>
+                      <small style="color:#dc2626; font-family:monospace;">(-${(nearLoss + farLoss).toFixed(2)} dB)</small>
+                    </strong>
                   </div>
                   ${custSpliceCount > 0 ? `
                     <div class="cp-line-item" style="color:#9333ea;">
@@ -3429,10 +3432,17 @@ document.addEventListener('DOMContentLoaded', () => {
                       <strong>${custSpliceCount} titik (-${midSpliceLoss} dB)</strong>
                     </div>
                   ` : ''}
-                  <div class="cp-line-total">
-                    <span>Total Susut Drop Core:</span>
-                    <span style="color:#dc2626; font-family:monospace;">-${totalDropLoss} dB</span>
+                  <div class="cp-line-item">
+                    <strong>Total Susut Drop Core:</strong>
+                    <span style="color:#dc2626; font-family:monospace;">-${totalDropLoss} dB</strong>
                   </div>
+                  <div class="cp-line-total">
+                    <span><i class="bi bi-phone text-primary me-1"></i>Perangkat Tersambung:</span>
+                    <span id="cust_${cust.id}_connected_devices" style="color:#0f172a; font-weight:800; font-family:monospace;">
+                      <span style="color:#94a3b8; font-size:10px;">Memuat...</span>
+                    </span>
+                  </div>
+                  <!-- === AKHIR PERUBAHAN === -->
                 </div>
               </div>
             `;
@@ -3492,10 +3502,11 @@ document.addEventListener('DOMContentLoaded', () => {
       `);
       // === [AKHIR KODE POPUP PELANGGAN KOMPAK] ===
 
-      /* === AWAL PERUBAHAN: TRIGGER TRAFIK & OPTIK OLT SAAT POPUP DIBUKA === */
+      /* === AWAL PERUBAHAN: TRIGGER TRAFIK, OPTIK OLT & GENIEACS DEVICES SAAT POPUP DIBUKA === */
       marker.on('popupopen', () => {
         startCustomerTrafficPopup(cust.id);
         fetchCustomerOltMini(cust.id);
+        fetchCustomerConnectedDevices(cust.id); // <-- TAMBAHAN
       });
       marker.on('popupclose', () => stopCustomerTrafficPopup(cust.id));
       /* === AKHIR PERUBAHAN === */
@@ -4954,6 +4965,27 @@ async function fetchCustomerOltMini(customerId) {
   }
 }
 /* ============================================================================ */
+
+  /* === AWAL TAMBAHAN: FUNGSI AMBIL JUMLAH PERANGKAT DARI GENIEACS UNTUK POPUP === */
+async function fetchCustomerConnectedDevices(customerId) {
+  const el = document.getElementById(`cust_${customerId}_connected_devices`);
+  if (!el) return;
+
+  try {
+    const res = await fetch(`/admin/api/customers/${customerId}/device-info`, { cache: 'no-store' });
+    const json = await res.json();
+
+    if (json.ok && json.data && json.data.connectedDevices && json.data.connectedDevices !== '-') {
+      const count = json.data.connectedDevices;
+      el.innerHTML = `<span style="color:#16a34a; font-weight:900;">${count} User</span> <span style="font-size:9.5px; color:#64748b; font-weight:600;">(WiFi)</span>`;
+    } else {
+      el.innerHTML = `<span style="color:#64748b; font-weight:600;">-</span>`;
+    }
+  } catch (err) {
+    el.innerHTML = `<span style="color:#94a3b8; font-size:10px;">-</span>`;
+  }
+}
+/* === AKHIR TAMBAHAN === */
 
   function normalizePhone(phone) {
     const raw = String(phone || '').trim();

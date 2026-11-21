@@ -6480,6 +6480,10 @@ router.post('/settings', requireAdminSession, express.urlencoded({ extended: tru
     const newSettings = { ...req.body };
     if (newSettings.whatsapp_enabled === 'true') newSettings.whatsapp_enabled = true;
     else if (newSettings.whatsapp_enabled === 'false') newSettings.whatsapp_enabled = false;
+	// Simpan Webhook Secret Key jika dikirim dari form
+    if (newSettings.webhook_secret !== undefined) {
+      newSettings.webhook_secret = String(newSettings.webhook_secret || '').trim();
+    }
 
     if (newSettings.qris_static_enabled === 'true') newSettings.qris_static_enabled = true;
     else if (newSettings.qris_static_enabled === 'false') newSettings.qris_static_enabled = false;

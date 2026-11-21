@@ -868,19 +868,47 @@
             <!-- Webhook Integration for MacroDroid -->
             <div style="margin-top: 15px; border-top: 1px dashed rgba(0,0,0,0.1); padding-top: 15px;">
               <h6 style="font-size:11px; margin-bottom: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;"><i class="bi bi-phone"></i> Webhook Notifikasi SMS/E-Wallet (MacroDroid)</h6>
+              
+              <% 
+                const base = settings.public_base_url ? settings.public_base_url.replace(/\/+$/, '') : '';
+                const currentSecret = settings.webhook_secret || process.env.MY_WEBHOOK_SECRET || 'rakharayna21093004';
+                const macroWebhookUrl = (base ? base : '') + '/api/webhook/v1/payment-notif?secret_key=' + encodeURIComponent(currentSecret);
+              %>
+
+              <!-- Kotak Input Webhook Secret Key yang bisa diedit -->
+              <div class="fg" style="margin-bottom: 12px;">
+                <label class="fl">Webhook Secret Key (Kunci Keamanan)</label>
+                <input type="text" name="webhook_secret" id="input_webhook_secret" class="fc" 
+                       value="<%= currentSecret %>" 
+                       placeholder="Contoh: rakharayna21093004"
+                       oninput="updateMacroWebhookUrl()">
+                <div style="font-size:10px; color:var(--muted); margin-top:4px">
+                  Kunci keamanan verifikasi pelunasan QRIS Statis / E-Wallet dari MacroDroid / HP Forwarder.
+                </div>
+              </div>
+
+              <!-- Kotak URL POST yang terisi otomatis -->
               <div class="fg">
                 <label class="fl">Link Webhook MacroDroid (URL POST)</label>
                 <div style="display:flex;gap:8px">
-                  <% 
-                    const base = settings.public_base_url ? settings.public_base_url.replace(/\/+$/, '') : '';
-                    const secret = process.env.MY_WEBHOOK_SECRET || '';
-                    const macroWebhookUrl = base ? (base + '/api/webhook/v1/payment-notif?secret_key=' + secret) : '/api/webhook/v1/payment-notif?secret_key=' + secret;
-                  %>
                   <input class="fc" id="macro_webhook_url" readonly value="<%= macroWebhookUrl %>">
                   <button type="button" class="btn btn-g" onclick="copyInput('macro_webhook_url', 'Link Webhook')"><i class="bi bi-copy"></i></button>
                 </div>
-                <div style="font-size:10px; color:var(--muted); margin-top:4px">Kirimkan request HTTP POST ke URL ini dari MacroDroid Anda (sudah termasuk kunci rahasia).</div>
+                <div style="font-size:10px; color:var(--muted); margin-top:4px">
+                  Kirimkan request HTTP POST ke URL ini dari MacroDroid Anda (sudah otomatis menyertakan kunci rahasia di atas).
+                </div>
               </div>
+
+              <!-- Skrip Update Realtime -->
+              <script>
+                function updateMacroWebhookUrl() {
+                  const secretInput = document.getElementById('input_webhook_secret');
+                  const urlInput = document.getElementById('macro_webhook_url');
+                  const baseUrl = "<%= base %>";
+                  const newSecret = secretInput ? secretInput.value.trim() : '';
+                  urlInput.value = (baseUrl ? baseUrl : '') + '/api/webhook/v1/payment-notif?secret_key=' + encodeURIComponent(newSecret);
+                }
+              </script>
             </div>
           </div>
 
