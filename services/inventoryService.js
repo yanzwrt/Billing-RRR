@@ -5,6 +5,72 @@
 const db = require('../config/database');
 const { logger } = require('../config/logger');
 
+/* ========================================================================= */
+/* [MIGRASI TOTAL & PERMANEN: TABEL INVENTORY_STOCK & INVENTORY_LOGS]        */
+/* Memastikan SEMUA kolom yang dibutuhkan sistem log & stok selalu ada       */
+/* ========================================================================= */
+try {
+  // 1. CEK & LENGKAPI TABEL inventory_stock
+  const stockTableInfo = db.prepare("PRAGMA table_info(inventory_stock)").all();
+  const stockCols = new Set(stockTableInfo.map(c => c.name));
+
+  const requiredStockCols = [
+    { name: 'supplier', type: "TEXT DEFAULT ''" },
+    { name: 'price', type: "REAL DEFAULT 0" },
+    { name: 'location', type: "TEXT DEFAULT 'Gudang Utama'" },
+    { name: 'condition', type: "TEXT DEFAULT 'new'" },
+    { name: 'note', type: "TEXT DEFAULT ''" },
+    { name: 'serial_number', type: "TEXT DEFAULT NULL" },
+    { name: 'assigned_to_customer_id', type: "INTEGER DEFAULT NULL" }
+  ];
+
+  for (const col of requiredStockCols) {
+    if (!stockCols.has(col.name)) {
+      db.prepare(`ALTER TABLE inventory_stock ADD COLUMN ${col.name} ${col.type}`).run();
+      logger.info(`[Inventory] Auto-add kolom "${col.name}" pada tabel inventory_stock.`);
+    }
+  }
+
+  // 2. CEK & LENGKAPI TABEL inventory_logs (Penyebab error recipient, reference_no, dll)
+  const logsTableInfo = db.prepare("PRAGMA table_info(inventory_logs)").all();
+  const logsCols = new Set(logsTableInfo.map(c => c.name));
+
+  const requiredLogsCols = [
+    { name: 'recipient', type: "TEXT DEFAULT ''" },
+    { name: 'reference_no', type: "TEXT DEFAULT ''" },
+    { name: 'actor', type: "TEXT DEFAULT 'Admin'" },
+    { name: 'remaining_stock', type: "INTEGER DEFAULT NULL" },
+    { name: 'stock_id', type: "INTEGER DEFAULT NULL" },
+    { name: 'note', type: "TEXT DEFAULT ''" },
+    { name: 'quantity', type: "INTEGER DEFAULT 0" },
+    { name: 'type', type: "TEXT DEFAULT 'in'" }
+  ];
+
+  for (const col of requiredLogsCols) {
+    if (!logsCols.has(col.name)) {
+      db.prepare(`ALTER TABLE inventory_logs ADD COLUMN ${col.name} ${col.type}`).run();
+      logger.info(`[Inventory] Auto-add kolom "${col.name}" pada tabel inventory_logs.`);
+    }
+  }
+} catch (err) {
+  logger.warn('[Inventory Full-Migrate Error]: ' + err.message);
+}
+/* ========================================================================= */
+
+try {
+  // Update otomatis baris inventory_stock yang harganya 0 mengikuti harga pembelian terakhir
+  db.prepare(`
+    UPDATE inventory_stock 
+    SET price = (
+      SELECT COALESCE(s2.price, 0) 
+      FROM inventory_stock s2 
+      WHERE s2.item_id = inventory_stock.item_id AND s2.price > 0 
+      ORDER BY s2.id DESC LIMIT 1
+    )
+    WHERE price IS NULL OR price = 0
+  `).run();
+} catch (e) {}
+
 // ─── DEFAULT CATEGORIES SEEDER ───────────────────────────────────────────
 function seedDefaultCategories() {
   try {
@@ -92,7 +158,9 @@ function getAllItems(search = '', categoryId = null) {
     SELECT i.*, c.name as category_name, 
            COALESCE((SELECT SUM(quantity) FROM inventory_stock s WHERE s.item_id = i.id AND s.status = 'available'), 0) as stock_available,
            COALESCE((SELECT SUM(quantity) FROM inventory_stock s WHERE s.item_id = i.id AND s.status = 'assigned'), 0) as stock_assigned,
-           COALESCE((SELECT SUM(quantity) FROM inventory_stock s WHERE s.item_id = i.id AND s.status = 'broken'), 0) as stock_broken
+           COALESCE((SELECT SUM(quantity) FROM inventory_stock s WHERE s.item_id = i.id AND s.status = 'server'), 0) as stock_server,
+           COALESCE((SELECT SUM(quantity) FROM inventory_stock s WHERE s.item_id = i.id AND s.status = 'broken'), 0) as stock_broken,
+           COALESCE((SELECT SUM(quantity * COALESCE(price, 0)) FROM inventory_stock s WHERE s.item_id = i.id AND s.status != 'broken' AND s.status != 'loss'), 0) as total_asset_val
     FROM inventory_items i
     LEFT JOIN inventory_categories c ON i.category_id = c.id
     WHERE 1=1
@@ -271,6 +339,9 @@ function addStock(data, actor = 'Admin') {
  * Mengeluarkan barang untuk instalasi baru, perbaikan, pemakaian teknisi, atau rusak
  * Mengurangi stok secara otomatis dan mencatat sisa stok akhir
  */
+/* ========================================================================= */
+/* [PERBAIKAN TUNTAS: ISSUE STOCK TETAP MENYIMPAN BARIS HARGA UNTUK TEKNISI] */
+/* ========================================================================= */
 function issueStock(data, actor = 'Admin') {
   const { item_id, stock_id, serial_number, quantity, type, customer_id, recipient, reference_no, note } = data;
   if (!item_id) throw new Error('Pilih barang terlebih dahulu');
@@ -283,13 +354,25 @@ function issueStock(data, actor = 'Admin') {
     throw new Error(`Stok ${item.name} saat ini kosong (0 ${item.unit})!`);
   }
 
-  const issueType = type || (customer_id ? 'assigned' : 'out'); // 'out', 'assigned', 'broken', 'loss'
+  // Pemetaan tipe tujuan yang tepat
+  let issueType = type || 'out';
+  if (issueType === 'server') {
+    issueType = 'server';
+  } else if (customer_id || issueType === 'assigned') {
+    issueType = 'assigned';
+  } else if (issueType === 'broken') {
+    issueType = 'broken';
+  } else if (issueType === 'loss') {
+    issueType = 'loss';
+  } else {
+    issueType = 'out'; // Pemakaian Teknisi / Operasional
+  }
 
   const run = db.transaction(() => {
     let stockIdTarget = stock_id ? Number(stock_id) : null;
     let qtyToDeduct = 1;
 
-    // A. JIKA DITARGETKAN KE SERIAL NUMBER SPESIFIK ATAU STOCK_ID SPESIFIK
+    // A. JIKA UNIT BER-SERIAL NUMBER
     if (serial_number && !stockIdTarget) {
       const row = db.prepare('SELECT id, status FROM inventory_stock WHERE item_id = ? AND serial_number = ?').get(item_id, serial_number.trim());
       if (!row) throw new Error(`Serial Number "${serial_number}" tidak ditemukan untuk barang ini`);
@@ -302,26 +385,28 @@ function issueStock(data, actor = 'Admin') {
       if (!stock) throw new Error('Data unit stok tidak ditemukan');
       if (stock.status !== 'available') throw new Error(`Unit stok ini statusnya "${stock.status}", tidak tersedia`);
 
-      const targetStatus = (customer_id || issueType === 'assigned') ? 'assigned' : (issueType === 'broken' ? 'broken' : 'out');
-      const targetCustomer = customer_id ? Number(customer_id) : null;
+      const targetCustomer = (issueType === 'assigned' && customer_id) ? Number(customer_id) : null;
+      let targetLoc = 'Operasional Teknisi';
+      if (issueType === 'server') targetLoc = 'Ruang Server / NOC';
+      else if (issueType === 'assigned') targetLoc = 'Pelanggan';
+      else if (issueType === 'broken') targetLoc = 'Gudang Rusak';
 
       db.prepare(`
         UPDATE inventory_stock 
-        SET status = ?, assigned_to_customer_id = ?, updated_at = (NOW_LOCAL())
+        SET status = ?, location = ?, assigned_to_customer_id = ?, updated_at = (NOW_LOCAL())
         WHERE id = ?
-      `).run(targetStatus, targetCustomer, stockIdTarget);
+      `).run(issueType, targetLoc, targetCustomer, stockIdTarget);
 
       qtyToDeduct = stock.quantity || 1;
     } else {
-      // B. BARANG NON-SERIAL / PENGURANGAN KUANTITAS (FIFO)
+      // B. BARANG NON-SERIAL (MODEM, KABEL, SFP, DLL)
       qtyToDeduct = Math.max(1, parseInt(quantity, 10) || 1);
       if (qtyToDeduct > availableStock) {
         throw new Error(`Stok tidak mencukupi! Tersedia di gudang: ${availableStock} ${item.unit}, diminta keluar: ${qtyToDeduct} ${item.unit}`);
       }
 
-      // Ambil batch stok yang available terurut dari yang paling lama masuk (FIFO)
       const batches = db.prepare(`
-        SELECT id, quantity 
+        SELECT id, quantity, price, supplier, condition, location 
         FROM inventory_stock 
         WHERE item_id = ? AND status = 'available'
         ORDER BY created_at ASC, id ASC
@@ -330,23 +415,48 @@ function issueStock(data, actor = 'Admin') {
       let needed = qtyToDeduct;
       for (const b of batches) {
         if (needed <= 0) break;
-        if (b.quantity <= needed) {
-          db.prepare("UPDATE inventory_stock SET quantity = 0, status = 'out', updated_at = (NOW_LOCAL()) WHERE id = ?").run(b.id);
-          needed -= b.quantity;
+        const take = Math.min(b.quantity, needed);
+
+        // 1. Kurangi atau hapus batch 'available' di gudang
+        if (b.quantity === take) {
+          db.prepare("DELETE FROM inventory_stock WHERE id = ?").run(b.id);
         } else {
-          db.prepare("UPDATE inventory_stock SET quantity = quantity - ?, updated_at = (NOW_LOCAL()) WHERE id = ?").run(needed, b.id);
-          needed = 0;
-          break;
+          db.prepare("UPDATE inventory_stock SET quantity = quantity - ?, updated_at = (NOW_LOCAL()) WHERE id = ?").run(take, b.id);
         }
+
+        // 2. KUNCI PERBAIKAN: Selalu buat baris tracking baru yang MENYIMPAN HARGA ASLI (b.price)
+        // Termasuk untuk issueType = 'out' (Teknisi), 'server', maupun 'assigned'
+        let locName = 'Dibawa Teknisi / Operasional';
+        if (issueType === 'server') locName = 'Ruang Server / NOC';
+        else if (issueType === 'assigned') locName = 'Pelanggan';
+        else if (issueType === 'broken') locName = 'Gudang Rusak';
+        else if (issueType === 'loss') locName = 'Hilang';
+
+        db.prepare(`
+          INSERT INTO inventory_stock (item_id, serial_number, quantity, condition, location, status, price, supplier, assigned_to_customer_id, note)
+          VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          item_id,
+          take,
+          b.condition || 'used',
+          locName,
+          issueType,
+          Number(b.price || 0), // HARGA ASLI SELALU IKUT, TIDAK BOLEH HILANG
+          b.supplier || '',
+          (issueType === 'assigned' && customer_id) ? Number(customer_id) : null,
+          note || ''
+        );
+
+        needed -= take;
       }
     }
 
-    // Hitung sisa stok tersedia setelah pengeluaran
     const remainingStock = getItemAvailableStock(item_id);
 
-    // Keterangan penerima (teknisi / pelanggan)
     let finalRecipient = recipient ? recipient.trim() : '';
-    if (customer_id && !finalRecipient) {
+    if (issueType === 'server' && !finalRecipient) {
+      finalRecipient = 'Server Utama / Ruang NOC';
+    } else if (customer_id && !finalRecipient) {
       const cust = db.prepare('SELECT name, pppoe_username as pppoe_user FROM customers WHERE id = ?').get(customer_id);
       if (cust) finalRecipient = `Pelanggan: ${cust.name} (${cust.pppoe_user || '-'})`;
     }
@@ -354,7 +464,6 @@ function issueStock(data, actor = 'Admin') {
 
     const logNote = note || `Pengeluaran Barang (-${qtyToDeduct} ${item.unit})`;
 
-    // Catat log pengeluaran dengan sisa stok
     db.prepare(`
       INSERT INTO inventory_logs (item_id, stock_id, type, quantity, remaining_stock, actor, recipient, reference_no, note)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -399,13 +508,11 @@ function adjustStock(data, actor = 'Admin') {
 
   const run = db.transaction(() => {
     if (diff > 0) {
-      // Stok fisik lebih banyak dari sistem -> Tambah selisih ke stok
       db.prepare(`
         INSERT INTO inventory_stock (item_id, serial_number, quantity, condition, location, status, note)
         VALUES (?, NULL, ?, 'new', 'Gudang Utama', 'available', ?)
       `).run(item_id, diff, note || 'Penyesuaian Fisik (Opname)');
     } else {
-      // Stok fisik lebih sedikit dari sistem -> Kurangi selisih dari stok yang ada
       let neededToReduce = Math.abs(diff);
       const batches = db.prepare(`
         SELECT id, quantity FROM inventory_stock 
@@ -466,7 +573,6 @@ function returnStock(data, actor = 'Admin') {
     if (cleanSn) {
       const existing = db.prepare('SELECT id, status FROM inventory_stock WHERE serial_number = ?').get(cleanSn);
       if (existing) {
-        // Kembalikan unit yang sudah ada ke gudang
         db.prepare(`
           UPDATE inventory_stock 
           SET status = 'available', condition = ?, assigned_to_customer_id = NULL, location = 'Gudang Utama', updated_at = (NOW_LOCAL()), note = ?
@@ -571,11 +677,16 @@ function getInventoryStats() {
   const totalItems = db.prepare('SELECT count(*) as c FROM inventory_items').get()?.c || 0;
   const totalCategories = db.prepare('SELECT count(*) as c FROM inventory_categories').get()?.c || 0;
   
+  // SESUDAH (STATUS 'out' / PEMAKAIAN TEKNISI TETAP MASUK TOTAL ASET):
   const stockSummary = db.prepare(`
     SELECT 
       COALESCE(SUM(CASE WHEN status = 'available' THEN quantity ELSE 0 END), 0) as available,
       COALESCE(SUM(CASE WHEN status = 'assigned' THEN quantity ELSE 0 END), 0) as assigned,
-      COALESCE(SUM(CASE WHEN status = 'broken' THEN quantity ELSE 0 END), 0) as broken
+      COALESCE(SUM(CASE WHEN status = 'server' THEN quantity ELSE 0 END), 0) as server,
+      COALESCE(SUM(CASE WHEN status = 'out' THEN quantity ELSE 0 END), 0) as operational,
+      COALESCE(SUM(CASE WHEN status = 'broken' THEN quantity ELSE 0 END), 0) as broken,
+      /* ESTIMASI TOTAL ASET RP (SEMUA KECUALI RUSAK DAN HILANG) */
+      COALESCE(SUM(CASE WHEN status NOT IN ('broken', 'loss') THEN (quantity * COALESCE(price, 0)) ELSE 0 END), 0) as total_asset_rp
     FROM inventory_stock
   `).get();
 
@@ -594,9 +705,113 @@ function getInventoryStats() {
     total_categories: totalCategories,
     total_stock_available: Number(stockSummary?.available || 0),
     total_stock_assigned: Number(stockSummary?.assigned || 0),
+    total_stock_server: Number(stockSummary?.server || 0),
+    total_stock_operational: Number(stockSummary?.operational || 0),
     total_stock_broken: Number(stockSummary?.broken || 0),
+    asset_warehouse_rp: Number(stockSummary?.asset_warehouse_rp || 0),
+    asset_deployed_rp: Number(stockSummary?.asset_deployed_rp || 0),
+    total_asset_rp: Number(stockSummary?.total_asset_rp || 0),
     low_stock_count: lowStockCount
   };
+}
+
+/* ========================================================================= */
+/* [TAMBAHAN: EDIT & BATALKAN/HAPUS RIWAYAT MUTASI DENGAN ROLLBACK STOK]     */
+/* ========================================================================= */
+function updateInventoryLog(logId, data) {
+  const { recipient, reference_no, note } = data;
+  return db.prepare(`
+    UPDATE inventory_logs 
+    SET recipient = ?, reference_no = ?, note = ?
+    WHERE id = ?
+  `).run(
+    String(recipient || '').trim(),
+    String(reference_no || '').trim(),
+    String(note || '').trim(),
+    Number(logId)
+  );
+}
+
+/* ========================================================================= */
+/* [PERBAIKAN TUNTAS: ROLLBACK DENGAN HARGA ASLI AGAR ASET PULIH 100%]       */
+/* ========================================================================= */
+function deleteInventoryLogWithRollback(logId) {
+  const log = db.prepare('SELECT * FROM inventory_logs WHERE id = ?').get(Number(logId));
+  if (!log) throw new Error('Data riwayat mutasi tidak ditemukan');
+
+  const run = db.transaction(() => {
+    const qty = Number(log.quantity || 0);
+    const itemId = log.item_id;
+
+    // Cari harga satuan referensi barang ini dari batch yang ada atau master
+    const refPriceRow = db.prepare(`
+      SELECT price FROM inventory_stock WHERE item_id = ? AND price > 0 ORDER BY id DESC LIMIT 1
+    `).get(itemId);
+    const restoredPrice = Number(refPriceRow?.price || 0);
+
+    // KASUS 1: PEMBATALAN STOK MASUK ('in')
+    if (log.type === 'in') {
+      let deductNeed = Math.abs(qty);
+      const batches = db.prepare(`
+        SELECT id, quantity FROM inventory_stock 
+        WHERE item_id = ? AND status = 'available' 
+        ORDER BY created_at DESC, id DESC
+      `).all(itemId);
+
+      for (const b of batches) {
+        if (deductNeed <= 0) break;
+        const take = Math.min(b.quantity, deductNeed);
+        if (b.quantity === take) {
+          db.prepare("DELETE FROM inventory_stock WHERE id = ?").run(b.id);
+        } else {
+          db.prepare("UPDATE inventory_stock SET quantity = quantity - ? WHERE id = ?").run(take, b.id);
+        }
+        deductNeed -= take;
+      }
+    } 
+    // KASUS 2: PEMBATALAN STOK KELUAR ('out', 'assigned', 'server', 'broken', 'loss')
+    else {
+      const returnQty = Math.abs(qty);
+
+      // Jika unit ber-serial number atau memiliki stock_id spesifik
+      if (log.stock_id) {
+        db.prepare(`
+          UPDATE inventory_stock 
+          SET status = 'available', assigned_to_customer_id = NULL, location = 'Gudang Utama', updated_at = (NOW_LOCAL())
+          WHERE id = ?
+        `).run(log.stock_id);
+      } else {
+        // Non-serial item: cari baris yang tadinya dikeluarkan dan ambil harga persisnya
+        const deployedRow = db.prepare(`
+          SELECT id, quantity, price FROM inventory_stock 
+          WHERE item_id = ? AND status = ? 
+          ORDER BY id DESC LIMIT 1
+        `).get(itemId, log.type);
+
+        const exactPrice = (deployedRow && deployedRow.price > 0) ? deployedRow.price : restoredPrice;
+
+        if (deployedRow) {
+          if (deployedRow.quantity <= returnQty) {
+            db.prepare("DELETE FROM inventory_stock WHERE id = ?").run(deployedRow.id);
+          } else {
+            db.prepare("UPDATE inventory_stock SET quantity = quantity - ?, updated_at = (NOW_LOCAL()) WHERE id = ?").run(returnQty, deployedRow.id);
+          }
+        }
+
+        // KEMBALIKAN KE GUDANG UTAMA DENGAN MEMASUKKAN HARGA LENGKAP (price)
+        db.prepare(`
+          INSERT INTO inventory_stock (item_id, serial_number, quantity, condition, location, status, price, note)
+          VALUES (?, NULL, ?, 'used', 'Gudang Utama', 'available', ?, 'Rollback mutasi #${log.id}')
+        `).run(itemId, returnQty, exactPrice);
+      }
+    }
+
+    // Hapus baris riwayat mutasi
+    db.prepare('DELETE FROM inventory_logs WHERE id = ?').run(Number(logId));
+    return { ok: true, itemId };
+  });
+
+  return run();
 }
 
 module.exports = {
@@ -605,5 +820,7 @@ module.exports = {
   getAllItems, getItemById, getItemDetail, createItem, updateItem, deleteItem,
   getAvailableSerialNumbers, getItemAvailableStock, getItemAssignedStock, getItemBrokenStock,
   addStock, issueStock, adjustStock, returnStock,
-  getInventoryLogs, getInventoryStats
+  getInventoryLogs, getInventoryStats,
+  updateInventoryLog,
+  deleteInventoryLogWithRollback
 };

@@ -27,6 +27,7 @@ const VALID_STATES = new Set([STATE_VISIBLE, STATE_HIDDEN, STATE_LOCKED]);
 
 const MENU_DEFINITIONS = [
   { key: 'dashboard', section: 'main', href: '/admin', icon: 'bi bi-speedometer2', labelKey: 'admin.nav.dashboard', labelDefault: 'Dashboard', roles: ['admin', 'cashier', 'staff'], bottomNav: true, activePages: ['dashboard'] },
+  { key: 'noc_dashboard', section: 'main', href: '/noc', icon: 'bi bi-display', labelKey: 'admin.nav.noc_dashboard', labelDefault: 'NOC Dashboard', roles: ['admin', 'cashier'], target: '_blank', activePages: ['noc_dashboard'] },
   { key: 'mikrotik', section: 'main', href: '/admin/mikrotik', icon: 'bi bi-router', labelKey: 'admin.nav.mikrotik', labelDefault: 'MikroTik', roles: ['admin', 'cashier'], bottomNav: true, activePages: ['mikrotik'] },
   { key: 'radius_server', section: 'main', href: '/admin/radius-settings', icon: 'bi bi-broadcast', labelKey: 'admin.nav.radius_server', labelDefault: 'RADIUS Server', roles: ['admin', 'cashier', 'staff'], activePages: ['radius_settings'] },
   { key: 'map', section: 'main', href: '/admin/map', icon: 'bi bi-map', labelKey: 'admin.nav.network_map', labelDefault: 'Peta Jaringan', roles: ['admin', 'cashier', 'staff'], activePages: ['map'] },
@@ -79,6 +80,7 @@ const MENU_DEFINITIONS = [
 
 const DEFAULT_MENU_STATES = {
   dashboard: STATE_VISIBLE,
+  noc_dashboard: STATE_VISIBLE,
   mikrotik: STATE_VISIBLE,
   radius_server: STATE_VISIBLE,
   map: STATE_VISIBLE,

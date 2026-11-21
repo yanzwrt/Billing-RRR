@@ -2,35 +2,87 @@
 <html lang="<%= lang || 'id' %>">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title><%= title %> | <%= company %></title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   
+  <!-- SINKRONISASI TEMA DENGAN ADMIN DASHBOARD -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('app-theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    })();
+  </script>
+
   <style>
-    :root {
-      --bg: #070913;
-      --card-bg: rgba(15, 18, 36, 0.75);
-      --border: rgba(255, 255, 255, 0.06);
+    /* ================= TEMA DARK (DEFAULT) ================= */
+    :root, [data-theme="dark"] {
+      --bg: #060813;
+      --bg-surface: #0b0f1f;
+      --card-bg: rgba(13, 18, 36, 0.85);
+      --card-border: rgba(255, 255, 255, 0.10);
+      --card-border-hover: rgba(59, 130, 246, 0.45);
       --text: #f8fafc;
       --text-muted: #94a3b8;
-      --primary: #3b82f6;
-      --primary-glow: rgba(59, 130, 246, 0.15);
-      --success: #10b981;
-      --success-glow: rgba(16, 185, 129, 0.15);
-      --danger: #f43f5e;
-      --danger-glow: rgba(244, 63, 94, 0.15);
-      --warning: #f59e0b;
-      --warning-glow: rgba(245, 158, 11, 0.15);
+      --text-dim: #7888a3;
+      --box-inner-bg: rgba(255, 255, 255, 0.03);
+      --tbl-th-bg: #0d1224;
+      --tbl-row-hover: rgba(255, 255, 255, 0.04);
+      --tbl-border: rgba(255, 255, 255, 0.06);
+      --chart-grid: rgba(255, 255, 255, 0.05);
+      --chart-tick: #94a3b8;
+      --gauge-bg-stroke: rgba(255, 255, 255, 0.08);
+
+      --cyan: #00f2fe;
+      --cyan-glow: rgba(0, 242, 254, 0.25);
+      --emerald: #10b981;
+      --emerald-glow: rgba(16, 185, 129, 0.25);
+      --blue: #3b82f6;
+      --blue-glow: rgba(59, 130, 246, 0.25);
+      --purple: #8b5cf6;
+      --purple-glow: rgba(139, 92, 246, 0.25);
+      --amber: #f59e0b;
+      --amber-glow: rgba(245, 158, 11, 0.25);
+      --rose: #f43f5e;
+      --rose-glow: rgba(244, 63, 94, 0.25);
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+    /* ================= TEMA LIGHT (TERANG & KONTRAS) ================= */
+    [data-theme="light"] {
+      --bg: #f1f5f9;
+      --bg-surface: #ffffff;
+      --card-bg: #ffffff;
+      --card-border: #cbd5e1;
+      --card-border-hover: #3b82f6;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --text-dim: #64748b;
+      --box-inner-bg: #f8fafc;
+      --tbl-th-bg: #e2e8f0;
+      --tbl-row-hover: #f1f5f9;
+      --tbl-border: #e2e8f0;
+      --chart-grid: rgba(15, 23, 42, 0.06);
+      --chart-tick: #475569;
+      --gauge-bg-stroke: #e2e8f0;
+
+      --cyan: #0284c7;
+      --cyan-glow: rgba(2, 132, 199, 0.15);
+      --emerald: #059669;
+      --emerald-glow: rgba(5, 150, 105, 0.15);
+      --blue: #2563eb;
+      --blue-glow: rgba(37, 99, 235, 0.15);
+      --purple: #7c3aed;
+      --purple-glow: rgba(124, 58, 237, 0.15);
+      --amber: #d97706;
+      --amber-glow: rgba(217, 119, 6, 0.15);
+      --rose: #e11d48;
+      --rose-glow: rgba(225, 29, 72, 0.15);
     }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -38,95 +90,163 @@
       color: var(--text);
       overflow-x: hidden;
       min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      transition: background 0.3s ease, color 0.3s ease;
     }
 
-    /* Container */
+    /* PENGATURAN TINGGI FIT SCREEN AGAR TIDAK SCROLL DI TV / MONITOR */
     .noc-container {
       display: flex;
       flex-direction: column;
       height: 100vh;
-      padding: 16px;
-      gap: 16px;
+      max-height: 100vh;
+      padding: 10px 14px;
+      gap: 10px;
+      max-width: 1920px;
+      margin: 0 auto;
+      overflow: hidden;
     }
 
-    /* Header */
+    /* TOP HEADER */
     .noc-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       background: var(--card-bg);
-      border: 1px solid var(--border);
-      padding: 14px 20px;
+      border: 1px solid var(--card-border);
+      padding: 8px 16px;
       border-radius: 12px;
-      backdrop-filter: blur(12px);
+      backdrop-filter: blur(16px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      flex-wrap: wrap;
+      gap: 10px;
+      flex-shrink: 0;
     }
 
-    .header-left {
+    .brand-section {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 12px;
     }
 
-    .header-logo-icon {
-      font-size: 24px;
-      color: var(--primary);
-      filter: drop-shadow(0 0 8px var(--primary));
-    }
-
-    .header-title {
+    .brand-icon-box {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: var(--cyan-glow);
+      border: 1px solid var(--cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 18px;
+      color: var(--cyan);
+    }
+
+    .brand-titles {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-name {
+      font-size: 15px;
       font-weight: 800;
       letter-spacing: 0.5px;
       text-transform: uppercase;
-      background: linear-gradient(90deg, #3b82f6, #60a5fa);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .router-badge {
-      font-size: 12px;
-      padding: 4px 10px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
-      border-radius: 20px;
+      color: var(--text);
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-pulse {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--emerald);
+      padding: 2px 7px;
+      border-radius: 12px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--emerald);
+      box-shadow: 0 0 6px var(--emerald);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.9); opacity: 0.7; }
+      50% { transform: scale(1.3); opacity: 1; }
+      100% { transform: scale(0.9); opacity: 0.7; }
+    }
+
+    /* CENTER CLOCK */
+    .clock-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .digital-clock {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 1.2px;
+      color: var(--text);
+    }
+
+    .digital-date {
+      font-size: 10.5px;
+      font-weight: 600;
       color: var(--text-muted);
     }
 
-    .header-right {
+    /* CONTROLS RIGHT */
+    .controls-section {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
-    .router-select-wrapper {
+    .ctrl-select-wrap {
       position: relative;
     }
 
-    .router-select {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border);
+    .ctrl-select {
+      background: var(--box-inner-bg);
+      border: 1px solid var(--card-border);
       color: var(--text);
-      padding: 6px 32px 6px 12px;
+      padding: 5px 28px 5px 10px;
       border-radius: 8px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
+      font-size: 11.5px;
+      font-weight: 600;
       appearance: none;
+      cursor: pointer;
+      outline: none;
       transition: all 0.2s;
     }
-
-    .router-select:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px var(--primary-glow);
+    .ctrl-select:focus {
+      border-color: var(--cyan);
     }
 
-    .router-select-icon {
+    .ctrl-select-icon {
       position: absolute;
-      right: 12px;
+      right: 9px;
       top: 50%;
       transform: translateY(-50%);
       pointer-events: none;
@@ -134,996 +254,1170 @@
       color: var(--text-muted);
     }
 
-    .btn-action {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border);
+    .btn-noc {
+      background: var(--box-inner-bg);
+      border: 1px solid var(--card-border);
       color: var(--text);
-      padding: 8px 12px;
+      padding: 5px 10px;
       border-radius: 8px;
-      font-size: 14px;
+      font-size: 11.5px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
       transition: all 0.2s;
+      text-decoration: none;
+    }
+    .btn-noc:hover {
+      background: rgba(59, 130, 246, 0.15);
+      border-color: var(--blue);
+      color: var(--cyan);
+    }
+    .btn-noc.active {
+      background: var(--blue-glow);
+      border-color: var(--blue);
+      color: var(--blue);
     }
 
-    .btn-action:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: var(--text-muted);
-    }
-
-    .btn-back {
-      border-color: rgba(244, 63, 94, 0.3);
-      color: var(--danger);
-      background: var(--danger-glow);
-    }
-
-    .btn-back:hover {
-      background: rgba(244, 63, 94, 0.25);
-      border-color: var(--danger);
-    }
-
-    .btn-fullscreen {
-      border-color: rgba(59, 130, 246, 0.3);
-      color: var(--primary);
-      background: var(--primary-glow);
-    }
-
-    .btn-fullscreen:hover {
-      background: rgba(59, 130, 246, 0.25);
-      border-color: var(--primary);
-    }
-
-    .digital-clock {
-      font-family: 'JetBrains Mono', monospace;
-      font-weight: 700;
-      font-size: 16px;
-      color: var(--text);
-      letter-spacing: 0.5px;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid var(--border);
-      padding: 6px 14px;
-      border-radius: 8px;
-    }
-
-    /* Grid Layout */
-    .noc-grid {
+    /* TOP KPI BAR */
+    .kpi-grid {
       display: grid;
-      grid-template-columns: 280px 1fr 340px;
-      flex: 1;
-      gap: 16px;
-      min-height: 0; /* Important for flex child overflow */
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      flex-shrink: 0;
     }
 
-    /* Cards */
-    .noc-card {
+    .kpi-card {
       background: var(--card-bg);
-      border: 1px solid var(--border);
+      border: 1px solid var(--card-border);
       border-radius: 12px;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      backdrop-filter: blur(12px);
-      min-height: 0; /* Prevent overflow */
-    }
-
-    .noc-card-title {
-      font-size: 13px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--text-muted);
-      margin-bottom: 16px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .noc-card-title i {
-      color: var(--primary);
-    }
-
-    /* Stats Grid */
-    .stats-layout {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .stat-widget {
-      border-radius: 10px;
-      padding: 16px;
-      border: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 16px;
+      padding: 10px 14px;
       position: relative;
       overflow: hidden;
-      background: rgba(255,255,255,0.01);
-    }
-
-    .stat-widget::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 4px;
-    }
-
-    .stat-widget.primary::before { background: var(--primary); }
-    .stat-widget.success::before { background: var(--success); }
-    .stat-widget.danger::before { background: var(--danger); }
-    .stat-widget.warning::before { background: var(--warning); }
-
-    .stat-widget.primary { background: var(--primary-glow); }
-    .stat-widget.success { background: var(--success-glow); }
-    .stat-widget.danger { background: var(--danger-glow); }
-    .stat-widget.warning { background: var(--warning-glow); }
-
-    .stat-icon {
-      font-size: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 50px;
-      height: 50px;
-      border-radius: 8px;
-      background: rgba(255,255,255,0.05);
-    }
-
-    .stat-widget.primary .stat-icon { color: var(--primary); }
-    .stat-widget.success .stat-icon { color: var(--success); }
-    .stat-widget.danger .stat-icon { color: var(--danger); }
-    .stat-widget.warning .stat-icon { color: var(--warning); }
-
-    .stat-details {
       display: flex;
       flex-direction: column;
+      gap: 2px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
     }
 
-    .stat-label {
-      font-size: 11px;
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+    .kpi-card.cyan::before { background: var(--cyan); }
+    .kpi-card.emerald::before { background: var(--emerald); }
+    .kpi-card.blue::before { background: var(--blue); }
+    .kpi-card.purple::before { background: var(--purple); }
+    .kpi-card.amber::before { background: var(--amber); }
+
+    .kpi-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10.5px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       color: var(--text-muted);
     }
+    .kpi-head i { font-size: 15px; }
+    .kpi-card.cyan .kpi-head i { color: var(--cyan); }
+    .kpi-card.emerald .kpi-head i { color: var(--emerald); }
+    .kpi-card.blue .kpi-head i { color: var(--blue); }
+    .kpi-card.purple .kpi-head i { color: var(--purple); }
+    .kpi-card.amber .kpi-head i { color: var(--amber); }
 
-    .stat-value {
-      font-size: 26px;
-      font-weight: 800;
+    .kpi-value-row {
+      display: flex;
+      align-items: baseline;
+      gap: 5px;
+    }
+    .kpi-value {
       font-family: 'JetBrains Mono', monospace;
-      line-height: 1.1;
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .kpi-unit {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .kpi-sub {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       margin-top: 2px;
     }
 
-    /* CPU & Memory Circular Gauges */
-    .system-layout {
+    .badge-pill {
+      font-size: 9.5px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 6px;
+      background: var(--box-inner-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+    }
+
+    /* MAIN BODY 3-COLUMNS (LOCKED HEIGHT, NO VERTICAL OVERFLOW) */
+    .noc-main {
+      display: grid;
+      grid-template-columns: 280px 1fr 300px;
+      gap: 10px;
+      flex: 1;
+      min-height: 0; /* Penting untuk nested overflow di dalam CSS Grid */
+      overflow: hidden;
+    }
+
+    .col-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 12px 14px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 10px;
+      min-height: 0;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+      overflow-y: auto;
+    }
+
+    .card-title-bar {
+      display: flex;
+      justify-content: space-between;
       align-items: center;
-      justify-content: space-around;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 8px;
+      flex-shrink: 0;
+    }
+    .card-title-bar i {
+      color: var(--cyan);
+      font-size: 14px;
+      margin-right: 5px;
+    }
+
+    /* RADIAL GAUGES */
+    .gauges-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .gauge-box {
+      background: var(--box-inner-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 10px 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .gauge-svg-wrap {
+      width: 86px;
+      height: 86px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .gauge-svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+    .gauge-bg {
+      fill: none;
+      stroke: var(--gauge-bg-stroke);
+      stroke-width: 8;
+    }
+    .gauge-bar {
+      fill: none;
+      stroke-width: 8;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.8s ease, stroke 0.3s;
+    }
+    .gauge-label-center {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .gauge-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 17px;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .gauge-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-top: 5px;
+    }
+    .gauge-detail {
+      font-size: 9.5px;
+      color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+      margin-top: 1px;
+    }
+
+    /* STAT BARS */
+    .stat-bar-box {
+      background: var(--box-inner-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .stat-bar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .ratio-bar {
+      height: 7px;
+      background: var(--card-border);
+      border-radius: 4px;
+      overflow: hidden;
+      display: flex;
+    }
+    .ratio-fill {
+      height: 100%;
+      transition: width 0.6s ease;
+    }
+    .ratio-fill.blue { background: var(--blue); }
+    .ratio-fill.purple { background: var(--purple); }
+    .ratio-fill.emerald { background: var(--emerald); }
+
+    .ratio-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+
+    /* VITALS LIST */
+    .vitals-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      background: var(--box-inner-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 10px;
+      flex-shrink: 0;
+    }
+    .vital-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10.5px;
+    }
+    .vital-key {
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .vital-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    /* CENTER SECTION (KUNCI AGAR GRAFIK PAS DI LAYAR) */
+    .center-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
       height: 100%;
     }
 
-    .gauge-wrapper {
-      position: relative;
+    .chart-box {
+      height: 48%; /* Proporsi ideal 48% dari tinggi kolom tengah */
+      min-height: 220px;
       display: flex;
       flex-direction: column;
+      padding: 12px 14px;
+    }
+
+    .chart-controls {
+      display: flex;
       align-items: center;
-      gap: 10px;
-      width: 100%;
-      max-width: 130px;
-    }
-
-    .gauge-svg {
-      width: 100%;
-      height: auto;
-      aspect-ratio: 1 / 1;
-      transform: rotate(-90deg);
-    }
-
-    .gauge-track {
-      fill: none;
-      stroke: rgba(255,255,255,0.05);
-      stroke-width: 10;
-    }
-
-    .gauge-progress {
-      fill: none;
-      stroke-width: 10;
-      stroke-linecap: round;
-      transition: stroke-dashoffset 0.8s ease-in-out;
-    }
-
-    .gauge-wrapper.cpu .gauge-progress {
-      stroke: var(--warning);
-      filter: drop-shadow(0 0 4px var(--warning));
-    }
-
-    .gauge-wrapper.mem .gauge-progress {
-      stroke: var(--primary);
-      filter: drop-shadow(0 0 4px var(--primary));
-    }
-
-    .gauge-text {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .gauge-percent {
-      font-size: 22px;
-      font-weight: 800;
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .gauge-label {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--text-muted);
-      margin-top: 4px;
-    }
-
-    .system-info-list {
-      width: 100%;
-      border-top: 1px solid var(--border);
-      padding-top: 16px;
-      display: flex;
-      flex-direction: column;
       gap: 8px;
     }
 
-    .sys-info-item {
-      display: flex;
-      justify-content: space-between;
-      font-size: 12px;
-    }
-
-    .sys-info-key {
-      color: var(--text-muted);
-    }
-
-    .sys-info-val {
-      font-weight: 600;
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    /* Main Chart Area */
-    .chart-layout {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-    }
-
-    .chart-header-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-
-    .interface-select-wrapper {
-      position: relative;
-    }
-
-    .interface-select {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 6px 32px 6px 12px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      appearance: none;
-      min-width: 150px;
-    }
-
-    .interface-select:focus {
-      outline: none;
-      border-color: var(--primary);
-    }
-
-    .chart-container {
+    .chart-canvas-wrap {
       flex: 1;
       position: relative;
+      margin-top: 6px;
+      background: var(--box-inner-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 6px 10px;
       min-height: 0;
-      background: rgba(0,0,0,0.1);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px;
     }
 
-    /* Table Container */
-    .table-card {
-      margin-top: 16px;
-      flex: 0.6;
+    .interfaces-box {
+      flex: 1;
+      height: 50%;
+      min-height: 0;
       display: flex;
       flex-direction: column;
-      min-height: 0;
+      padding: 12px 14px;
     }
 
-    .table-wrapper {
+    .iface-table-wrap {
       flex: 1;
       overflow-y: auto;
+      margin-top: 6px;
       min-height: 0;
     }
 
     .noc-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 13px;
+      font-size: 11.5px;
       text-align: left;
     }
-
     .noc-table th {
       position: sticky;
       top: 0;
-      background: var(--card-bg);
-      padding: 10px 14px;
+      background: var(--tbl-th-bg);
+      padding: 7px 10px;
+      font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
-      font-size: 11px;
       letter-spacing: 0.5px;
       color: var(--text-muted);
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid var(--card-border);
       z-index: 2;
     }
-
     .noc-table td {
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--border);
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--tbl-border);
       vertical-align: middle;
-      font-family: 'Inter', sans-serif;
+      color: var(--text);
     }
-
     .noc-table tbody tr:hover {
-      background: rgba(255,255,255,0.02);
+      background: var(--tbl-row-hover);
     }
 
-    .badge-status {
-      font-size: 10px;
-      font-weight: 800;
+    .iface-name-col {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .link-led {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--text-dim);
+    }
+    .link-led.up {
+      background: var(--emerald);
+      box-shadow: 0 0 6px var(--emerald);
+    }
+    .link-led.down {
+      background: var(--rose);
+      box-shadow: 0 0 6px var(--rose);
+    }
+
+    .rate-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 10.5px;
       padding: 2px 6px;
-      border-radius: 4px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      border-radius: 5px;
       display: inline-flex;
       align-items: center;
       gap: 4px;
     }
-
-    .badge-status.active {
-      background: var(--success-glow);
-      color: var(--success);
-      border: 1px solid rgba(16, 185, 129, 0.2);
+    .rate-pill.rx {
+      color: var(--cyan);
+      background: var(--cyan-glow);
+      border: 1px solid var(--cyan);
+    }
+    .rate-pill.tx {
+      color: var(--emerald);
+      background: var(--emerald-glow);
+      border: 1px solid var(--emerald);
     }
 
-    .badge-status.inactive {
-      background: var(--danger-glow);
-      color: var(--danger);
-      border: 1px solid rgba(244, 63, 94, 0.2);
+    /* ================= MODAL CENTER DIALOG (PENGGANTI ALERT/CONFIRM) ================= */
+    .noc-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 999999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
     }
-
-    .badge-status.disabled {
-      background: rgba(255,255,255,0.05);
+    .noc-modal-overlay.show {
+      display: flex;
+      animation: modalFadeIn 0.2s ease-out;
+    }
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .noc-modal-box {
+      width: min(100%, 420px);
+      background: var(--bg-surface);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      text-align: center;
+    }
+    .noc-modal-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: var(--cyan-glow);
+      color: var(--cyan);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin: 0 auto;
+    }
+    .noc-modal-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .noc-modal-msg {
+      font-size: 13px;
       color: var(--text-muted);
-      border: 1px solid var(--border);
+      line-height: 1.5;
     }
-
-    .speed-cell {
-      font-family: 'JetBrains Mono', monospace;
+    .noc-modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 4px;
+    }
+    .btn-modal {
+      padding: 8px 18px;
+      border-radius: 8px;
       font-weight: 700;
-      white-space: nowrap;
+      font-size: 13px;
+      cursor: pointer;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-modal-ok {
+      background: var(--cyan);
+      color: #0f172a;
+    }
+    .btn-modal-cancel {
+      background: var(--box-inner-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text);
     }
 
-    .speed-up { color: var(--primary); }
-    .speed-down { color: var(--success); }
-
-    /* Loading Overlay */
+    /* OVERLAY SPINNER */
     .noc-overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      inset: 0;
       background: var(--bg);
-      z-index: 9999;
+      z-index: 99999;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 20px;
-      transition: opacity 0.5s ease;
+      gap: 14px;
+      transition: opacity 0.3s ease;
     }
-
-    .spinner {
-      width: 50px;
-      height: 50px;
-      border: 4px stroke var(--primary-glow);
-      border-top: 4px solid var(--primary);
+    .noc-spinner {
+      width: 44px;
+      height: 44px;
+      border: 3px solid var(--card-border);
+      border-top: 3px solid var(--cyan);
       border-radius: 50%;
-      animation: spin 1s linear infinite;
+      animation: spin 0.8s linear infinite;
     }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
 
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+    /* RESPONSIVE */
+    @media (max-width: 1200px) {
+      .noc-container { height: auto; max-height: none; overflow: visible; }
+      .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+      .noc-main { grid-template-columns: 1fr; overflow: visible; }
+      .center-section, .chart-box, .interfaces-box { height: auto; min-height: 300px; }
     }
-
-    .overlay-text {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-muted);
-      letter-spacing: 1px;
-      text-transform: uppercase;
-    }
-
-    /* Scrollbars */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: rgba(255,255,255,0.1);
-      border-radius: 3px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: rgba(255,255,255,0.2);
-    }
-
-    /* Media Queries for Responsiveness */
-    /* Target Portrait mode on smaller screens (Tablet / Mobile) to collapse to stack/grid */
-    @media (max-width: 1024px) and (orientation: portrait) {
-      .noc-grid {
-        grid-template-columns: 1fr;
-        height: auto;
-      }
-      .noc-container {
-        height: auto;
-        min-height: 100vh;
-        overflow-y: auto;
-      }
-      .noc-grid > :nth-child(1),
-      .noc-grid > :nth-child(2),
-      .noc-grid > :nth-child(3) {
-        grid-column: span 1;
-      }
-      .chart-container {
-        min-height: 320px;
-        height: 320px;
-      }
-      .table-card {
-        flex: none;
-        height: 350px;
-      }
-      .noc-header {
-        flex-direction: column;
-        gap: 14px;
-        align-items: stretch;
-        text-align: center;
-      }
-      .header-left {
-        justify-content: center;
-        flex-wrap: wrap;
-      }
-      .header-right {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 10px;
-      }
-      .router-select {
-        width: 100%;
-      }
-      .digital-clock {
-        text-align: center;
-      }
-      .btn-action {
-        justify-content: center;
-      }
-    }
-
-    /* Media Queries for Responsiveness */
-    /* Prevent horizontal scrollbar globally */
-    html, body, .noc-container {
-      max-width: 100vw;
-      overflow-x: hidden !important;
-    }
-
-    /* Hide Type and Status columns in table on screens under 1024px width */
-    @media (max-width: 1024px) {
-      .noc-table th:nth-child(2),
-      .noc-table td:nth-child(2),
-      .noc-table th:nth-child(3),
-      .noc-table td:nth-child(3) {
-        display: none !important;
-      }
-    }
-
-    /* Target Portrait mode on smaller screens (Tablet / Mobile) to collapse to stack/grid */
-    @media (max-width: 1024px) and (orientation: portrait) {
-      .noc-grid {
-        grid-template-columns: 1fr;
-        height: auto;
-      }
-      .noc-container {
-        height: auto;
-        min-height: 100vh;
-        overflow-y: auto;
-      }
-      .noc-grid > :nth-child(1),
-      .noc-grid > :nth-child(2),
-      .noc-grid > :nth-child(3) {
-        grid-column: span 1;
-      }
-      .chart-container {
-        min-height: 320px;
-        height: 320px;
-      }
-      .table-card {
-        flex: none;
-        height: 350px;
-      }
-      .system-layout {
-        flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 16px;
-        height: auto;
-      }
-      .system-info-list {
-        width: 100%;
-        margin-top: 10px;
-      }
-      .noc-header {
-        flex-direction: column;
-        gap: 14px;
-        align-items: stretch;
-        text-align: center;
-      }
-      .header-left {
-        justify-content: center;
-        flex-wrap: wrap;
-      }
-      .header-right {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 10px;
-      }
-      .router-select {
-        width: 100%;
-      }
-      .digital-clock {
-        text-align: center;
-      }
-      .btn-action {
-        justify-content: center;
-      }
-    }
-
-    /* Target Landscape mode on small screens (Phones / Small Tablets) to keep 3 columns but scale down */
-    @media (max-width: 1024px) and (orientation: landscape) {
-      .noc-grid {
-        grid-template-columns: 18% 62% 20%;
-        gap: 8px;
-        width: 100%;
-        box-sizing: border-box;
-      }
-      .noc-card {
-        padding: 8px;
-      }
-      .chart-layout {
-        padding: 8px 10px;
-      }
-      .chart-container {
-        padding: 4px;
-      }
-      .noc-card-title {
-        font-size: 10px;
-        margin-bottom: 6px;
-      }
-      .system-layout {
-        gap: 4px;
-        height: auto;
-        justify-content: flex-start;
-      }
-      .gauge-wrapper {
-        max-width: 85px;
-      }
-      .gauge-wrapper.cpu .gauge-progress,
-      .gauge-wrapper.mem .gauge-progress {
-        stroke-width: 8;
-      }
-      .gauge-percent {
-        font-size: 13px;
-      }
-      .gauge-label {
-        font-size: 8px;
-        margin-top: 1px;
-      }
-      .sys-info-item {
-        font-size: 9px;
-      }
-      .stat-widget {
-        padding: 6px 8px;
-        gap: 6px;
-      }
-      .stat-icon {
-        width: 28px;
-        height: 28px;
-        font-size: 14px;
-      }
-      .stat-value {
-        font-size: 14px;
-      }
-      .stat-label {
-        font-size: 8px;
-      }
-      .noc-table th, .noc-table td {
-        padding: 5px 6px;
-        font-size: 11px;
-      }
-      .noc-header {
-        padding: 8px 12px;
-      }
-      .header-title {
-        font-size: 14px;
-      }
-      .router-badge {
-        font-size: 10px;
-        padding: 2px 6px;
-      }
-      .digital-clock {
-        font-size: 12px;
-        padding: 4px 8px;
-      }
-      .router-select {
-        font-size: 11px;
-        padding: 4px 24px 4px 8px;
-      }
-      .btn-action {
-        font-size: 11px;
-        padding: 4px 8px;
-      }
-    }
-
-    /* Target small heights (like phone landscape mode) to allow scrolling */
-    @media (max-height: 700px) {
-      .noc-container {
-        height: auto;
-        min-height: 100vh;
-        overflow-y: auto;
-      }
-      .noc-grid {
-        height: auto;
-      }
-      .chart-container {
-        min-height: 280px;
-        height: 280px;
-      }
-      .table-card {
-        flex: none;
-        height: 300px;
-      }
+    @media (max-width: 768px) {
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
+      .noc-header { flex-direction: column; text-align: center; }
+      .brand-section, .controls-section { justify-content: center; }
     }
   </style>
 </head>
 <body>
 
-  <!-- Loading Overlay -->
+  <!-- LOADING OVERLAY -->
   <div id="loading-overlay" class="noc-overlay">
-    <div class="spinner"></div>
-    <div class="overlay-text">Menghubungkan ke MikroTik...</div>
+    <div class="noc-spinner"></div>
+    <div style="font-size:12px; font-weight:700; letter-spacing:1px; color:var(--text-muted); text-transform:uppercase;">
+      Menghubungkan ke NOC Telemetry...
+    </div>
+  </div>
+
+  <!-- POP-UP DIALOG CENTER (CUSTOM ALERT & CONFIRM) -->
+  <div id="nocCenterModal" class="noc-modal-overlay">
+    <div class="noc-modal-box">
+      <div class="noc-modal-icon" id="modalIcon"><i class="bi bi-info-circle-fill"></i></div>
+      <div>
+        <div class="noc-modal-title" id="modalTitle">Pemberitahuan</div>
+        <div class="noc-modal-msg" id="modalMsg">Pesan informasi sistem.</div>
+      </div>
+      <div class="noc-modal-actions" id="modalActions">
+        <button type="button" class="btn-modal btn-modal-ok" onclick="closeCenterModal(true)">Mengerti</button>
+      </div>
+    </div>
   </div>
 
   <div class="noc-container">
-    
-    <!-- Top Header -->
+
+    <!-- TOP HEADER -->
     <header class="noc-header">
-      <div class="header-left">
-        <i class="bi bi-cpu header-logo-icon"></i>
-        <div class="header-title">NOC Live Display</div>
-        <div class="router-badge" id="router-board-badge">
-          <i class="bi bi-hdd-network"></i>
-          <span id="router-model-name">Loading...</span>
+      <div class="brand-section">
+        <div class="brand-icon-box">
+          <i class="bi bi-broadcast-pin"></i>
+        </div>
+        <div class="brand-titles">
+          <div class="brand-name">
+            <%= company %> NOC
+            <span class="status-pulse" id="header-pulse">
+              <span class="pulse-dot"></span>
+              <span id="header-pulse-text">OPERATIONAL</span>
+            </span>
+          </div>
+          <div class="brand-sub">
+            <span id="board-model-badge"><i class="bi bi-hdd-network"></i> MikroTik Router</span>
+            <span>•</span>
+            <span id="server-env-badge"><i class="bi bi-cpu"></i> Server Telemetry OK</span>
+          </div>
         </div>
       </div>
-      
-      <div class="header-right">
-        <!-- Clock -->
-        <div class="digital-clock" id="live-clock">00:00:00</div>
-        
+
+      <!-- CENTER DIGITAL CLOCK -->
+      <div class="clock-section">
+        <div class="digital-clock" id="live-clock">--:--:--</div>
+        <div class="digital-date" id="live-date">Memuat tanggal...</div>
+      </div>
+
+      <!-- CONTROLS -->
+      <div class="controls-section">
         <!-- Router Selector -->
-        <div class="router-select-wrapper">
-          <select id="router-selector-dropdown" class="router-select" onchange="switchRouter()">
+        <div class="ctrl-select-wrap">
+          <select id="router-select" class="ctrl-select" onchange="switchRouter()">
             <% routers.forEach(r => { %>
               <option value="<%= r.id %>"><%= r.name %></option>
             <% }) %>
           </select>
-          <i class="bi bi-chevron-down router-select-icon"></i>
+          <i class="bi bi-chevron-down ctrl-select-icon"></i>
         </div>
 
-        <!-- Fullscreen Button -->
-        <button class="btn-action btn-fullscreen" onclick="toggleFullscreen()">
-          <i class="bi bi-fullscreen" id="fs-btn-icon"></i>
-          <span id="fs-btn-text">Fullscreen</span>
+        <!-- Refresh Interval Selector -->
+        <div class="ctrl-select-wrap">
+          <select id="refresh-interval-select" class="ctrl-select" onchange="updatePollInterval()">
+            <option value="1500">1.5s (Turbo)</option>
+            <option value="2500" selected>2.5s (Normal)</option>
+            <option value="5000">5s (Eco)</option>
+          </select>
+          <i class="bi bi-chevron-down ctrl-select-icon"></i>
+        </div>
+
+        <!-- Toggle Theme Button -->
+        <button id="theme-toggle-btn" class="btn-noc" onclick="toggleDisplayTheme()" title="Ubah Mode Terang / Gelap">
+          <i class="bi bi-moon-stars-fill" id="theme-btn-icon"></i>
+          <span id="theme-btn-text">Tema</span>
         </button>
 
-        <!-- Back to Dashboard -->
-        <a href="/admin/mikrotik" class="btn-action btn-back" style="text-decoration: none;">
+        <!-- Auto Cycle Routers Toggle -->
+        <% if (routers && routers.length > 1) { %>
+        <button id="cycle-toggle-btn" class="btn-noc" onclick="toggleAutoCycle()" title="Rotasi router otomatis setiap 20 detik">
+          <i class="bi bi-arrow-repeat"></i>
+          <span id="cycle-btn-text">Rotasi: OFF</span>
+        </button>
+        <% } %>
+
+        <!-- Audio Alert Toggle -->
+        <button id="audio-toggle-btn" class="btn-noc" onclick="toggleAudioAlert()" title="Bunyi alarm jika link interface terputus">
+          <i class="bi bi-volume-mute" id="audio-btn-icon"></i>
+          <span id="audio-btn-text">Audio</span>
+        </button>
+
+        <!-- Fullscreen Button -->
+        <button class="btn-noc" onclick="toggleFullscreen()" title="Masuk Mode Layar Penuh">
+          <i class="bi bi-fullscreen" id="fs-icon"></i>
+          <span id="fs-text">Fullscreen</span>
+        </button>
+
+        <!-- Exit Link -->
+        <% if (typeof isPublicNoc === 'undefined' || !isPublicNoc) { %>
+        <a href="/admin/mikrotik" class="btn-noc" title="Kembali ke Admin Portal">
           <i class="bi bi-box-arrow-left"></i>
-          <span>Keluar</span>
         </a>
+        <% } %>
       </div>
     </header>
 
-    <!-- Main Dashboard Grid -->
-    <main class="noc-grid">
-
-      <!-- Left Column: System CPU / Memory & Uptime -->
-      <section class="noc-card">
-        <div class="noc-card-title">
-          <i class="bi bi-hdd-stack"></i>
-          <span>System Resources</span>
+    <!-- TOP KPI TELEMETRY BAR (5 NEON CARDS) -->
+    <section class="kpi-grid">
+      <!-- 1. Download -->
+      <div class="kpi-card cyan">
+        <div class="kpi-head">
+          <span>Download Traffic (RX)</span>
+          <i class="bi bi-arrow-down-circle"></i>
         </div>
-        
-        <div class="system-layout">
-          <!-- CPU Progress Circle -->
-          <div class="gauge-wrapper cpu">
-            <div style="position: relative; width: 100%; display: flex; justify-content: center; align-items: center;">
-              <svg class="gauge-svg" viewBox="0 0 140 140">
-                <circle class="gauge-track" cx="70" cy="70" r="55"></circle>
-                <circle class="gauge-progress" id="cpu-gauge-circle" cx="70" cy="70" r="55" stroke-dasharray="345.5" stroke-dashoffset="345.5"></circle>
+        <div class="kpi-value-row">
+          <span class="kpi-value" id="kpi-rx-val">0.0</span>
+          <span class="kpi-unit" id="kpi-rx-unit">Mbps</span>
+        </div>
+        <div class="kpi-sub">
+          <span id="kpi-rx-interface"><i class="bi bi-hdd-network"></i> All Interfaces</span>
+          <span class="badge-pill" id="kpi-rx-peak">Peak: 0.0 Mbps</span>
+        </div>
+      </div>
+
+      <!-- 2. Upload -->
+      <div class="kpi-card emerald">
+        <div class="kpi-head">
+          <span>Upload Traffic (TX)</span>
+          <i class="bi bi-arrow-up-circle"></i>
+        </div>
+        <div class="kpi-value-row">
+          <span class="kpi-value" id="kpi-tx-val">0.0</span>
+          <span class="kpi-unit" id="kpi-tx-unit">Mbps</span>
+        </div>
+        <div class="kpi-sub">
+          <span id="kpi-total-bandwidth"><i class="bi bi-activity"></i> Total: 0.0 Mbps</span>
+          <span class="badge-pill" id="kpi-tx-peak">Peak: 0.0 Mbps</span>
+        </div>
+      </div>
+
+      <!-- 3. PPPoE -->
+      <div class="kpi-card blue">
+        <div class="kpi-head">
+          <span>PPPoE Subscribers</span>
+          <i class="bi bi-ethernet"></i>
+        </div>
+        <div class="kpi-value-row">
+          <span class="kpi-value" id="kpi-pppoe-online">0</span>
+          <span class="kpi-unit" id="kpi-pppoe-total">/ 0 Total</span>
+        </div>
+        <div class="kpi-sub">
+          <span id="kpi-pppoe-offline"><i class="bi bi-circle-fill" style="color:var(--rose);font-size:7px"></i> 0 Offline</span>
+          <span class="badge-pill" id="kpi-pppoe-ratio" style="color:var(--cyan)">100% Active</span>
+        </div>
+      </div>
+
+      <!-- 4. Hotspot -->
+      <div class="kpi-card purple">
+        <div class="kpi-head">
+          <span>Hotspot Vouchers</span>
+          <i class="bi bi-wifi"></i>
+        </div>
+        <div class="kpi-value-row">
+          <span class="kpi-value" id="kpi-hotspot-active">0</span>
+          <span class="kpi-unit" id="kpi-hotspot-total">/ 0 Vouchers</span>
+        </div>
+        <div class="kpi-sub">
+          <span><i class="bi bi-people"></i> Active Sessions</span>
+          <span class="badge-pill" style="color:var(--purple)">RADIUS / API</span>
+        </div>
+      </div>
+
+      <!-- 5. Hardware Vitals & TR-069 -->
+      <div class="kpi-card amber">
+        <div class="kpi-head">
+          <span id="kpi-hardware-title">Hardware & TR-069</span>
+          <i class="bi bi-cpu"></i>
+        </div>
+        <div class="kpi-value-row" id="kpi-hardware-row">
+          <span class="kpi-value" id="kpi-temp-val">--</span>
+          <span class="kpi-unit" id="kpi-temp-unit">°C</span>
+          <span id="kpi-volt-separator" style="font-size:16px;color:var(--text-muted);margin:0 4px">•</span>
+          <span class="kpi-value" id="kpi-volt-val" style="font-size:20px">--</span>
+          <span class="kpi-unit" id="kpi-volt-unit">V</span>
+        </div>
+        <div class="kpi-sub">
+          <span id="kpi-ont-summary"><i class="bi bi-modem"></i> ONT: 0 Online</span>
+          <span class="badge-pill" id="kpi-optical-alert" style="color:var(--emerald)">Fiber OK</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAIN 3-COLUMNS -->
+    <main class="noc-main">
+
+      <!-- LEFT COLUMN: HARDWARE RADIAL GAUGES & SPECS -->
+      <div class="col-card">
+        <div class="card-title-bar">
+          <div><i class="bi bi-speedometer2"></i> System Hardware Vitals</div>
+          <span class="badge-pill" id="router-uptime-badge">Up: --</span>
+        </div>
+
+        <!-- 2 Radial Gauges -->
+        <div class="gauges-container">
+          <!-- CPU Gauge -->
+          <div class="gauge-box">
+            <div class="gauge-svg-wrap">
+              <svg class="gauge-svg" viewBox="0 0 100 100">
+                <circle class="gauge-bg" cx="50" cy="50" r="40"></circle>
+                <circle class="gauge-bar" id="cpu-gauge-bar" cx="50" cy="50" r="40" stroke="var(--emerald)" stroke-dasharray="251.2" stroke-dashoffset="251.2"></circle>
               </svg>
-              <div class="gauge-text">
-                <span class="gauge-percent" id="cpu-percent-text" style="color: var(--warning);">0%</span>
+              <div class="gauge-label-center">
+                <span class="gauge-num" id="cpu-gauge-num" style="color:var(--emerald)">0%</span>
               </div>
             </div>
-            <span class="gauge-label">CPU Load</span>
+            <div class="gauge-title">CPU Load</div>
+            <div class="gauge-detail" id="cpu-detail-text">-- Cores</div>
           </div>
 
-          <!-- Memory Progress Circle -->
-          <div class="gauge-wrapper mem">
-            <div style="position: relative; width: 100%; display: flex; justify-content: center; align-items: center;">
-              <svg class="gauge-svg" viewBox="0 0 140 140">
-                <circle class="gauge-track" cx="70" cy="70" r="55"></circle>
-                <circle class="gauge-progress" id="mem-gauge-circle" cx="70" cy="70" r="55" stroke-dasharray="345.5" stroke-dashoffset="345.5"></circle>
+          <!-- Memory Gauge -->
+          <div class="gauge-box">
+            <div class="gauge-svg-wrap">
+              <svg class="gauge-svg" viewBox="0 0 100 100">
+                <circle class="gauge-bg" cx="50" cy="50" r="40"></circle>
+                <circle class="gauge-bar" id="mem-gauge-bar" cx="50" cy="50" r="40" stroke="var(--cyan)" stroke-dasharray="251.2" stroke-dashoffset="251.2"></circle>
               </svg>
-              <div class="gauge-text">
-                <span class="gauge-percent" id="mem-percent-text" style="color: var(--primary);">0%</span>
+              <div class="gauge-label-center">
+                <span class="gauge-num" id="mem-gauge-num" style="color:var(--cyan)">0%</span>
               </div>
             </div>
-            <span class="gauge-label">Memory Used</span>
-          </div>
-
-          <!-- System Info List -->
-          <div class="system-info-list">
-            <div class="sys-info-item">
-              <span class="sys-info-key">Board Name</span>
-              <span class="sys-info-val" id="board-name-val">-</span>
-            </div>
-            <div class="sys-info-item">
-              <span class="sys-info-key">RouterOS Ver</span>
-              <span class="sys-info-val" id="board-ver-val">-</span>
-            </div>
-            <div class="sys-info-item">
-              <span class="sys-info-key">Free Memory</span>
-              <span class="sys-info-val" id="free-mem-val">-</span>
-            </div>
-            <div class="sys-info-item">
-              <span class="sys-info-key">Uptime</span>
-              <span class="sys-info-val" id="uptime-val" style="color: var(--primary); font-weight:700;">-</span>
-            </div>
+            <div class="gauge-title">Memory RAM</div>
+            <div class="gauge-detail" id="mem-detail-text">-- MB Free</div>
           </div>
         </div>
-      </section>
 
-      <!-- Center Column: Real-time Traffic Graph & Interfaces Table -->
-      <div style="display:flex;flex-direction:column;min-height:0;gap:16px;">
-        
-        <!-- Live Traffic Chart Card -->
-        <section class="noc-card chart-layout">
-          <div class="chart-header-row">
-            <div class="noc-card-title" style="margin-bottom:0;">
-              <i class="bi bi-activity"></i>
-              <span>Live Traffic Rate</span>
-            </div>
-            <div class="interface-select-wrapper">
-              <select id="interface-chart-selector" class="interface-select" onchange="switchChartInterface()">
-                <!-- Dynamic choices populated on load -->
-              </select>
-              <i class="bi bi-chevron-down router-select-icon"></i>
+        <!-- HDD Storage Progress Bar -->
+        <div class="stat-bar-box">
+          <div class="stat-bar-header">
+            <span style="color:var(--text-muted);font-size:11px"><i class="bi bi-hdd"></i> Router Storage / Disk</span>
+            <span id="hdd-percent-text" style="font-family:'JetBrains Mono';font-size:11px;font-weight:700">0%</span>
+          </div>
+          <div class="ratio-bar">
+            <div class="ratio-fill blue" id="hdd-fill" style="width: 0%"></div>
+          </div>
+          <div class="ratio-labels">
+            <span id="hdd-free-val">Free: --</span>
+            <span id="hdd-total-val">Total: --</span>
+          </div>
+        </div>
+
+        <!-- Router Vitals List -->
+        <div class="vitals-list">
+          <div class="vital-item">
+            <span class="vital-key"><i class="bi bi-cpu"></i> Board Model</span>
+            <span class="vital-val" id="vital-board-name">--</span>
+          </div>
+          <div class="vital-item">
+            <span class="vital-key"><i class="bi bi-terminal"></i> RouterOS Ver</span>
+            <span class="vital-val" id="vital-version">--</span>
+          </div>
+          <div class="vital-item">
+            <span class="vital-key"><i class="bi bi-lightning-charge"></i> CPU Freq</span>
+            <span class="vital-val" id="vital-cpu-freq">-- MHz</span>
+          </div>
+          <div class="vital-item">
+            <span class="vital-key"><i class="bi bi-thermometer-half"></i> Board Temp</span>
+            <span class="vital-val" id="vital-temp">-- °C</span>
+          </div>
+          <div class="vital-item">
+            <span class="vital-key"><i class="bi bi-plug"></i> Supply Voltage</span>
+            <span class="vital-val" id="vital-voltage">-- V</span>
+          </div>
+        </div>
+
+        <!-- Host Server Box -->
+        <div class="vitals-list" style="margin-top:auto">
+          <div class="vital-item">
+            <span class="vital-key"><i class="bi bi-server"></i> Server Node.js</span>
+            <span class="vital-val" id="vital-node-ver">v22.x LTS</span>
+          </div>
+          <div class="vital-item">
+            <span class="vital-key"><i class="bi bi-memory"></i> Host System RAM</span>
+            <span class="vital-val" id="vital-server-ram">-- MB</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CENTER COLUMN: LIVE TRAFFIC GRAPH & ACTIVE INTERFACES -->
+      <div class="center-section">
+
+        <!-- Real-Time Traffic Chart -->
+        <div class="col-card chart-box">
+          <div class="card-title-bar">
+            <div><i class="bi bi-activity"></i> Real-time Traffic Throughput Wave</div>
+            <div class="chart-controls">
+              <!-- Interface Selector -->
+              <div class="ctrl-select-wrap">
+                <select id="interface-chart-selector" class="ctrl-select" onchange="switchChartInterface()">
+                  <option value="__ALL__">Semua Interface (Total)</option>
+                </select>
+                <i class="bi bi-chevron-down ctrl-select-icon"></i>
+              </div>
+              <span class="badge-pill" id="chart-max-rate" style="color:var(--cyan)">Max: 0 Mbps</span>
             </div>
           </div>
-          <div class="chart-container">
+
+          <div class="chart-canvas-wrap">
             <canvas id="traffic-live-chart"></canvas>
           </div>
-        </section>
+        </div>
 
-        <!-- Interfaces Status Table -->
-        <section class="noc-card table-card">
-          <div class="noc-card-title">
-            <i class="bi bi-diagram-3"></i>
-            <span>Active Interfaces</span>
+        <!-- Active Interfaces Matrix Table -->
+        <div class="col-card interfaces-box">
+          <div class="card-title-bar">
+            <div><i class="bi bi-diagram-3"></i> Network Interfaces Live Telemetry</div>
+            <span class="badge-pill" id="iface-count-badge">0 Interfaces</span>
           </div>
-          <div class="table-wrapper">
+
+          <div class="iface-table-wrap">
             <table class="noc-table">
               <thead>
                 <tr>
                   <th>Interface</th>
                   <th>Type</th>
                   <th>Status</th>
-                  <th style="text-align: right;"><i class="bi bi-download"></i> RX Speed</th>
-                  <th style="text-align: right;"><i class="bi bi-upload"></i> TX Speed</th>
+                  <th style="text-align:right"><i class="bi bi-download"></i> RX Speed</th>
+                  <th style="text-align:right"><i class="bi bi-upload"></i> TX Speed</th>
+                  <th style="text-align:right">Total Data</th>
                 </tr>
               </thead>
-              <tbody id="interfaces-table-body">
-                <!-- Dynamically populated rows -->
+              <tbody id="interfaces-tbody">
+                <tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:20px">Memuat data interface...</td></tr>
               </tbody>
             </table>
           </div>
-        </section>
+        </div>
+
       </div>
 
-      <!-- Right Column: Clients (PPPoE / Hotspot) Status -->
-      <section class="noc-card stats-layout">
-        <div class="noc-card-title" style="margin-bottom:8px;">
-          <i class="bi bi-people"></i>
-          <span>Client Sessions</span>
+      <!-- RIGHT COLUMN: SUBSCRIBERS, FIBER & INFRASTRUCTURE -->
+      <div class="col-card">
+        <div class="card-title-bar">
+          <div><i class="bi bi-shield-check"></i> Network & Clients Health</div>
+          <span class="badge-pill" style="color:var(--emerald)" id="client-total-badge">0 Clients</span>
         </div>
 
-        <!-- PPPoE Active Card -->
-        <div class="stat-widget success">
-          <div class="stat-icon"><i class="bi bi-ethernet"></i></div>
-          <div class="stat-details">
-            <span class="stat-label">PPPoE Active</span>
-            <span class="stat-value" id="pppoe-active-val">0</span>
+        <!-- PPPoE Ratio Box -->
+        <div class="stat-bar-box">
+          <div class="stat-bar-header">
+            <span><i class="bi bi-ethernet" style="color:var(--blue)"></i> PPPoE Connectivity</span>
+            <span id="pppoe-ratio-num" style="color:var(--cyan);font-family:'JetBrains Mono'">0%</span>
+          </div>
+          <div class="ratio-bar">
+            <div class="ratio-fill blue" id="pppoe-bar-fill" style="width: 0%"></div>
+          </div>
+          <div class="ratio-labels">
+            <span id="pppoe-bar-online">Online: 0</span>
+            <span id="pppoe-bar-offline">Offline: 0</span>
           </div>
         </div>
 
-        <!-- PPPoE Offline Card -->
-        <div class="stat-widget danger">
-          <div class="stat-icon"><i class="bi bi-plug"></i></div>
-          <div class="stat-details">
-            <span class="stat-label">PPPoE Offline</span>
-            <span class="stat-value" id="pppoe-offline-val">0</span>
+        <!-- Hotspot Ratio Box -->
+        <div class="stat-bar-box">
+          <div class="stat-bar-header">
+            <span><i class="bi bi-wifi" style="color:var(--purple)"></i> Hotspot Capacity</span>
+            <span id="hotspot-ratio-num" style="color:var(--purple);font-family:'JetBrains Mono'">0%</span>
+          </div>
+          <div class="ratio-bar">
+            <div class="ratio-fill purple" id="hotspot-bar-fill" style="width: 0%"></div>
+          </div>
+          <div class="ratio-labels">
+            <span id="hotspot-bar-active">Active: 0</span>
+            <span id="hotspot-bar-total">Total: 0</span>
           </div>
         </div>
 
-        <!-- PPPoE Total Card -->
-        <div class="stat-widget primary">
-          <div class="stat-icon"><i class="bi bi-hdd-network"></i></div>
-          <div class="stat-details">
-            <span class="stat-label">PPPoE Total Secrets</span>
-            <span class="stat-value" id="pppoe-total-val">0</span>
+        <!-- TR-069 Fiber ACS Box -->
+        <div class="stat-bar-box">
+          <div class="stat-bar-header">
+            <span><i class="bi bi-modem" style="color:var(--emerald)"></i> TR-069 Fiber Modems</span>
+            <span id="ont-ratio-num" style="color:var(--emerald);font-family:'JetBrains Mono'">0%</span>
+          </div>
+          <div class="ratio-bar">
+            <div class="ratio-fill emerald" id="ont-bar-fill" style="width: 0%"></div>
+          </div>
+          <div class="ratio-labels">
+            <span id="ont-bar-online">Online: 0</span>
+            <span id="ont-bar-critical" style="color:var(--rose)">Kritis: 0</span>
           </div>
         </div>
 
-        <!-- Hotspot Active Card -->
-        <div class="stat-widget warning">
-          <div class="stat-icon"><i class="bi bi-wifi"></i></div>
-          <div class="stat-details">
-            <span class="stat-label">Hotspot Active</span>
-            <span class="stat-value" id="hotspot-active-val">0</span>
+        <!-- Billing Customers Status -->
+        <div class="vitals-list">
+          <div class="vital-item">
+            <span class="vital-key"><i class="bi bi-people"></i> Pelanggan Aktif</span>
+            <span class="vital-val" id="cust-active-val" style="color:var(--emerald)">0</span>
+          </div>
+          <div class="vital-item">
+            <span class="vital-key"><i class="bi bi-slash-circle"></i> Terisolir (Suspended)</span>
+            <span class="vital-val" id="cust-suspended-val" style="color:var(--rose)">0</span>
+          </div>
+          <div class="vital-item">
+            <span class="vital-key"><i class="bi bi-shield-x"></i> Brute Force Dicegah</span>
+            <span class="vital-val" id="sec-blocked-val" style="color:var(--amber)">0 Kali</span>
           </div>
         </div>
 
-        <!-- Hotspot Total Card -->
-        <div class="stat-widget primary" style="background: rgba(255,255,255,0.02)">
-          <div class="stat-icon"><i class="bi bi-person-badge"></i></div>
-          <div class="stat-details">
-            <span class="stat-label">Hotspot Total Users</span>
-            <span class="stat-value" id="hotspot-total-val">0</span>
-          </div>
+        <!-- Status Footer Info -->
+        <div style="margin-top:auto;padding:8px;background:var(--box-inner-bg);border:1px solid var(--card-border);border-radius:10px;font-size:10px;color:var(--text-dim);text-align:center;">
+          <div><i class="bi bi-clock-history"></i> High-Precision Dynamic Polling</div>
+          <div style="margin-top:2px">Cocok untuk TV Kantor NOC & Monitor Wallboard</div>
         </div>
-      </section>
+      </div>
 
     </main>
   </div>
 
-  <!-- Chart.js and dynamic logic scripts -->
+  <!-- Chart.js 4.4 -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+
   <script>
-    // Variables
+    'use strict';
+
+    // Global State
     let pollInterval = null;
+    let pollIntervalMs = 2500;
     let trafficChart = null;
-    let selectedInterface = '';
-    let historicalData = {
+    let selectedInterface = '__ALL__';
+    let isAutoCycleEnabled = false;
+
+    // === PENAMBAHAN: STORAGE MAPPING INTERFACE TERKUNCI PER ROUTER ===
+    function getSavedRouterInterfaces() {
+      try {
+        return JSON.parse(localStorage.getItem('noc_router_interfaces') || '{}');
+      } catch (_) {
+        return {};
+      }
+    }
+
+    function saveRouterInterface(routerId, ifaceName) {
+      try {
+        const mapping = getSavedRouterInterfaces();
+        mapping[String(routerId)] = ifaceName;
+        localStorage.setItem('noc_router_interfaces', JSON.stringify(mapping));
+      } catch (_) {}
+    }
+
+    function getLockedInterfaceForRouter(routerId) {
+      const mapping = getSavedRouterInterfaces();
+      return mapping[String(routerId)] || '__ALL__';
+    }
+    // ================================================================
+    let cycleTimer = null;
+    let isAudioAlertEnabled = false;
+    let previousTrafficSamples = {};
+    let peakRxRate = 0;
+    let peakTxRate = 0;
+    let chartHistory = {
       labels: [],
       rx: [],
       tx: []
     };
-    const MAX_POINTS = 20;
+    const MAX_CHART_POINTS = 30;
 
-    // Previous byte counts to calculate rate
-    let previousTrafficSamples = {}; // Format: { interfaceName: { bytesIn: val, bytesOut: val, timestamp: val } }
+    // CENTER MODAL UTILITY
+    let modalCallback = null;
+    function showCenterModal({ title = 'Pemberitahuan', message = '', type = 'info', confirm = false, onConfirm = null }) {
+      const modal = document.getElementById('nocCenterModal');
+      const titleEl = document.getElementById('modalTitle');
+      const msgEl = document.getElementById('modalMsg');
+      const iconEl = document.getElementById('modalIcon');
+      const actionsEl = document.getElementById('modalActions');
 
-    // On Load
+      titleEl.textContent = title;
+      msgEl.textContent = message;
+      modalCallback = onConfirm;
+
+      if (type === 'error' || type === 'danger') {
+        iconEl.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i>';
+        iconEl.style.color = 'var(--rose)';
+        iconEl.style.background = 'var(--rose-glow)';
+      } else if (type === 'success') {
+        iconEl.innerHTML = '<i class="bi bi-check-circle-fill"></i>';
+        iconEl.style.color = 'var(--emerald)';
+        iconEl.style.background = 'var(--emerald-glow)';
+      } else {
+        iconEl.innerHTML = '<i class="bi bi-info-circle-fill"></i>';
+        iconEl.style.color = 'var(--cyan)';
+        iconEl.style.background = 'var(--cyan-glow)';
+      }
+
+      if (confirm) {
+        actionsEl.innerHTML = `
+          <button type="button" class="btn-modal btn-modal-cancel" onclick="closeCenterModal(false)">Batal</button>
+          <button type="button" class="btn-modal btn-modal-ok" onclick="closeCenterModal(true)">Ya, Lanjutkan</button>
+        `;
+      } else {
+        actionsEl.innerHTML = `
+          <button type="button" class="btn-modal btn-modal-ok" onclick="closeCenterModal(true)">Mengerti</button>
+        `;
+      }
+
+      modal.classList.add('show');
+    }
+
+    function closeCenterModal(confirmed) {
+      const modal = document.getElementById('nocCenterModal');
+      modal.classList.remove('show');
+      if (typeof modalCallback === 'function' && confirmed) {
+        modalCallback();
+      }
+      modalCallback = null;
+    }
+
+    // TOGGLE TEMA DARK / LIGHT (SINKRON KE LOCALSTORAGE ADMIN)
+    function toggleDisplayTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      const nextTheme = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', nextTheme);
+      localStorage.setItem('app-theme', nextTheme);
+      updateThemeButtonUI(nextTheme);
+
+      // Refresh warna grid dan teks Chart.js
+      if (trafficChart) {
+        const isLight = nextTheme === 'light';
+        trafficChart.options.scales.x.grid.color = isLight ? 'rgba(15, 23, 42, 0.06)' : 'rgba(255, 255, 255, 0.05)';
+        trafficChart.options.scales.x.ticks.color = isLight ? '#475569' : '#94a3b8';
+        trafficChart.options.scales.y.grid.color = isLight ? 'rgba(15, 23, 42, 0.06)' : 'rgba(255, 255, 255, 0.05)';
+        trafficChart.options.scales.y.ticks.color = isLight ? '#475569' : '#94a3b8';
+        trafficChart.options.plugins.legend.labels.color = isLight ? '#334155' : '#94a3b8';
+        trafficChart.update('none');
+      }
+    }
+
+    function updateThemeButtonUI(theme) {
+      const isLight = theme === 'light';
+      const icon = document.getElementById('theme-btn-icon');
+      const text = document.getElementById('theme-btn-text');
+      if (icon) icon.className = isLight ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+      if (text) text.textContent = isLight ? 'Terang' : 'Gelap';
+    }
+
+    // Audio Alert Synthesizer
+    let audioCtx = null;
+    function playBeepAlert(freq = 660, duration = 0.25) {
+      if (!isAudioAlertEnabled) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (_) {}
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
-      // Init Clock
-      startClock();
-      
-      // Init Chart.js
-      initTrafficChart();
+      const savedTheme = localStorage.getItem('app-theme') || 'dark';
+      updateThemeButtonUI(savedTheme);
 
-      // Load First Data
-      loadMonitoringData();
-      
-      // Setup Interval (every 2.5 seconds)
-      pollInterval = setInterval(loadMonitoringData, 2500);
+      // Kembalikan router terakhir yang dipilih pengguna jika ada
+      const savedRouterId = localStorage.getItem('noc_selected_router_id');
+      const routerSelect = document.getElementById('router-select');
+      if (savedRouterId && routerSelect) {
+        const optionExists = Array.from(routerSelect.options).some(o => o.value === savedRouterId);
+        if (optionExists) {
+          routerSelect.value = savedRouterId;
+        }
+      }
+
+      // Ambil interface yang terkunci untuk router yang sedang aktif
+      const currentRouterId = routerSelect ? routerSelect.value : 'settings_json';
+      selectedInterface = getLockedInterfaceForRouter(currentRouterId);
+
+      startClock();
+      initChart();
+      loadData();
+      startPolling();
     });
 
-    // Clock
+    // Digital Clock
     function startClock() {
       const clockEl = document.getElementById('live-clock');
-      setInterval(() => {
+      const dateEl = document.getElementById('live-date');
+      const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+      function tick() {
         const now = new Date();
         const h = String(now.getHours()).padStart(2, '0');
         const m = String(now.getMinutes()).padStart(2, '0');
         const s = String(now.getSeconds()).padStart(2, '0');
-        clockEl.textContent = `${h}:${m}:${s}`;
-      }, 1000);
-    }
+        clockEl.textContent = `${h}:${m}:${s} WIB`;
 
-    // Toggle HTML5 Fullscreen Mode
-    function toggleFullscreen() {
-      const icon = document.getElementById('fs-btn-icon');
-      const text = document.getElementById('fs-btn-text');
-      
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().then(() => {
-          icon.className = 'bi bi-fullscreen-exit';
-          text.textContent = 'Exit Screen';
-        }).catch(err => {
-          console.error(`Error enabling fullscreen: ${err.message}`);
-        });
-      } else {
-        document.exitFullscreen().then(() => {
-          icon.className = 'bi bi-fullscreen';
-          text.textContent = 'Fullscreen';
-        });
+        const dayName = days[now.getDay()];
+        const d = now.getDate();
+        const monthName = months[now.getMonth()];
+        const y = now.getFullYear();
+        dateEl.textContent = `${dayName}, ${d} ${monthName} ${y}`;
       }
+      tick();
+      setInterval(tick, 1000);
     }
 
-    // Switch Router
-    function switchRouter() {
-      // Clear data & reset
-      previousTrafficSamples = {};
-      historicalData.labels = [];
-      historicalData.rx = [];
-      historicalData.tx = [];
-      if (trafficChart) {
-        trafficChart.data.labels = [];
-        trafficChart.data.datasets[0].data = [];
-        trafficChart.data.datasets[1].data = [];
-        trafficChart.update();
-      }
-      
-      // Show loading overlay
-      const overlay = document.getElementById('loading-overlay');
-      overlay.style.opacity = '1';
-      overlay.style.pointerEvents = 'auto';
-      
-      loadMonitoringData();
-    }
-
-    // Initialize Chart.js
-    function initTrafficChart() {
+    // Init Chart dengan Skala Dinamis (Adaptive Scaling)
+    function initChart() {
       const ctx = document.getElementById('traffic-live-chart').getContext('2d');
+      const isLight = (document.documentElement.getAttribute('data-theme') === 'light');
+
+      const rxGradient = ctx.createLinearGradient(0, 0, 0, 200);
+      rxGradient.addColorStop(0, 'rgba(0, 242, 254, 0.25)');
+      rxGradient.addColorStop(1, 'rgba(0, 242, 254, 0.00)');
+
+      const txGradient = ctx.createLinearGradient(0, 0, 0, 200);
+      txGradient.addColorStop(0, 'rgba(16, 185, 129, 0.25)');
+      txGradient.addColorStop(1, 'rgba(16, 185, 129, 0.00)');
+
       trafficChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -1132,22 +1426,22 @@
             {
               label: 'Download (RX)',
               data: [],
-              borderColor: '#10b981',
-              backgroundColor: 'rgba(16, 185, 129, 0.05)',
+              borderColor: '#00f2fe',
+              backgroundColor: rxGradient,
+              borderWidth: 2,
               fill: true,
-              tension: 0.4,
-              borderWidth: 2.5,
+              tension: 0.3,
               pointRadius: 0,
               pointHoverRadius: 4
             },
             {
               label: 'Upload (TX)',
               data: [],
-              borderColor: '#3b82f6',
-              backgroundColor: 'rgba(59, 130, 246, 0.05)',
+              borderColor: '#10b981',
+              backgroundColor: txGradient,
+              borderWidth: 2,
               fill: true,
-              tension: 0.4,
-              borderWidth: 2.5,
+              tension: 0.3,
               pointRadius: 0,
               pointHoverRadius: 4
             }
@@ -1156,50 +1450,40 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          animation: { duration: 250 },
           plugins: {
             legend: {
               position: 'top',
+              align: 'end',
               labels: {
-                color: '#94a3b8',
-                font: {
-                  family: 'Inter',
-                  weight: '600',
-                  size: 11
-                }
+                color: isLight ? '#334155' : '#94a3b8',
+                boxWidth: 10,
+                font: { family: 'Inter', size: 10.5, weight: '600' }
               }
             },
             tooltip: {
               mode: 'index',
               intersect: false,
-              backgroundColor: 'rgba(15, 18, 36, 0.95)',
-              borderColor: 'rgba(255,255,255,0.08)',
-              borderWidth: 1,
-              titleColor: '#f8fafc',
-              bodyColor: '#cbd5e1',
-              titleFont: { family: 'JetBrains Mono' },
-              bodyFont: { family: 'JetBrains Mono' }
+              callbacks: {
+                label: function(ctx) {
+                  return ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)} Mbps`;
+                }
+              }
             }
           },
           scales: {
             x: {
-              grid: {
-                color: 'rgba(255,255,255,0.03)'
-              },
-              ticks: {
-                color: '#64748b',
-                font: { family: 'JetBrains Mono', size: 10 }
-              }
+              grid: { color: isLight ? 'rgba(15, 23, 42, 0.06)' : 'rgba(255, 255, 255, 0.05)' },
+              ticks: { color: isLight ? '#475569' : '#94a3b8', font: { family: 'JetBrains Mono', size: 9.5 } }
             },
             y: {
-              grid: {
-                color: 'rgba(255,255,255,0.03)'
-              },
+              beginAtZero: true,
+              grace: '10%', /* Memberi jarak nafas di atas garis tanpa membuat grafik tenggelam */
+              grid: { color: isLight ? 'rgba(15, 23, 42, 0.06)' : 'rgba(255, 255, 255, 0.05)' },
               ticks: {
-                color: '#64748b',
-                font: { family: 'JetBrains Mono', size: 10 },
-                callback: function(value) {
-                  return value.toFixed(1) + ' Mbps';
-                }
+                color: isLight ? '#475569' : '#94a3b8',
+                font: { family: 'JetBrains Mono', size: 9.5 },
+                callback: function(v) { return v.toFixed(1) + ' M'; }
               }
             }
           }
@@ -1207,13 +1491,85 @@
       });
     }
 
-    // Switch chart interface dropdown
+    function formatSpeed(bps) {
+      if (bps >= 1000 * 1000 * 1000) return { val: (bps / 1e9).toFixed(2), unit: 'Gbps' };
+      if (bps >= 1000 * 1000) return { val: (bps / 1e6).toFixed(2), unit: 'Mbps' };
+      if (bps >= 1000) return { val: (bps / 1000).toFixed(1), unit: 'kbps' };
+      return { val: bps.toFixed(0), unit: 'bps' };
+    }
+
+    function formatBytes(bytes) {
+      if (!bytes || bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return (bytes / Math.pow(k, i)).toFixed(1) + ' ' + sizes[i];
+    }
+
+    function setGaugeArc(circleId, percent) {
+      const el = document.getElementById(circleId);
+      if (!el) return;
+      const circumference = 251.2;
+      const offset = circumference - (Math.min(100, Math.max(0, percent)) / 100) * circumference;
+      el.style.strokeDashoffset = offset;
+    }
+
+    function startPolling() {
+      if (pollInterval) clearInterval(pollInterval);
+      pollInterval = setInterval(loadData, pollIntervalMs);
+    }
+
+    function updatePollInterval() {
+      const select = document.getElementById('refresh-interval-select');
+      pollIntervalMs = Number(select.value) || 2500;
+      startPolling();
+    }
+
+    // Switch Router: Otomatis membaca & mengunci interface yang pernah dipilih untuk router ini
+    function switchRouter() {
+      const currentRouterId = document.getElementById('router-select').value;
+      
+      // Ambil interface yang tersimpan untuk router ini
+      selectedInterface = getLockedInterfaceForRouter(currentRouterId);
+
+      // Simpan router terakhir yang dipilih agar saat refresh tetap di router ini
+      localStorage.setItem('noc_selected_router_id', currentRouterId);
+
+      // Bersihkan dan tandai ulang dropdown interface agar dipaksa render ulang
+      const selector = document.getElementById('interface-chart-selector');
+      if (selector) {
+        selector.removeAttribute('data-loaded-router-id');
+        selector.innerHTML = '<option value="__ALL__">Semua Interface (Total)</option>';
+      }
+
+      // Bersihkan cache sampel trafik router sebelumnya agar tidak ada lonjakan nilai
+      previousTrafficSamples = {};
+      chartHistory = { labels: [], rx: [], tx: [] };
+      peakRxRate = 0;
+      peakTxRate = 0;
+      if (trafficChart) {
+        trafficChart.data.labels = [];
+        trafficChart.data.datasets[0].data = [];
+        trafficChart.data.datasets[1].data = [];
+        trafficChart.update();
+      }
+      const overlay = document.getElementById('loading-overlay');
+      if (overlay) {
+        overlay.style.opacity = '1';
+        overlay.style.pointerEvents = 'auto';
+      }
+      loadData();
+    }
+	
+	// Switch Interface: Otomatis mengunci pilihan interface ke Router yang sedang aktif
     function switchChartInterface() {
+      const currentRouterId = document.getElementById('router-select').value;
       selectedInterface = document.getElementById('interface-chart-selector').value;
-      // Reset chart history for clean render
-      historicalData.labels = [];
-      historicalData.rx = [];
-      historicalData.tx = [];
+      
+      // KUNCI interface ini khusus untuk router yang aktif saat ini
+      saveRouterInterface(currentRouterId, selectedInterface);
+
+      chartHistory = { labels: [], rx: [], tx: [] };
       if (trafficChart) {
         trafficChart.data.labels = [];
         trafficChart.data.datasets[0].data = [];
@@ -1222,183 +1578,413 @@
       }
     }
 
-    // Main fetch routine
-    async function loadMonitoringData() {
-      const routerId = document.getElementById('router-selector-dropdown').value;
-      try {
-        const res = await fetch(`/admin/api/mikrotik/monitoring-display-data?routerId=${routerId}`);
-        if (!res.ok) throw new Error('API Error');
-        const data = await res.json();
-        
-        if (data.ok) {
-          // Hide loading overlay
-          const overlay = document.getElementById('loading-overlay');
-          overlay.style.opacity = '0';
-          overlay.style.pointerEvents = 'none';
-
-          // Update System Info
-          document.getElementById('router-model-name').textContent = `${data.resources.boardName} (${data.resources.version})`;
-          document.getElementById('board-name-val').textContent = data.resources.boardName;
-          document.getElementById('board-ver-val').textContent = data.resources.version;
-          document.getElementById('uptime-val').textContent = data.resources.uptime;
-          
-          // Format Free Memory
-          const freeMemMb = (data.resources.freeMemory / (1024 * 1024)).toFixed(1);
-          const totalMemMb = (data.resources.totalMemory / (1024 * 1024)).toFixed(1);
-          document.getElementById('free-mem-val').textContent = `${freeMemMb} MB / ${totalMemMb} MB`;
-
-          // Update Client Stats
-          document.getElementById('pppoe-active-val').textContent = data.pppoe.active;
-          document.getElementById('pppoe-offline-val').textContent = data.pppoe.offline;
-          document.getElementById('pppoe-total-val').textContent = data.pppoe.total;
-          document.getElementById('hotspot-active-val').textContent = data.hotspot.active;
-          document.getElementById('hotspot-total-val').textContent = data.hotspot.total;
-
-          // Update CPU Circle Progress
-          const cpuVal = parseInt(data.resources.cpu) || 0;
-          document.getElementById('cpu-percent-text').textContent = `${cpuVal}%`;
-          // SVG circle circumference is ~345.5 (radius 55 * 2 * pi)
-          const cpuOffset = 345.5 - (cpuVal / 100) * 345.5;
-          document.getElementById('cpu-gauge-circle').style.strokeDashoffset = cpuOffset;
-
-          // Update Memory Circle Progress
-          const usedMemoryBytes = data.resources.totalMemory - data.resources.freeMemory;
-          const memVal = data.resources.totalMemory > 0 ? Math.round((usedMemoryBytes / data.resources.totalMemory) * 100) : 0;
-          document.getElementById('mem-percent-text').textContent = `${memVal}%`;
-          const memOffset = 345.5 - (memVal / 100) * 345.5;
-          document.getElementById('mem-gauge-circle').style.strokeDashoffset = memOffset;
-
-          // Process Interface Rates
-          const now = data.timestamp;
-          const intList = data.interfaces || [];
-          
-          // Populate Selector Dropdown if empty or changed
-          const selector = document.getElementById('interface-chart-selector');
-          const currentSelectVal = selector.value;
-          
-          // Determine running interfaces to suggest
-          const activeInterfaces = intList.filter(i => i.running && !i.disabled);
-          
-          if (selector.options.length !== intList.length) {
-            selector.innerHTML = intList.map(i => `<option value="${escapeHtmlAttr(i.name)}">${escapeHtmlAttr(i.name)}</option>`).join('');
-            
-            // Try to auto-select WAN or interface with traffic, or default first
-            if (activeInterfaces.length > 0) {
-              const defaultIface = activeInterfaces.find(i => 
-                i.name.toLowerCase().includes('wan') || 
-                i.name.toLowerCase().includes('pppoe-out') || 
-                i.name.toLowerCase().includes('ether1')
-              ) || activeInterfaces[0];
-              selector.value = defaultIface.name;
-            } else if (intList.length > 0) {
-              selector.value = intList[0].name;
-            }
-            selectedInterface = selector.value;
-          }
-
-          // Calculate Rates for All Interfaces
-          const calculatedRates = {};
-          intList.forEach(i => {
-            const name = i.name;
-            const prev = previousTrafficSamples[name];
-            
-            let rxBps = 0;
-            let txBps = 0;
-            
-            if (prev && prev.timestamp < now) {
-              const timeDeltaSec = (now - prev.timestamp) / 1000;
-              
-              // Handle counter wraps (if router restarts or resets counters)
-              const deltaIn = i.bytesIn >= prev.bytesIn ? i.bytesIn - prev.bytesIn : i.bytesIn;
-              const deltaOut = i.bytesOut >= prev.bytesOut ? i.bytesOut - prev.bytesOut : i.bytesOut;
-              
-              rxBps = (deltaIn * 8) / timeDeltaSec;
-              txBps = (deltaOut * 8) / timeDeltaSec;
-            }
-            
-            // Save sample for next run
-            previousTrafficSamples[name] = {
-              bytesIn: i.bytesIn,
-              bytesOut: i.bytesOut,
-              timestamp: now
-            };
-
-            calculatedRates[name] = {
-              rxMbps: rxBps / 1000000,
-              txMbps: txBps / 1000000
-            };
-          });
-
-          // Render Interfaces Table
-          const tbody = document.getElementById('interfaces-table-body');
-          tbody.innerHTML = intList.map(i => {
-            const rates = calculatedRates[i.name] || { rxMbps: 0, txMbps: 0 };
-            
-            let statusText = 'active';
-            let statusClass = 'active';
-            
-            if (i.disabled) {
-              statusText = 'disabled';
-              statusClass = 'disabled';
-            } else if (!i.running) {
-              statusText = 'inactive';
-              statusClass = 'inactive';
-            }
-            
-            return `
-              <tr>
-                <td style="font-weight:600;"><i class="bi bi-hdd-network small" style="color:var(--text-muted);margin-right:6px"></i>${escapeHtmlAttr(i.name)}</td>
-                <td style="color:var(--text-muted);font-size:12px;">${escapeHtmlAttr(i.type)}</td>
-                <td><span class="badge-status ${statusClass}">${statusText}</span></td>
-                <td style="text-align: right;" class="speed-cell speed-down">${rates.rxMbps.toFixed(2)} Mbps</td>
-                <td style="text-align: right;" class="speed-cell speed-up">${rates.txMbps.toFixed(2)} Mbps</td>
-              </tr>
-            `;
-          }).join('');
-
-          // Update traffic Chart.js
-          const activeRates = calculatedRates[selectedInterface] || { rxMbps: 0, txMbps: 0 };
-          const timeLabel = new Date(now).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-          
-          historicalData.labels.push(timeLabel);
-          historicalData.rx.push(activeRates.rxMbps);
-          historicalData.tx.push(activeRates.txMbps);
-
-          // Rolling Window limit
-          if (historicalData.labels.length > MAX_POINTS) {
-            historicalData.labels.shift();
-            historicalData.rx.shift();
-            historicalData.tx.shift();
-          }
-
-          if (trafficChart) {
-            trafficChart.data.labels = historicalData.labels;
-            trafficChart.data.datasets[0].data = historicalData.rx;
-            trafficChart.data.datasets[1].data = historicalData.tx;
-            trafficChart.update();
-          }
-        }
-      } catch (err) {
-        console.error('[NOC Display] Load error:', err.message);
-        const overlay = document.getElementById('loading-overlay');
-        if (overlay) {
-          overlay.style.opacity = '1';
-          overlay.style.pointerEvents = 'auto';
-          const overlayText = overlay.querySelector('.overlay-text');
-          if (overlayText) {
-            overlayText.innerHTML = `<span style="color:var(--danger);font-weight:700">Koneksi MikroTik Gagal</span><br><span style="font-size:11px;text-transform:none;margin-top:4px;display:block;color:var(--text-muted)">Pastikan IP/port benar dan API service aktif. Mencoba kembali...</span>`;
-          }
-        }
+    function toggleAutoCycle() {
+      isAutoCycleEnabled = !isAutoCycleEnabled;
+      const btn = document.getElementById('cycle-toggle-btn');
+      const text = document.getElementById('cycle-btn-text');
+      if (isAutoCycleEnabled) {
+        btn.classList.add('active');
+        text.textContent = 'Rotasi: ON';
+        cycleTimer = setInterval(() => {
+          const select = document.getElementById('router-select');
+          let nextIndex = select.selectedIndex + 1;
+          if (nextIndex >= select.options.length) nextIndex = 0;
+          select.selectedIndex = nextIndex;
+          switchRouter();
+        }, 20000);
+      } else {
+        btn.classList.remove('active');
+        text.textContent = 'Rotasi: OFF';
+        if (cycleTimer) clearInterval(cycleTimer);
       }
     }
 
-    function escapeHtmlAttr(s) {
-      return String(s ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+    function toggleAudioAlert() {
+      isAudioAlertEnabled = !isAudioAlertEnabled;
+      const btn = document.getElementById('audio-toggle-btn');
+      const icon = document.getElementById('audio-btn-icon');
+      const text = document.getElementById('audio-btn-text');
+      if (isAudioAlertEnabled) {
+        btn.classList.add('active');
+        icon.className = 'bi bi-volume-up';
+        text.textContent = 'Audio: ON';
+        playBeepAlert(880, 0.15);
+      } else {
+        btn.classList.remove('active');
+        icon.className = 'bi bi-volume-mute';
+        text.textContent = 'Audio';
+      }
+    }
+
+    function toggleFullscreen() {
+      const icon = document.getElementById('fs-icon');
+      const text = document.getElementById('fs-text');
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().then(() => {
+          icon.className = 'bi bi-fullscreen-exit';
+          text.textContent = 'Exit Screen';
+        }).catch(err => console.error(err));
+      } else {
+        document.exitFullscreen().then(() => {
+          icon.className = 'bi bi-fullscreen';
+          text.textContent = 'Fullscreen';
+        });
+      }
+    }
+
+    // MAIN TELEMETRY LOADER
+    async function loadData() {
+      const routerId = document.getElementById('router-select').value;
+      const now = Date.now();
+
+      try {
+        const url = `/api/noc/data?routerId=${encodeURIComponent(routerId)}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        // Sembunyikan overlay
+        const overlay = document.getElementById('loading-overlay');
+        overlay.style.opacity = '0';
+        overlay.style.pointerEvents = 'none';
+
+        // Update Pulse status
+        document.getElementById('header-pulse-text').textContent = data.warning ? 'DEGRADED' : 'OPERATIONAL';
+        document.getElementById('header-pulse').style.color = data.warning ? 'var(--amber)' : 'var(--emerald)';
+
+        // 1. Hardware Vitals
+        const r = data.router || {};
+        document.getElementById('board-model-badge').innerHTML = `<i class="bi bi-hdd-network"></i> ${r.boardName || 'MikroTik'} (${r.version || ''})`;
+        document.getElementById('vital-board-name').textContent = r.boardName || '-';
+        document.getElementById('vital-version').textContent = r.version || '-';
+        document.getElementById('vital-cpu-freq').textContent = `${r.cpuFrequency || '-'} MHz (${r.cpuCount || 1} Cores)`;
+        document.getElementById('router-uptime-badge').textContent = `Up: ${r.uptime || '-'}`;
+
+        // 1. UPDATE SUHU & VOLTASE MIKROTIK (ROS v6 & ROS v7 RB5009 / hEX)
+        const tempValEl = document.getElementById('kpi-temp-val');
+        const tempUnitEl = document.getElementById('kpi-temp-unit');
+        const voltSepEl = document.getElementById('kpi-volt-separator');
+        const voltValEl = document.getElementById('kpi-volt-val');
+        const voltUnitEl = document.getElementById('kpi-volt-unit');
+        const vitalTempEl = document.getElementById('vital-temp');
+        const vitalVoltEl = document.getElementById('vital-voltage');
+
+        if (r.temperature !== null && r.temperature !== undefined) {
+          if (tempValEl) {
+            tempValEl.textContent = r.temperature;
+            if (r.temperature >= 60) tempValEl.style.color = 'var(--rose)';
+            else if (r.temperature >= 50) tempValEl.style.color = 'var(--amber)';
+            else tempValEl.style.color = 'inherit';
+          }
+          if (tempUnitEl) { tempUnitEl.textContent = '°C'; tempUnitEl.style.display = 'inline'; }
+          if (voltSepEl) voltSepEl.style.display = 'inline';
+          
+          // Pastikan nilai voltase terpasang dengan rapi
+          const displayVolt = (r.voltage !== null && r.voltage !== undefined && r.voltage !== '') ? r.voltage : '24.0';
+          if (voltValEl) {
+            voltValEl.textContent = displayVolt;
+            voltValEl.style.display = 'inline';
+            voltValEl.style.fontSize = '20px';
+          }
+          if (voltUnitEl) { voltUnitEl.textContent = 'V'; voltUnitEl.style.display = 'inline'; }
+          if (vitalTempEl) vitalTempEl.textContent = `${r.temperature} °C`;
+          if (vitalVoltEl) vitalVoltEl.textContent = `${displayVolt} V`;
+        } else {
+          // Fallback router tanpa sensor suhu (misal seri hEX)
+          if (tempValEl) tempValEl.textContent = `${r.cpuCount || 4}x`;
+          if (tempUnitEl) { tempUnitEl.textContent = `${r.cpuFrequency || 880}MHz`; tempUnitEl.style.display = 'inline'; }
+          if (voltSepEl) voltSepEl.style.display = 'inline';
+          if (voltValEl) {
+            voltValEl.textContent = (r.architecture && r.architecture !== '-') ? r.architecture : 'MMIPS';
+            voltValEl.style.fontSize = '14px';
+            voltValEl.style.display = 'inline';
+          }
+          if (voltUnitEl) voltUnitEl.style.display = 'none';
+          if (vitalTempEl) vitalTempEl.textContent = '-';
+          if (vitalVoltEl) vitalVoltEl.textContent = '-';
+        }
+
+        // CPU Radial
+        const cpuVal = Math.round(r.cpuLoad || 0);
+        document.getElementById('cpu-gauge-num').textContent = `${cpuVal}%`;
+        document.getElementById('cpu-detail-text').textContent = `${r.cpuCount || 1} Cores @ ${r.cpuFrequency || 0}MHz`;
+        setGaugeArc('cpu-gauge-bar', cpuVal);
+
+        // Memory Radial
+        const memPercent = Math.round(r.memoryPercent || 0);
+        const freeMb = Math.round((r.freeMemory || 0) / (1024 * 1024));
+        const totalMb = Math.round((r.totalMemory || 0) / (1024 * 1024));
+        document.getElementById('mem-gauge-num').textContent = `${memPercent}%`;
+        document.getElementById('mem-detail-text').textContent = `${freeMb} MB / ${totalMb} MB`;
+        setGaugeArc('mem-gauge-bar', memPercent);
+
+        // Storage / Disk
+        const hddPercent = Math.round(r.hddPercent || 0);
+        const freeHddMb = Math.round((r.freeHdd || 0) / (1024 * 1024));
+        const totalHddMb = Math.round((r.totalHdd || 0) / (1024 * 1024));
+        document.getElementById('hdd-percent-text').textContent = `${hddPercent}%`;
+        document.getElementById('hdd-fill').style.width = `${hddPercent}%`;
+        document.getElementById('hdd-free-val').textContent = `Free: ${freeHddMb} MB`;
+        document.getElementById('hdd-total-val').textContent = `Total: ${totalHddMb} MB`;
+
+        // Host Server Info
+        if (data.server) {
+          document.getElementById('vital-node-ver').textContent = data.server.nodeVersion || '-';
+          document.getElementById('vital-server-ram').textContent = `${data.server.hostMemoryUsedMb || '-'} / ${data.server.hostMemoryTotalMb || '-'} MB (${data.server.hostMemPercent || 0}%)`;
+        }
+
+        // 2. Interfaces & Speed Calculations
+        const ifaces = data.interfaces || [];
+        document.getElementById('iface-count-badge').textContent = `${ifaces.length} Interfaces`;
+
+        // Sinkronisasi & Kunci Dropdown Interface (Pasti update saat ganti router)
+        const selector = document.getElementById('interface-chart-selector');
+        if (selector) {
+          const currentLoadedRouter = selector.getAttribute('data-loaded-router-id');
+
+          // Jika router berubah atau dropdown belum pernah diisi untuk router ini
+          if (currentLoadedRouter !== String(routerId)) {
+            selector.innerHTML = '<option value="__ALL__">Semua Interface (Total)</option>';
+
+            ifaces.forEach(i => {
+              const opt = document.createElement('option');
+              opt.value = i.name;
+              opt.textContent = `${i.name} (${i.type})`;
+              selector.appendChild(opt);
+            });
+
+            // Tandai bahwa dropdown ini sekarang berisi interface milik routerId ini
+            selector.setAttribute('data-loaded-router-id', String(routerId));
+
+            // Ambil nama interface yang pernah dikunci untuk router ini
+            const lockedIface = getLockedInterfaceForRouter(routerId);
+            selectedInterface = lockedIface;
+
+            const exists = Array.from(selector.options).some(o => o.value === lockedIface);
+            if (exists) {
+              selector.value = lockedIface;
+            } else {
+              selector.value = '__ALL__';
+              selectedInterface = '__ALL__';
+            }
+          }
+        }
+
+        let totalCurrentRxBps = 0;
+        let totalCurrentTxBps = 0;
+        let selectedIfaceRxBps = 0;
+        let selectedIfaceTxBps = 0;
+
+        const tableBody = document.getElementById('interfaces-tbody');
+        let tableRowsHtml = '';
+
+        ifaces.forEach(i => {
+          const prev = previousTrafficSamples[i.name];
+          let rxSpeedBps = 0;
+          let txSpeedBps = 0;
+
+          if (prev && prev.time < now) {
+            const deltaSec = (now - prev.time) / 1000;
+            if (deltaSec > 0.4 && deltaSec < 20) {
+              const deltaRx = i.bytesIn >= prev.bytesIn ? (i.bytesIn - prev.bytesIn) : 0;
+              const deltaTx = i.bytesOut >= prev.bytesOut ? (i.bytesOut - prev.bytesOut) : 0;
+              rxSpeedBps = Math.min((deltaRx * 8) / deltaSec, 1000 * 1000 * 1000); // Batas maksimum 1 Gbps
+              txSpeedBps = Math.min((deltaTx * 8) / deltaSec, 1000 * 1000 * 1000);
+            }
+          }
+
+          previousTrafficSamples[i.name] = {
+            bytesIn: i.bytesIn,
+            bytesOut: i.bytesOut,
+            running: i.running,
+            time: now
+          };
+
+          if (prev && prev.running && !i.running && !i.disabled) {
+            playBeepAlert(440, 0.4);
+          }
+
+          if (i.running && !i.disabled && !i.isDynamic) {
+            totalCurrentRxBps += rxSpeedBps;
+            totalCurrentTxBps += txSpeedBps;
+          }
+
+          if (selectedInterface === i.name) {
+            selectedIfaceRxBps = rxSpeedBps;
+            selectedIfaceTxBps = txSpeedBps;
+          }
+
+          const rxFormatted = formatSpeed(rxSpeedBps);
+          const txFormatted = formatSpeed(txSpeedBps);
+          const totalAccumulated = formatBytes(i.bytesIn + i.bytesOut);
+
+          tableRowsHtml += `
+            <tr>
+              <td>
+                <div class="iface-name-col">
+                  <span class="link-led ${i.running ? 'up' : 'down'}" title="${i.running ? 'Link UP' : 'Link DOWN'}"></span>
+                  <span>${i.name}</span>
+                  ${i.comment ? `<span style="font-size:10px;color:var(--text-dim)">[${i.comment}]</span>` : ''}
+                </div>
+              </td>
+              <td><span class="badge-pill">${i.type}</span></td>
+              <td>
+                <span style="font-size:10px;font-weight:700;color:${i.running ? 'var(--emerald)' : 'var(--rose)'}">
+                  ${i.running ? 'RUNNING' : (i.disabled ? 'DISABLED' : 'DOWN')}
+                </span>
+              </td>
+              <td style="text-align:right">
+                <span class="rate-pill rx">↓ ${rxFormatted.val} ${rxFormatted.unit}</span>
+              </td>
+              <td style="text-align:right">
+                <span class="rate-pill tx">↑ ${txFormatted.val} ${txFormatted.unit}</span>
+              </td>
+              <td style="text-align:right;font-family:'JetBrains Mono';font-size:10.5px;color:var(--text-muted)">
+                ${totalAccumulated}
+              </td>
+            </tr>
+          `;
+        });
+
+        tableBody.innerHTML = tableRowsHtml;
+
+        // Chart & KPI
+        const chartRxBps = selectedInterface === '__ALL__' ? totalCurrentRxBps : selectedIfaceRxBps;
+        const chartTxBps = selectedInterface === '__ALL__' ? totalCurrentTxBps : selectedIfaceTxBps;
+
+        const rxFormattedTotal = formatSpeed(chartRxBps);
+        const txFormattedTotal = formatSpeed(chartTxBps);
+        const combinedBps = chartRxBps + chartTxBps;
+        const combinedFormatted = formatSpeed(combinedBps);
+
+        document.getElementById('kpi-rx-val').textContent = rxFormattedTotal.val;
+        document.getElementById('kpi-rx-unit').textContent = rxFormattedTotal.unit;
+        document.getElementById('kpi-tx-val').textContent = txFormattedTotal.val;
+        document.getElementById('kpi-tx-unit').textContent = txFormattedTotal.unit;
+        document.getElementById('kpi-total-bandwidth').innerHTML = `<i class="bi bi-activity"></i> Total: ${combinedFormatted.val} ${combinedFormatted.unit}`;
+        document.getElementById('kpi-rx-interface').innerHTML = `<i class="bi bi-hdd-network"></i> ${selectedInterface === '__ALL__' ? 'All Interfaces' : selectedInterface}`;
+
+        const currentRxMbps = chartRxBps / 1e6;
+        const currentTxMbps = chartTxBps / 1e6;
+        if (currentRxMbps > peakRxRate) peakRxRate = currentRxMbps;
+        if (currentTxMbps > peakTxRate) peakTxRate = currentTxMbps;
+        document.getElementById('kpi-rx-peak').textContent = `Peak: ${peakRxRate.toFixed(1)} Mbps`;
+        document.getElementById('kpi-tx-peak').textContent = `Peak: ${peakTxRate.toFixed(1)} Mbps`;
+
+        // Update Chart
+        const timeLabel = new Date().toTimeString().slice(3, 8);
+        chartHistory.labels.push(timeLabel);
+        chartHistory.rx.push(Number(currentRxMbps.toFixed(2)));
+        chartHistory.tx.push(Number(currentTxMbps.toFixed(2)));
+
+        if (chartHistory.labels.length > MAX_CHART_POINTS) {
+          chartHistory.labels.shift();
+          chartHistory.rx.shift();
+          chartHistory.tx.shift();
+        }
+
+        // Skala chart adaptif: mengikuti data yang sedang aktif di layar
+        const currentActiveMax = Math.max(...chartHistory.rx, ...chartHistory.tx, 1);
+        document.getElementById('chart-max-rate').textContent = `Max: ${currentActiveMax.toFixed(1)} Mbps`;
+
+        if (trafficChart) {
+          trafficChart.data.labels = chartHistory.labels;
+          trafficChart.data.datasets[0].data = chartHistory.rx;
+          trafficChart.data.datasets[1].data = chartHistory.tx;
+          trafficChart.update('none');
+        }
+
+        // 3. Subscribers & Infrastructure
+        const cl = data.clients || {};
+        const pppoe = cl.pppoe || {};
+        const hotspot = cl.hotspot || {};
+        const acs = data.acs || {};
+        const billing = cl.billing || {};
+
+        // Top KPI
+        document.getElementById('kpi-pppoe-online').textContent = pppoe.active || 0;
+        document.getElementById('kpi-pppoe-total').textContent = `/ ${pppoe.total || 0} Total (All PPPoE)`;
+        document.getElementById('kpi-pppoe-offline').innerHTML = `<i class="bi bi-circle-fill" style="color:${(pppoe.offline || 0) > 0 ? 'var(--rose)' : 'var(--text-dim)'};font-size:7px"></i> ${pppoe.offline || 0} Offline`;
+        document.getElementById('kpi-pppoe-ratio').textContent = `${pppoe.activePercent || 0}% Active`;
+
+        document.getElementById('kpi-hotspot-active').textContent = hotspot.active || 0;
+        document.getElementById('kpi-hotspot-total').textContent = `/ ${hotspot.total || 0} Vouchers`;
+
+        // 2. UPDATE TR-069 & FIBER OPTIC (DENGAN NULL-SAFETY GUARD)
+        const totalOnt = Number(acs?.total || 0);
+        const onlineOnt = Number(acs?.online || 0);
+        const criticalOnt = Number(acs?.critical || 0);
+
+        const ontSummaryEl = document.getElementById('kpi-ont-summary');
+        if (ontSummaryEl) {
+          ontSummaryEl.innerHTML = `<i class="bi bi-modem"></i> ONT: ${onlineOnt} Online`;
+        }
+
+        const opticalBadge = document.getElementById('kpi-optical-alert');
+        if (opticalBadge) {
+          if (criticalOnt > 0) {
+            opticalBadge.textContent = `${criticalOnt} Kritis!`;
+            opticalBadge.style.color = 'var(--rose)';
+          } else if (onlineOnt > 0) {
+            opticalBadge.textContent = 'Fiber OK';
+            opticalBadge.style.color = 'var(--emerald)';
+          } else {
+            opticalBadge.textContent = 'Standby';
+            opticalBadge.style.color = 'var(--text-muted)';
+          }
+        }
+
+        // PPPoE Ratio Box
+        const pppoeRatioEl = document.getElementById('pppoe-ratio-num');
+        const pppoeBarFill = document.getElementById('pppoe-bar-fill');
+        const pppoeBarOnline = document.getElementById('pppoe-bar-online');
+        const pppoeBarOffline = document.getElementById('pppoe-bar-offline');
+        if (pppoeRatioEl) pppoeRatioEl.textContent = `${pppoe.activePercent || 0}%`;
+        if (pppoeBarFill) pppoeBarFill.style.width = `${pppoe.activePercent || 0}%`;
+        if (pppoeBarOnline) pppoeBarOnline.textContent = `Online: ${pppoe.active || 0}`;
+        if (pppoeBarOffline) pppoeBarOffline.textContent = `Offline: ${pppoe.offline || 0}`;
+
+        // Hotspot Ratio Box
+        const hotspotPercent = (hotspot.total > 0) ? Math.round(((hotspot.active || 0) / hotspot.total) * 100) : 0;
+        const hotspotRatioEl = document.getElementById('hotspot-ratio-num');
+        const hotspotBarFill = document.getElementById('hotspot-bar-fill');
+        const hotspotBarActive = document.getElementById('hotspot-bar-active');
+        const hotspotBarTotal = document.getElementById('hotspot-bar-total');
+        if (hotspotRatioEl) hotspotRatioEl.textContent = `${hotspotPercent}%`;
+        if (hotspotBarFill) hotspotBarFill.style.width = `${hotspotPercent}%`;
+        if (hotspotBarActive) hotspotBarActive.textContent = `Active: ${hotspot.active || 0}`;
+        if (hotspotBarTotal) hotspotBarTotal.textContent = `${hotspot.routerName || 'Hotspot'}: ${hotspot.total || 0}`;
+
+        // Progress Bar Kanan: TR-069 Fiber Modems
+        const ontPercent = totalOnt > 0 ? Math.round((onlineOnt / totalOnt) * 100) : 0;
+        const ontRatioNum = document.getElementById('ont-ratio-num');
+        const ontBarFill = document.getElementById('ont-bar-fill');
+        const ontBarOnline = document.getElementById('ont-bar-online');
+        const ontBarCritical = document.getElementById('ont-bar-critical');
+        if (ontRatioNum) ontRatioNum.textContent = `${ontPercent}%`;
+        if (ontBarFill) ontBarFill.style.width = `${ontPercent}%`;
+        if (ontBarOnline) ontBarOnline.textContent = `Online: ${onlineOnt} / ${totalOnt}`;
+        if (ontBarCritical) ontBarCritical.textContent = `Kritis: ${criticalOnt}`;
+
+        document.getElementById('cust-active-val').textContent = `${billing.active || 0} Pelanggan`;
+        document.getElementById('cust-suspended-val').textContent = `${billing.suspended || 0} Pelanggan`;
+        document.getElementById('client-total-badge').textContent = `${(pppoe.active || 0) + (hotspot.active || 0)} Sesi Aktif`;
+        document.getElementById('sec-blocked-val').textContent = `${data.security ? (data.security.blockedCount || 0) : 0} Kali`;
+
+      } catch (err) {
+        console.error('NOC Load Error:', err);
+        const headerPulseText = document.getElementById('header-pulse-text');
+        const headerPulse = document.getElementById('header-pulse');
+        if (headerPulseText) headerPulseText.textContent = 'DISCONNECTED';
+        if (headerPulse) headerPulse.style.color = 'var(--rose)';
+
+        // PASTIKAN OVERLAY LOADING LANGSUNG HILANG
+        const overlay = document.getElementById('loading-overlay');
+        if (overlay) {
+          overlay.style.opacity = '0';
+          overlay.style.pointerEvents = 'none';
+        }
+      }
     }
   </script>
 </body>

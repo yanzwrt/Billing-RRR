@@ -6781,9 +6781,31 @@ router.get('/inventory', requireAdminSession, requireSidebarMenuAccess('inventor
   });
   const stats = inventorySvc.getInventoryStats();
 
+  // SESUDAH (DILENGKAPI CEK APAKAH SUDAH TERPASANG MODEM AKTIF):
   let customers = [];
   try {
-    customers = db.prepare('SELECT id, name, pppoe_username as pppoe_user, phone FROM customers ORDER BY name ASC').all() || [];
+    customers = db.prepare(`
+      SELECT c.id, c.name, c.pppoe_username as pppoe_user, c.phone,
+             (SELECT COUNT(1) 
+              FROM inventory_stock s 
+              JOIN inventory_items i ON s.item_id = i.id
+              LEFT JOIN inventory_categories cat ON i.category_id = cat.id
+              WHERE s.assigned_to_customer_id = c.id 
+                AND s.status = 'assigned'
+                AND (
+                  cat.name LIKE '%ONT%' OR cat.name LIKE '%Router%' OR cat.name LIKE '%Modem%'
+                  OR i.name LIKE '%ONT%' OR i.name LIKE '%F609%' OR i.name LIKE '%HG%' OR i.name LIKE '%Fiberhome%' OR i.name LIKE '%ZTE%'
+                )
+             ) as has_active_modem,
+             (SELECT i.name 
+              FROM inventory_stock s 
+              JOIN inventory_items i ON s.item_id = i.id
+              WHERE s.assigned_to_customer_id = c.id AND s.status = 'assigned'
+              ORDER BY s.id DESC LIMIT 1
+             ) as current_device_name
+      FROM customers c 
+      ORDER BY c.name ASC
+    `).all() || [];
   } catch (e) {
     customers = [];
   }
@@ -6956,6 +6978,30 @@ router.post('/inventory/stock/return', requireAdminSession, express.urlencoded({
     req.session._msg = { type: 'error', text: 'Gagal mencatat pengembalian: ' + e.message };
   }
   res.redirect('/admin/inventory');
+});
+
+/* [TAMBAHAN: ENDPOINT EDIT & HAPUS LOG INVENTARIS]                           */
+router.post('/inventory/logs/:id/update', requireAdminSession, express.urlencoded({ extended: true }), (req, res) => {
+  try {
+    inventorySvc.updateInventoryLog(req.params.id, req.body);
+    req.session._msg = { type: 'success', text: 'Catatan riwayat mutasi berhasil diperbarui.' };
+  } catch (e) {
+    req.session._msg = { type: 'error', text: 'Gagal memperbarui riwayat: ' + e.message };
+  }
+  res.redirect('/admin/inventory?tab=logs');
+});
+
+router.post('/inventory/logs/:id/delete', requireAdminSession, (req, res) => {
+  try {
+    inventorySvc.deleteInventoryLogWithRollback(req.params.id);
+    req.session._msg = { 
+      type: 'success', 
+      text: 'Riwayat mutasi berhasil dihapus dan saldo stok gudang otomatis dikembalikan (Rollback).' 
+    };
+  } catch (e) {
+    req.session._msg = { type: 'error', text: 'Gagal menghapus riwayat: ' + e.message };
+  }
+  res.redirect('/admin/inventory?tab=logs');
 });
 
 router.get('/audit-logs', requireAdminSession, requireSidebarMenuAccess('audit_logs'), restrictToAdmin, (req, res) => {
@@ -7335,26 +7381,19 @@ router.get('/mikrotik', requireAdminSession, requireSidebarMenuAccess('mikrotik'
   });
 });
 
-router.get('/mikrotik/display', requireAdminSession, (req, res) => {
-  const routers = mikrotikService.getAllRouters();
+router.get('/mikrotik/display', (req, res) => {
+  const nocService = require('../services/nocService');
+  const allRouters = nocService.getNocRouters();
   const settings = getSettings();
-  const defaultRouter = {
-    id: 'settings_json',
-    name: 'MikroTik (settings.json)',
-    host: settings.mikrotik_host || '',
-    user: settings.mikrotik_user || '',
-    port: settings.mikrotik_port || 8728,
-    is_active: true
-  };
-  
-  const allRouters = [defaultRouter, ...routers];
 
   res.render('admin/mikrotik_display', {
     title: 'MikroTik NOC Display',
     company: company(),
     routers: allRouters,
     msg: flashMsg(req),
-    settings
+    settings,
+    isPublicNoc: false,
+    lang: req.session?.lang || 'id'
   });
 });
 
@@ -7972,100 +8011,12 @@ router.post('/api/mikrotik/hotspot-users/:id/delete', requireAdmin, async (req, 
   try { await mikrotikService.deleteHotspotUser(req.params.id, req.query.routerId); res.json({ success: true }); } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.get('/api/mikrotik/monitoring-display-data', requireAdmin, async (req, res) => {
-  const routerId = req.query.routerId ? (req.query.routerId === 'null' || req.query.routerId === 'settings' || req.query.routerId === 'settings_json' ? 'settings_json' : Number(req.query.routerId)) : 'settings_json';
+router.get('/api/mikrotik/monitoring-display-data', async (req, res) => {
+  const routerId = req.query.routerId || 'settings_json';
   try {
-    const conn = await mikrotikService.getConnection(routerId);
-    if (!conn) {
-      return res.status(500).json({ error: 'Gagal terhubung ke router MikroTik.' });
-    }
-
-    // Parallel execution for performance
-    const [
-      resource,
-      interfaces,
-      activePppoe,
-      secrets,
-      activeHotspot,
-      hotspotUsers
-    ] = await Promise.all([
-      // 1. Resources
-      mikrotikService.getSystemResource(routerId).catch(err => {
-        logger.error('[NOC Display] Error resource:', err.message);
-        return null;
-      }),
-      // 2. Interfaces
-      conn.client.menu('/interface').get().catch(err => {
-        logger.error('[NOC Display] Error interfaces:', err.message);
-        return [];
-      }),
-      // 3. Active PPPoE
-      mikrotikService.getPppoeActive(routerId).catch(err => {
-        logger.error('[NOC Display] Error active PPPoE:', err.message);
-        return [];
-      }),
-      // 4. PPPoE Secrets
-      mikrotikService.getPppoeSecrets(routerId).catch(err => {
-        logger.error('[NOC Display] Error secrets:', err.message);
-        return [];
-      }),
-      // 5. Active Hotspot
-      mikrotikService.getHotspotActive(routerId).catch(err => {
-        logger.error('[NOC Display] Error active Hotspot:', err.message);
-        return [];
-      }),
-      // 6. Hotspot Users
-      mikrotikService.getHotspotUsers(routerId).catch(err => {
-        logger.error('[NOC Display] Error hotspot users:', err.message);
-        return [];
-      })
-    ]);
-
-    // Calculate PPPoE Offline
-    const activePppoeNames = new Set((activePppoe || []).map(s => String(s.name).trim()));
-    const offlinePppoe = (secrets || []).filter(s => {
-      const isOnline = activePppoeNames.has(String(s.name).trim());
-      const isDisabled = s.disabled === true || s.disabled === 'true';
-      return !isOnline && !isDisabled;
-    });
-
-    // Format resources
-    const resData = {
-      cpu: resource ? String(resource['cpu-load'] || resource.cpuLoad || resource['cpu'] || '0') : '0',
-      freeMemory: resource ? Number(resource['free-memory'] || resource.freeMemory) || 0 : 0,
-      totalMemory: resource ? Number(resource['total-memory'] || resource.totalMemory) || 0 : 0,
-      uptime: resource ? String(resource['uptime'] || '00:00:00') : '00:00:00',
-      boardName: resource ? String(resource['board-name'] || resource.boardName || 'MikroTik') : 'MikroTik',
-      version: resource ? String(resource['version'] || 'N/A') : 'N/A'
-    };
-
-    // Format interfaces (only return fields needed)
-    const formattedInterfaces = (interfaces || []).map(i => {
-      return {
-        name: i.name,
-        type: i.type,
-        running: i.running === true || i.running === 'true' || i.running === 'yes',
-        disabled: i.disabled === true || i.disabled === 'true' || i.disabled === 'yes',
-        bytesIn: Number(i['rx-byte'] || i['rx-bytes'] || i['bytes-in']) || 0,
-        bytesOut: Number(i['tx-byte'] || i['tx-bytes'] || i['bytes-out']) || 0
-      };
-    });
-
-    res.json({
-      ok: true,
-      resources: resData,
-      interfaces: formattedInterfaces,
-      pppoe: {
-        active: activePppoe ? activePppoe.length : 0,
-        offline: offlinePppoe ? offlinePppoe.length : 0,
-        total: secrets ? secrets.length : 0
-      },
-      hotspot: {
-        active: activeHotspot ? activeHotspot.length : 0,
-        total: hotspotUsers ? hotspotUsers.length : 0
-      },
-      timestamp: Date.now()
-    });
+    const nocService = require('../services/nocService');
+    const data = await nocService.getNocData(routerId);
+    res.json(data);
   } catch (e) {
     logger.error('[NOC Display API] Error:', e.message);
     res.status(500).json({ error: e.message });

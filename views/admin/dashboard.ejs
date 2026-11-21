@@ -5,10 +5,7 @@
   <title><%= title %> | <%= company %></title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="/css/admin.css">
-  <!-- ================================================================= -->
   <!-- [TAMBAHAN: META TAG PWA ADMIN & MANIFEST LINKAGE]                 -->
-  <!-- Fungsi: Menghilangkan bilah hitam Chrome CCT agar Dashboard Full-Screen -->
-  <!-- ================================================================= -->
   <link rel="manifest" href="/manifest-admin.webmanifest">
   <meta name="theme-color" content="#0d1117">
   <meta name="mobile-web-app-capable" content="yes">
@@ -217,7 +214,7 @@
 	
     <% const isStaffUser = (typeof session !== 'undefined' && session && session.isStaff); %>
 
-    <!-- TAB NAVIGATION (SELALU DI ATAS KONTEN APAPUN) -->
+    <!-- TAB NAVIGATION -->
     <div class="tab-bar-container">
       <div class="tab-bar">
         <button class="tab-btn active" id="tab-dash" onclick="showTab('dashboard')">
@@ -234,9 +231,7 @@
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════ -->
     <!-- 1. DASHBOARD SECTION                                    -->
-    <!-- ═══════════════════════════════════════════════════════ -->
     <div id="dashboard-section">
 
       <% if (!isStaffUser) { %>
@@ -405,9 +400,7 @@
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════ -->
     <!-- 2. MONITORING ONU SECTION                               -->
-    <!-- ═══════════════════════════════════════════════════════ -->
     <div id="monitoring-section" style="display:none">
 
       <!-- Stats mini -->
@@ -485,9 +478,7 @@
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════ -->
     <!-- 3. MONITORING TRAFIK INTERFACE SECTION                  -->
-    <!-- ═══════════════════════════════════════════════════════ -->
     <div id="traffic-section" style="display:none">
       <!-- Toolbar Pemilih Router & Interface -->
       <div class="card" style="margin-bottom:16px;">
@@ -610,10 +601,10 @@
           </table>
         </div>
       </div>
-    </div> <!-- akhir traffic-section -->
-
-  </div> <!-- akhir .page (TUTUP DI SINI AGAR SEMUA SECTION BERADA DI DALAM CONTAINER UTAMA) -->
-</div> <!-- akhir .mw -->
+    </div> 
+	
+  </div> 
+</div> 
 
 <!-- ── MODAL DETAIL DEVICE ── -->
 <div class="mo" id="deviceModal">

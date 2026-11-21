@@ -174,7 +174,6 @@
         </div>
       </div>
       <div class="card-bd" style="padding-bottom:0">
-        <!-- 🟩 GANTI DENGAN KODE BERIKUT (Menambahkan id="custSearchInput" dan handler live search): -->
         <form method="GET" action="/admin/customers" class="srow" onsubmit="return false;">
           <div class="sinput" style="max-width:340px">
             <i class="bi bi-search"></i>
@@ -1060,7 +1059,6 @@
             </select>
           </div>
         </div>
-        <!-- 🟩 GANTI DENGAN KODE BERIKUT: -->
         <div class="form-row">
           <div class="fg">
             <label class="fl"><%= t('admin.billing.received_by', 'Diterima Oleh') %></label>
@@ -1131,7 +1129,7 @@
   </div>
 </div>
 
-<!-- ==================== [AWAL: BLOK MODAL DETAIL FIX DARK & LIGHT + TOMBOL LEGA] ==================== -->
+<!-- ==================== [BLOK MODAL DETAIL FIX DARK & LIGHT + TOMBOL LEGA] ==================== -->
 <style>
   /* Styling Khusus Modal Detail agar 100% Kontras Sempurna di Dark & Light */
   #viewDetailModal .mb {
@@ -1160,7 +1158,7 @@
   }
 </style>
 
-<!-- ==================== [AWAL: BLOK MODAL DETAIL FIX HEADER RAMPING & TANPA ABU] ==================== -->
+<!-- ==================== [BLOK MODAL DETAIL FIX HEADER RAMPING & TANPA ABU] ==================== -->
 <style>
   /* Styling Bersih: Tanpa Background Abu di Light Mode, Kontras Tinggi di Dark Mode */
   #viewDetailModal .mb {
@@ -1354,7 +1352,7 @@
                 </div>
               </td>
             </tr>
-			<!-- ==================== [AWAL: BARIS PERANGKAT TERSAMBUNG GENIEACS] ==================== -->
+			<!-- ==================== [PERANGKAT TERSAMBUNG GENIEACS] ==================== -->
             <tr>
               <td class="text-muted-auto" style="padding:4px 0;">Perangkat Konek</td>
               <td style="padding:4px 0;">
@@ -1363,7 +1361,7 @@
                 </span>
               </td>
             </tr>
-<!-- ==================== [AKHIR: BARIS PERANGKAT TERSAMBUNG GENIEACS] ==================== -->
+
           </table>
         </div>
       </div>
@@ -1414,7 +1412,7 @@
         </div>
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px;">
           <table style="width:100%; border-collapse:collapse; font-size:11.5px;">
-            <!-- ==================== [AWAL: BARIS NIK KTP SENSOR BINTANG] ==================== -->
+            <!-- ==================== [BARIS NIK KTP SENSOR BINTANG] ==================== -->
             <tr>
               <td class="text-muted-auto" style="padding:3px 0; width:38%;">NIK / KTP</td>
               <td style="padding:3px 0;">
@@ -1535,7 +1533,7 @@
     </div>
   </div>
 </div>
-<!-- ==================== [AKHIR: DIALOG KONFIRMASI MODERN] ==================== -->
+
 <!-- ==================== [AWAL: MODAL INPUT PROMPT KUSTOM UNTUK WIFI & PASSWORD] ==================== -->
 <div class="mo" id="customPromptModal" style="z-index:99999;">
   <div class="mb" style="max-width:420px; border-radius:12px; background:var(--bg2, var(--card-bg, #ffffff)); border:1px solid var(--border); box-shadow:0 20px 45px rgba(0,0,0,0.3); padding:0; overflow:hidden;">
@@ -2170,7 +2168,6 @@ async function refreshCustomerDeviceInfo() {
 };
 
 // 5. Ubah SSID & Password WiFi
-// ==================== [AWAL: JAVASCRIPT POPUP KUSTOM GANTI NAMA WIFI & PASSWORD] ====================
 
 // Helper Tampilkan Modal Input Prompt Elegan
 let customPromptSubmitCallback = null;
@@ -2353,7 +2350,6 @@ function promptChangeWifiPassword() {
 
 window.promptChangeSSID = promptChangeSSID;
 window.promptChangeWifiPassword = promptChangeWifiPassword;
-// ==================== [AKHIR: JAVASCRIPT POPUP KUSTOM GANTI NAMA WIFI & PASSWORD] ====================
 
 // 6. Reboot Modem ONU SNMP OLT
 let currentCachedDeviceInfo = null;
@@ -2426,7 +2422,7 @@ refreshCustomerDeviceInfo = async function() {
   }
 };
 
-// ==================== [AWAL: EKSEKUSI REBOOT VIA OLT BAWAAN] ====================
+// ==================== [EKSEKUSI REBOOT VIA OLT BAWAAN] ====================
 function triggerRebootOnuViaOLT() {
   if (!currentActiveCustomerId) return;
   const currentCust = customersData.find(x => Number(x.id) === Number(currentActiveCustomerId));
@@ -2461,9 +2457,8 @@ function triggerRebootOnuViaOLT() {
 
 window.triggerRebootOnuViaOLT = triggerRebootOnuViaOLT;
 window.triggerRebootONU = triggerRebootOnuViaOLT;
-// ==================== [AKHIR: EKSEKUSI REBOOT VIA OLT BAWAAN] ====================
 
-// ==================== [AWAL: JS HANDLER PING DENGAN FORMAT BARIS KE BAWAH] ====================
+// ==================== [JS HANDLER PING DENGAN FORMAT BARIS KE BAWAH] ====================
 async function triggerCustomerPing() {
   if (!currentActiveCustomerId) return;
   const currentCust = customersData.find(x => Number(x.id) === Number(currentActiveCustomerId));
@@ -3095,9 +3090,6 @@ document.getElementById('bulkCustDeleteBtn')?.addEventListener('click', function
   form.submit();
 });
 
-// ============================================================================
-// >>> [GANTI KODE DOMContentLoaded DENGAN VERSI INI] <<<
-// ============================================================================
 document.addEventListener('DOMContentLoaded', () => {
   const urlParams = new URLSearchParams(window.location.search);
   const openDetailId = urlParams.get('open_detail_id');
@@ -3140,7 +3132,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 setTimeout(()=>document.querySelectorAll('.alert').forEach(a=>a.style.display='none'),4000);
 
-// === [AWAL KODE BARU: BACKGROUND SYNC TRAFIK TABEL PELANGGAN] ===
+// === [BACKGROUND SYNC TRAFIK TABEL PELANGGAN] ===
 async function initCustomerTableTrafficBackgroundSync() {
   if (!Array.isArray(customersData) || customersData.length === 0) return;
 

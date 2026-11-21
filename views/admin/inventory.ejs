@@ -75,6 +75,7 @@
     .log-badge-in { background: #dcfce7; color: #15803d; }
     .log-badge-out { background: #fee2e2; color: #b91c1c; }
     .log-badge-assigned { background: #e0f2fe; color: #0369a1; }
+	.log-badge-server { background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; }
     .log-badge-adjust { background: #fef3c7; color: #b45309; }
     .log-badge-return { background: #ffedd5; color: #c2410c; }
     .log-badge-broken { background: #f3e8ff; color: #7e22ce; }
@@ -95,6 +96,83 @@
     .fs12 { font-size: 12px; }
     .flex-1 { flex: 1 1 auto; }
     .w320 { width: 320px; }
+
+    /* ── CUSTOM CENTER MODAL (DARK / LIGHT COMPATIBLE) ── */
+    .app-center-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(13, 17, 23, 0.75);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .app-center-overlay.show {
+      display: flex;
+      opacity: 1;
+    }
+    .app-center-dialog {
+      background: var(--bg2, #161b22);
+      color: var(--text, #e6edf3);
+      border: 1px solid var(--border, #30363d);
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5);
+      border-radius: 16px;
+      width: 90%;
+      max-width: 440px;
+      padding: 24px;
+      text-align: center;
+      transform: scale(0.92);
+      transition: transform 0.2s ease;
+    }
+    .app-center-overlay.show .app-center-dialog {
+      transform: scale(1);
+    }
+    .app-center-icon {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      font-size: 28px;
+    }
+    .app-center-icon.warn { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .app-center-icon.danger { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .app-center-icon.info { background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .app-center-icon.success { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .app-center-title {
+      font-size: 17px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      color: var(--text, #f0f6fc);
+    }
+    .app-center-desc {
+      font-size: 13.5px;
+      color: var(--muted, #8b949e);
+      line-height: 1.5;
+      margin-bottom: 22px;
+      word-break: break-word;
+    }
+    .app-center-btns {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+    .app-center-btns button {
+      min-width: 105px;
+      padding: 10px 18px;
+      font-size: 13.5px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
   </style>
 </head>
 <body>
@@ -124,8 +202,9 @@
       </div>
     <% } %>
 
-    <!-- SUMMARY DASHBOARD CARDS -->
-    <div class="inv-stats-grid">
+    <!-- SUMMARY DASHBOARD CARDS (TERMASUK TOTAL ASET RP) -->
+    <div class="inv-stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+      <!-- 1. Total Jenis Barang -->
       <div class="inv-stat-card">
         <div class="inv-stat-icon" style="background:#eff6ff; color:#2563eb;"><i class="bi bi-boxes"></i></div>
         <div class="inv-stat-info">
@@ -133,20 +212,41 @@
           <div class="inv-stat-lbl">Jenis Barang</div>
         </div>
       </div>
+
+      <!-- 2. Tersedia di Gudang -->
       <div class="inv-stat-card">
-        <div class="inv-stat-icon" style="background:#dcfce7; color:#16a34a;"><i class="bi bi-check-circle"></i></div>
+        <div class="inv-stat-icon" style="background:#dcfce7; color:#16a34a;"><i class="bi bi-box-seam"></i></div>
         <div class="inv-stat-info">
           <div class="inv-stat-val" style="color:#16a34a;"><%= stats ? stats.total_stock_available : 0 %></div>
           <div class="inv-stat-lbl">Tersedia di Gudang</div>
         </div>
       </div>
+
+      <!-- 3. Terpasang Lapangan & Server -->
       <div class="inv-stat-card">
-        <div class="inv-stat-icon" style="background:#e0f2fe; color:#0284c7;"><i class="bi bi-person-workspace"></i></div>
+        <div class="inv-stat-icon" style="background:#e0f2fe; color:#0284c7;"><i class="bi bi-router"></i></div>
         <div class="inv-stat-info">
-          <div class="inv-stat-val" style="color:#0284c7;"><%= stats ? stats.total_stock_assigned : 0 %></div>
-          <div class="inv-stat-lbl">Terpasang di Pelanggan</div>
+          <div class="inv-stat-val" style="color:#0284c7;">
+            <%= (stats ? (stats.total_stock_assigned + stats.total_stock_server) : 0) %>
+          </div>
+          <div class="inv-stat-lbl">
+		  Terpasang (<%= stats ? stats.total_stock_assigned : 0 %> Clt / <%= stats ? stats.total_stock_server : 0 %> NOC / <%= stats ? (stats.total_stock_operational || 0) : 0 %> Ops)
+		  </div>
         </div>
       </div>
+
+      <!-- 4. TOTAL NILAI KESELURUHAN ASET RUPIAH -->
+      <div class="inv-stat-card" style="border: 1.5px solid #6366f1; background: rgba(99, 102, 241, 0.05);">
+        <div class="inv-stat-icon" style="background:#e0e7ff; color:#4f46e5;"><i class="bi bi-cash-stack"></i></div>
+        <div class="inv-stat-info">
+          <div class="inv-stat-val" style="color:#4f46e5; font-size:18px;">
+            Rp <%= (stats && stats.total_asset_rp) ? stats.total_asset_rp.toLocaleString('id-ID') : '0' %>
+          </div>
+          <div class="inv-stat-lbl" style="color:#6366f1; font-weight:700;">Estimasi Total Aset (Rp)</div>
+        </div>
+      </div>
+
+      <!-- 5. Stok Kritis -->
       <div class="inv-stat-card">
         <div class="inv-stat-icon" style="background:#fee2e2; color:#dc2626;"><i class="bi bi-exclamation-triangle"></i></div>
         <div class="inv-stat-info">
@@ -235,8 +335,16 @@
                         <% } %>
                       </span>
                     </td>
-                    <td class="num text-muted" style="font-size:12px;">
-                      <%= item.stock_assigned || 0 %> <%= item.unit %>
+                    <td class="num" style="font-size:12px;">
+                      <% if ((item.stock_assigned || 0) > 0 || (item.stock_server || 0) > 0) { %>
+                        <span style="color:#0284c7; font-weight:700;"><%= (item.stock_assigned || 0) + (item.stock_server || 0) %> <%= item.unit %></span>
+                        <div class="fs11 text-muted">
+                          <% if ((item.stock_assigned || 0) > 0) { %>Pelanggan: <%= item.stock_assigned %> | <% } %>
+                          <% if ((item.stock_server || 0) > 0) { %>Server: <%= item.stock_server %><% } %>
+                        </div>
+                      <% } else { %>
+                        <span class="text-muted">0 <%= item.unit %></span>
+                      <% } %>
                     </td>
                     <td class="num text-muted" style="font-size:12px;">
                       <% if ((item.stock_broken || 0) > 0) { %>
@@ -264,9 +372,9 @@
                         <button class="btn btn-g btn-icon" onclick="openEditItemById(<%= item.id %>)" title="Edit Data Barang">
                           <i class="bi bi-pencil"></i>
                         </button>
-                        <!-- 5. Hapus Barang -->
-                        <form action="/admin/inventory/item/delete/<%= item.id %>" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus barang ini?');" style="display:inline;">
-                          <button class="btn btn-g btn-icon text-muted" title="Hapus Barang"><i class="bi bi-trash"></i></button>
+                        <!-- 5. Hapus Barang dengan Center Modal -->
+                        <form id="delete-item-form-<%= item.id %>" action="/admin/inventory/item/delete/<%= item.id %>" method="POST" style="display:inline;">
+                          <button type="button" class="btn btn-g btn-icon text-muted" onclick="confirmDeleteItem(<%= item.id %>, '<%= item.name.replace(/'/g, '\\\'') %>')" title="Hapus Barang"><i class="bi bi-trash"></i></button>
                         </form>
                       </div>
                     </td>
@@ -300,9 +408,11 @@
           </div>
           <form method="GET" action="/admin/inventory" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
             <input type="hidden" name="tab" value="logs">
-            <select class="fc fc-sm" name="log_type" onchange="this.form.submit()" style="width:140px;">
+            <!-- SESUDAH: -->
+            <select class="fc fc-sm" name="log_type" onchange="this.form.submit()" style="width:150px;">
               <option value="">Semua Tipe</option>
               <option value="in" <%= (query && query.log_type === 'in') ? 'selected' : '' %>>Stok Masuk (IN)</option>
+              <option value="server" <%= (query && query.log_type === 'server') ? 'selected' : '' %>>Server / NOC</option>
               <option value="out" <%= (query && query.log_type === 'out') ? 'selected' : '' %>>Stok Keluar (OUT)</option>
               <option value="assigned" <%= (query && query.log_type === 'assigned') ? 'selected' : '' %>>Terpasang (Pelanggan)</option>
               <option value="adjust" <%= (query && query.log_type === 'adjust') ? 'selected' : '' %>>Opname (Penyesuaian)</option>
@@ -334,6 +444,7 @@
                 <th>Petugas</th>
                 <th>No. Referensi</th>
                 <th>Catatan / Keperluan</th>
+                <th style="text-align:center; width:80px;">Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -354,7 +465,8 @@
                       <% 
                         let bClass = 'log-badge-in';
                         let bLabel = 'Masuk';
-                        if (log.type === 'out') { bClass = 'log-badge-out'; bLabel = 'Keluar'; }
+                        if (log.type === 'server') { bClass = 'log-badge-server'; bLabel = 'Server/NOC'; }
+                        else if (log.type === 'out') { bClass = 'log-badge-out'; bLabel = 'Keluar'; }
                         else if (log.type === 'assigned') { bClass = 'log-badge-assigned'; bLabel = 'Terpasang'; }
                         else if (log.type === 'adjust') { bClass = 'log-badge-adjust'; bLabel = 'Opname'; }
                         else if (log.type === 'return') { bClass = 'log-badge-return'; bLabel = 'Kembali'; }
@@ -382,11 +494,28 @@
                       <%= log.reference_no ? log.reference_no : '-' %>
                     </td>
                     <td class="text-muted" style="font-size:11px; max-width:240px;"><%= log.note || '-' %></td>
+					<!-- [TAMBAHAN: TOMBOL AKSI EDIT & BATALKAN MUTASI] -->
+                    <td style="text-align:center;">
+                      <div class="flex jc-c gap" style="justify-content:center;">
+                        <button type="button" class="btn btn-g btn-icon" 
+                          onclick="openEditLogModal(<%= log.id %>, '<%= (log.recipient || '').replace(/'/g, '\\\'') %>', '<%= (log.reference_no || '').replace(/'/g, '\\\'') %>', '<%= (log.note || '').replace(/'/g, '\\\'') %>')" 
+                          title="Edit Catatan">
+                          <i class="bi bi-pencil"></i>
+                        </button>
+                        <form id="delete-log-form-<%= log.id %>" action="/admin/inventory/logs/<%= log.id %>/delete" method="POST" style="display:inline;">
+                          <button type="button" class="btn btn-g btn-icon text-danger" 
+                            onclick="confirmDeleteLog(<%= log.id %>, '<%= (log.item_name || 'Barang').replace(/'/g, '\\\'') %>', '<%= log.quantity %>')" 
+                            title="Batalkan & Rollback Stok">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </form>
+                      </div>
+                    </td>
                   </tr>
                 <% }) %>
               <% } else { %>
                 <tr>
-                  <td colspan="10" class="text-center" style="padding:40px; color:var(--muted);">
+                  <td colspan="11" class="text-center" style="padding:40px; color:var(--muted);">
                     <i class="bi bi-clock-history" style="font-size:32px; display:block; margin-bottom:8px;"></i>
                     Belum ada riwayat mutasi stok barang.
                   </td>
@@ -429,8 +558,8 @@
                           <button class="btn btn-g btn-icon" onclick="openEditCategoryById(<%= cat.id %>)" title="Edit Kategori">
                             <i class="bi bi-pencil"></i>
                           </button>
-                          <form action="/admin/inventory/category/delete/<%= cat.id %>" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus kategori ini?');">
-                            <button class="btn btn-g btn-icon text-danger" title="Hapus Kategori"><i class="bi bi-trash"></i></button>
+                          <form id="delete-cat-form-<%= cat.id %>" action="/admin/inventory/category/delete/<%= cat.id %>" method="POST" style="display:inline;">
+                            <button type="button" class="btn btn-g btn-icon text-danger" onclick="confirmDeleteCategory(<%= cat.id %>, '<%= cat.name.replace(/'/g, '\\\'') %>')" title="Hapus Kategori"><i class="bi bi-trash"></i></button>
                           </form>
                         </div>
                       </td>
@@ -581,7 +710,7 @@
         <div class="form-row">
           <div class="fg">
             <label class="fl">Harga Beli Satuan (Rp, Opsional)</label>
-            <input class="fc" type="number" name="price" placeholder="0">
+            <input class="fc" type="number" step="any" name="price" placeholder="0">
           </div>
           <div class="fg">
             <label class="fl">No. PO / Nota Pembelian</label>
@@ -641,9 +770,11 @@
             <label class="fl">Jumlah Keluar (Qty) *</label>
             <input class="fc" type="number" name="quantity" id="out_quantity" value="1" min="1" required>
           </div>
+          <!-- SESUDAH (TAMBAHKAN OPSI SERVER / NOC): -->
           <div class="fg">
             <label class="fl">Tujuan / Jenis Pengeluaran *</label>
             <select class="fs" name="type" id="out_type" onchange="onStockOutTypeChange(this.value)">
+              <option value="server">🖥️ Terpasang di Server / Ruang NOC</option>
               <option value="out">Pemakaian Teknisi / Operasional</option>
               <option value="assigned">Instalasi Terpasang ke Pelanggan</option>
               <option value="broken">Barang Rusak / Afkir</option>
@@ -653,14 +784,26 @@
         </div>
 
         <!-- Jika untuk pelanggan -->
-        <div class="fg" id="out-customer-group" style="display:none;">
-          <label class="fl">Pilih Pelanggan (Instalasi Baru / Maintenance)</label>
+       <div class="fg" id="out-customer-group" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <label class="fl" style="margin:0;">Pilih Pelanggan *</label>
+            <span id="cust-filter-note" style="font-size:11px; color:#0284c7; font-weight:600; display:none;">
+              <i class="bi bi-funnel"></i> Hanya pelanggan tanpa modem
+            </span>
+          </div>
           <select class="fs" name="customer_id" id="out_customer_id">
             <option value="">-- Pilih Pelanggan --</option>
             <% customers.forEach(c => { %>
-              <option value="<%= c.id %>"><%= c.name %> (<%= c.pppoe_user || c.phone || '-' %>)</option>
+              <option value="<%= c.id %>" 
+                data-has-modem="<%= c.has_active_modem > 0 ? '1' : '0' %>" 
+                data-device-name="<%= c.current_device_name || '' %>">
+                <%= c.name %> (<%= c.pppoe_user || c.phone || '-' %>) <%= c.has_active_modem > 0 ? '⚠️ [Sudah Terpasang: ' + (c.current_device_name || 'Modem') + ']' : '' %>
+              </option>
             <% }) %>
           </select>
+          <small id="cust-modem-warn" class="text-muted fs11" style="display:none; color:#dc2626; margin-top:4px;">
+            <i class="bi bi-info-circle"></i> Pelanggan yang belum terpasang ONT
+          </small>
         </div>
 
         <div class="form-row">
@@ -825,7 +968,118 @@
   </div>
 </div>
 
+<!-- ========================================== -->
+<!-- [TAMBAHAN: MODAL DIALOG NOTIFIKASI CENTER] -->
+<!-- ========================================== -->
+<div class="app-center-overlay" id="appCenterModal">
+  <div class="app-center-dialog">
+    <div class="app-center-icon info" id="appCenterIcon">
+      <i class="bi bi-info-circle-fill" id="appCenterIconI"></i>
+    </div>
+    <div class="app-center-title" id="appCenterTitle">Pemberitahuan</div>
+    <div class="app-center-desc" id="appCenterDesc">Pesan notifikasi</div>
+    <div class="app-center-btns" id="appCenterBtns">
+      <button type="button" class="btn btn-p" id="appCenterBtnOk">OK</button>
+    </div>
+  </div>
+</div>
+
 <script>
+  // ─── CUSTOM CENTER MODAL ENGINE ───────────────────────────────────────────
+  function showCenterAlert(title, message, type = 'info') {
+    return new Promise((resolve) => {
+      const overlay = document.getElementById('appCenterModal');
+      const iconWrap = document.getElementById('appCenterIcon');
+      const iconI = document.getElementById('appCenterIconI');
+      const titleEl = document.getElementById('appCenterTitle');
+      const descEl = document.getElementById('appCenterDesc');
+      const btnsWrap = document.getElementById('appCenterBtns');
+
+      iconWrap.className = 'app-center-icon ' + type;
+      if (type === 'warn') iconI.className = 'bi bi-exclamation-triangle-fill';
+      else if (type === 'danger') iconI.className = 'bi bi-x-circle-fill';
+      else if (type === 'success') iconI.className = 'bi bi-check-circle-fill';
+      else iconI.className = 'bi bi-info-circle-fill';
+
+      titleEl.textContent = title;
+      descEl.textContent = message;
+
+      btnsWrap.innerHTML = `
+        <button type="button" class="btn btn-p" id="appCenterBtnOk" style="background:var(--primary);color:#fff;">OK</button>
+      `;
+
+      document.getElementById('appCenterBtnOk').onclick = () => {
+        overlay.classList.remove('show');
+        resolve(true);
+      };
+
+      overlay.classList.add('show');
+    });
+  }
+
+  function showCenterConfirm(title, message, confirmText = 'Lanjutkan', cancelText = 'Batal', type = 'warn') {
+    return new Promise((resolve) => {
+      const overlay = document.getElementById('appCenterModal');
+      const iconWrap = document.getElementById('appCenterIcon');
+      const iconI = document.getElementById('appCenterIconI');
+      const titleEl = document.getElementById('appCenterTitle');
+      const descEl = document.getElementById('appCenterDesc');
+      const btnsWrap = document.getElementById('appCenterBtns');
+
+      iconWrap.className = 'app-center-icon ' + type;
+      if (type === 'danger') iconI.className = 'bi bi-trash-fill';
+      else iconI.className = 'bi bi-exclamation-triangle-fill';
+
+      titleEl.textContent = title;
+      descEl.textContent = message;
+
+      btnsWrap.innerHTML = `
+        <button type="button" class="btn btn-g" id="appCenterBtnCancel">${cancelText}</button>
+        <button type="button" class="btn ${type === 'danger' ? 'btn-d' : 'btn-p'}" id="appCenterBtnConfirm" style="background:${type === 'danger' ? 'var(--danger)' : 'var(--primary)'};color:#fff;">${confirmText}</button>
+      `;
+
+      document.getElementById('appCenterBtnCancel').onclick = () => {
+        overlay.classList.remove('show');
+        resolve(false);
+      };
+
+      document.getElementById('appCenterBtnConfirm').onclick = () => {
+        overlay.classList.remove('show');
+        resolve(true);
+      };
+
+      overlay.classList.add('show');
+    });
+  }
+
+  // Fungsi Konfirmasi Hapus Barang
+  async function confirmDeleteItem(itemId, itemName) {
+    const ok = await showCenterConfirm(
+      'Konfirmasi Hapus Barang',
+      `Apakah Anda yakin ingin menghapus barang "${itemName}"? Tindakan ini tidak dapat dibatalkan.`,
+      'Ya, Hapus',
+      'Batal',
+      'danger'
+    );
+    if (ok) {
+      document.getElementById('delete-item-form-' + itemId).submit();
+    }
+  }
+
+  // Fungsi Konfirmasi Hapus Kategori
+  async function confirmDeleteCategory(catId, catName) {
+    const ok = await showCenterConfirm(
+      'Konfirmasi Hapus Kategori',
+      `Apakah Anda yakin ingin menghapus kategori "${catName}"?`,
+      'Ya, Hapus',
+      'Batal',
+      'danger'
+    );
+    if (ok) {
+      document.getElementById('delete-cat-form-' + catId).submit();
+    }
+  }
+
   // ─── TAB NAVIGATION ────────────────────────────────────────────────────────
   function switchTab(tab) {
     document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
@@ -970,7 +1224,6 @@
     document.getElementById('out-avail-label').innerText = currentSelectedAvailable + ' ' + unit;
     infoBox.style.display = 'block';
 
-    // Cek apakah item punya serial number
     try {
       const res = await fetch('/admin/api/inventory/serials/' + itemId);
       const json = await res.json();
@@ -986,6 +1239,11 @@
       }
     } catch (e) {
       snBox.style.display = 'none';
+	  }
+	  
+	// Tambahkan baris ini di akhir fungsi onStockOutItemChange:
+    if (document.getElementById('out_type').value === 'assigned') {
+      applyCustomerFilterForSelectedProduct();
     }
   }
 
@@ -1002,19 +1260,74 @@
     const custGroup = document.getElementById('out-customer-group');
     if (type === 'assigned') {
       custGroup.style.display = 'block';
+      applyCustomerFilterForSelectedProduct();
     } else {
       custGroup.style.display = 'none';
     }
   }
 
-  function validateStockOutForm() {
+  // Fungsi otomatis mengecek apakah barang yang dipilih adalah jenis Modem/ONT/Router
+  function applyCustomerFilterForSelectedProduct() {
+    const itemSel = document.getElementById('out_item_id');
+    const custSel = document.getElementById('out_customer_id');
+    const noteEl = document.getElementById('cust-filter-note');
+    const warnEl = document.getElementById('cust-modem-warn');
+
+    if (!itemSel.value) return;
+
+    // Ambil teks nama barang yang sedang dipilih
+    const selectedText = (itemSel.options[itemSel.selectedIndex]?.text || '').toLowerCase();
+    
+    // Deteksi apakah barang ini adalah Modem/ONT/Router/Fiberhome/ZTE/Huawei
+    const isModemOrOnt = selectedText.includes('ont') || 
+                         selectedText.includes('modem') || 
+                         selectedText.includes('router') || 
+                         selectedText.includes('fiberhome') || 
+                         selectedText.includes('f609') || 
+                         selectedText.includes('hg6145') || 
+                         selectedText.includes('zte');
+
+    let hiddenCount = 0;
+
+    // Loop semua opsi pelanggan
+    for (let i = 1; i < custSel.options.length; i++) {
+      const opt = custSel.options[i];
+      const hasModem = opt.getAttribute('data-has-modem') === '1';
+
+      if (isModemOrOnt) {
+        if (hasModem) {
+          opt.style.display = 'none'; // Sembunyikan pelanggan yang sudah ada modemnya
+          opt.disabled = true;
+          hiddenCount++;
+        } else {
+          opt.style.display = '';
+          opt.disabled = false;
+        }
+      } else {
+        // Jika yang dikeluarkan adalah kabel/patchcord/klem, semua pelanggan boleh dipilih
+        opt.style.display = '';
+        opt.disabled = false;
+      }
+    }
+
+    if (isModemOrOnt && hiddenCount > 0) {
+      if (noteEl) noteEl.style.display = 'inline-block';
+      if (warnEl) warnEl.style.display = 'block';
+    } else {
+      if (noteEl) noteEl.style.display = 'none';
+      if (warnEl) warnEl.style.display = 'none';
+    }
+  }
+  
+
+  async function validateStockOutForm() {
     const qty = parseInt(document.getElementById('out_quantity').value, 10) || 0;
     if (qty <= 0) {
-      alert('Jumlah keluar minimal 1');
+      await showCenterAlert('Jumlah Tidak Valid', 'Jumlah keluar minimal 1.', 'warn');
       return false;
     }
     if (qty > currentSelectedAvailable) {
-      alert(`Stok tidak mencukupi! Tersedia di gudang: ${currentSelectedAvailable}, diminta: ${qty}`);
+      await showCenterAlert('Stok Kurang', `Stok tidak mencukupi! Tersedia di gudang: ${currentSelectedAvailable}, diminta: ${qty}.`, 'danger');
       return false;
     }
     return true;
@@ -1090,7 +1403,6 @@
       document.getElementById('v-stock-broken').innerText = `${item.stock_broken || 0} ${unit}`;
       document.getElementById('v-stock-min').innerText = `${item.min_stock || 0} ${unit}`;
 
-      // Set quick action buttons
       document.getElementById('btn-quick-in').onclick = function() {
         closeModal('modal-view-stock');
         openAddStockFor(item.id, item.name, unit);
@@ -1106,7 +1418,6 @@
         onStockAdjustItemChange(item.id);
       };
 
-      // Render Logs / Kartu Stok
       const tbody = document.getElementById('v-logs-body');
       if (logs && logs.length > 0) {
         tbody.innerHTML = '';
@@ -1138,7 +1449,6 @@
         tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding:20px;">Belum ada riwayat mutasi stok untuk barang ini.</td></tr>';
       }
 
-      // Render Serial Numbers jika ada yang ber-SN
       const serialRows = (stockList || []).filter(s => s.serial_number);
       if (serialRows.length > 0) {
         const snBody = document.getElementById('v-sn-body');
@@ -1171,6 +1481,61 @@
       document.getElementById('v-logs-body').innerHTML = `<tr><td colspan="8" class="text-center text-danger" style="padding:20px;">Error: ${err.message}</td></tr>`;
     }
   }
+  
+  // Buka Modal Edit Log
+  function openEditLogModal(logId, recipient, refNo, note) {
+    document.getElementById('form-edit-log').action = '/admin/inventory/logs/' + logId + '/update';
+    document.getElementById('elog_recipient').value = recipient || '';
+    document.getElementById('elog_reference').value = refNo || '';
+    document.getElementById('elog_note').value = note || '';
+    document.getElementById('modal-edit-log').classList.add('show');
+  }
+
+  // Konfirmasi Hapus Log dengan Modal Center (Rollback Stok)
+  async function confirmDeleteLog(logId, itemName, qty) {
+    const qtyText = (Number(qty) > 0 ? '+' : '') + qty;
+    const ok = await showCenterConfirm(
+      'Batalkan Mutasi & Rollback Stok',
+      `Batalkan mutasi transaksi barang "${itemName}" (${qtyText})?\n\nSistem otomatis mengembalikan saldo stok barang di gudang ke kondisi sebelum transaksi ini dibuat.`,
+      'Ya, Batalkan & Rollback',
+      'Tutup',
+      'danger'
+    );
+    if (ok) {
+      document.getElementById('delete-log-form-' + logId).submit();
+    }
+  }
 </script>
+<!-- ========================================== -->
+<!-- MODAL: EDIT RIWAYAT MUTASI LOG             -->
+<!-- ========================================== -->
+<div class="mo" id="modal-edit-log">
+  <div class="mb" style="max-width:480px;">
+    <div class="mh">
+      <div class="mt"><i class="bi bi-pencil-square"></i> Edit Keterangan Mutasi</div>
+      <button class="mc" onclick="closeModal('modal-edit-log')">&times;</button>
+    </div>
+    <form id="form-edit-log" method="POST" action="">
+      <div class="mbody">
+        <div class="fg">
+          <label class="fl">Penerima / Tujuan / Supplier</label>
+          <input class="fc" name="recipient" id="elog_recipient" placeholder="Contoh: Teknisi Budi / Ruang Server / Shopee">
+        </div>
+        <div class="fg">
+          <label class="fl">No. Referensi / PO / Nota</label>
+          <input class="fc" name="reference_no" id="elog_reference" placeholder="Contoh: PO-102, SPK-04">
+        </div>
+        <div class="fg">
+          <label class="fl">Catatan / Keterangan</label>
+          <textarea class="fc" name="note" id="elog_note" rows="3" placeholder="Alasan atau keterangan transaksi..."></textarea>
+        </div>
+      </div>
+      <div class="mf">
+        <button type="button" class="btn btn-g" onclick="closeModal('modal-edit-log')">Batal</button>
+        <button class="btn btn-p"><i class="bi bi-check-lg"></i> Simpan Perubahan</button>
+      </div>
+    </form>
+  </div>
+</div>
 </body>
 </html>
